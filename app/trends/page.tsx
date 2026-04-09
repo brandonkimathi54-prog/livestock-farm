@@ -20,17 +20,32 @@ export default function ProductionTrendsPage() {
   const [chartData, setChartData] = useState<ProductionData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [currentUserId, setCurrentUserId] = useState("");
 
   useEffect(() => {
-    fetchProductionTrends();
+    const storedUserId = localStorage.getItem("currentUserId") ?? "";
+    setCurrentUserId(storedUserId);
   }, []);
 
+  useEffect(() => {
+    if (currentUserId) {
+      fetchProductionTrends();
+    } else {
+      setIsLoading(false);
+    }
+  }, [currentUserId]);
+
   async function fetchProductionTrends() {
+    if (!currentUserId) {
+      setError("No logged in user found. Please login again.");
+      return;
+    }
     setIsLoading(true);
     try {
       const { data: productionData, error: fetchError } = await supabase
         .from("production_logs")
         .select("milk_kg, created_at")
+        .eq("user_id", currentUserId)
         .order("created_at", { ascending: true });
 
       if (fetchError) {
@@ -42,7 +57,8 @@ export default function ProductionTrendsPage() {
 
       const { data: livestockData, error: livestockError } = await supabase
         .from("livestock")
-        .select("id, health_status");
+        .select("id, health_status")
+        .eq("user_id", currentUserId);
 
       if (livestockError) {
         console.error("Error fetching livestock data:", livestockError);

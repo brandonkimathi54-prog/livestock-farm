@@ -30,10 +30,20 @@ export default function ExpensesPage() {
   const [isSavingPrice, setIsSavingPrice] = useState(false);
   const [inputPrice, setInputPrice] = useState(60);
   const [editingExpenseId, setEditingExpenseId] = useState<number | null>(null);
+  const [currentUserId, setCurrentUserId] = useState("");
 
   useEffect(() => {
-    fetchExpenses();
+    const storedUserId = localStorage.getItem("currentUserId") ?? "";
+    setCurrentUserId(storedUserId);
   }, []);
+
+  useEffect(() => {
+    if (currentUserId) {
+      fetchExpenses();
+    } else {
+      setIsLoading(false);
+    }
+  }, [currentUserId]);
 
   useEffect(() => {
     // Update input price when milk price changes (e.g., from database load)
@@ -48,11 +58,19 @@ export default function ExpensesPage() {
   }, [milkPricePerKg, totalMilkKg, totalCosts]);
 
   async function fetchExpenses() {
+    if (!currentUserId) {
+      setError("No logged in user found. Please login again.");
+      return;
+    }
     setIsLoading(true);
     const [expensesRes, productionRes, settingsRes] = await Promise.all([
-      supabase.from("expenses").select("*").order("created_at", { ascending: false }),
-      supabase.from("production_logs").select("milk_kg").order("created_at", { ascending: false }),
-      supabase.from("farm_settings").select("milk_price_per_kg").eq("id", 1).single(),
+      supabase.from("expenses").select("*").eq("user_id", currentUserId).order("created_at", { ascending: false }),
+      supabase
+        .from("production_logs")
+        .select("milk_kg")
+        .eq("user_id", currentUserId)
+        .order("created_at", { ascending: false }),
+      supabase.from("farm_settings").select("milk_price_per_kg").eq("user_id", currentUserId).single(),
     ]);
 
     if (expensesRes.error) {
@@ -90,7 +108,7 @@ export default function ExpensesPage() {
       const { error } = await supabase
         .from("farm_settings")
         .update({ milk_price_per_kg: newPrice })
-        .eq("id", 1);
+        .eq("user_id", currentUserId);
 
       if (error) {
         console.error("Error updating milk price:", error);
@@ -113,7 +131,7 @@ export default function ExpensesPage() {
     }
 
     try {
-      const { error } = await supabase.from("expenses").delete().eq("id", id);
+      const { error } = await supabase.from("expenses").delete().eq("id", id).eq("user_id", currentUserId);
 
       if (error) {
         console.error("Error deleting expense:", error);
@@ -147,6 +165,12 @@ export default function ExpensesPage() {
     setError("");
     setIsSaving(true);
 
+    if (!currentUserId) {
+      setError("No logged in user found. Please login again.");
+      setIsSaving(false);
+      return;
+    }
+
     const parsedAmount = Number(amount);
     if (!Number.isFinite(parsedAmount) || parsedAmount < 0) {
       setError("Please provide a valid amount.");
@@ -164,10 +188,12 @@ export default function ExpensesPage() {
           amount: parsedAmount,
           created_at: expenseDate,
         })
-        .eq("id", editingExpenseId);
+        .eq("id", editingExpenseId)
+        .eq("user_id", currentUserId);
     } else {
       // Insert new expense
       result = await supabase.from("expenses").insert({
+        user_id: currentUserId,
         category,
         amount: parsedAmount,
         created_at: expenseDate,

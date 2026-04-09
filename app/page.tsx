@@ -53,11 +53,15 @@ export default function HomePage() {
       return;
     }
 
-    const { error: insertError } = await supabase.from("profiles").insert({
-      farm_name: trimmedFarmName,
-      username: trimmedUsername,
-      password: trimmedPassword,
-    });
+    const { data: insertedProfile, error: insertError } = await supabase
+      .from("profiles")
+      .insert({
+        farm_name: trimmedFarmName,
+        username: trimmedUsername,
+        password: trimmedPassword,
+      })
+      .select("id, farm_name")
+      .single();
 
     if (insertError) {
       console.log("Supabase Error Details:", insertError);
@@ -65,11 +69,15 @@ export default function HomePage() {
       return;
     }
 
-    localStorage.setItem("marketplaceFarmName", trimmedFarmName);
+    localStorage.setItem("marketplaceFarmName", insertedProfile?.farm_name ?? trimmedFarmName);
+    if (insertedProfile?.id !== undefined && insertedProfile?.id !== null) {
+      localStorage.setItem("currentUserId", String(insertedProfile.id));
+    }
     router.push("/shop");
   }
 
   async function handleLogin() {
+    localStorage.removeItem("user");
     const trimmedUsername = username.trim();
     const trimmedPassword = String(password.trim());
 
@@ -84,7 +92,7 @@ export default function HomePage() {
 
     const { data, error: loginError } = await supabase
       .from("profiles")
-      .select("farm_name, username")
+      .select("id, farm_name, username")
       .ilike("username", trimmedUsername)
       .eq("password", trimmedPassword)
       .limit(1);
@@ -105,6 +113,9 @@ export default function HomePage() {
     const resolvedFarmName = data[0].farm_name?.trim() || "";
     if (resolvedFarmName) {
       localStorage.setItem("marketplaceFarmName", resolvedFarmName);
+    }
+    if (data[0].id !== undefined && data[0].id !== null) {
+      localStorage.setItem("currentUserId", String(data[0].id));
     }
     router.push("/shop");
   }
@@ -254,6 +265,11 @@ export default function HomePage() {
 
           <Link
             href="/dashboard"
+            onClick={() => {
+              setUsername("");
+              setPassword("");
+              setError("");
+            }}
             className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
           >
             <Lock className="h-4 w-4" />

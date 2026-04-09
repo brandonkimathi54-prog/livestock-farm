@@ -33,18 +33,33 @@ export default function ProductivityPage() {
   const [monthlySummary, setMonthlySummary] = useState<MonthlySummary>({ total_litres: 0, total_milk_kg: 0 });
   const [ledger, setLedger] = useState<ProductionLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [currentUserId, setCurrentUserId] = useState("");
 
   useEffect(() => {
-    fetchData();
+    const storedUserId = localStorage.getItem("currentUserId") ?? "";
+    setCurrentUserId(storedUserId);
   }, []);
 
+  useEffect(() => {
+    if (currentUserId) {
+      fetchData();
+    } else {
+      setIsLoading(false);
+    }
+  }, [currentUserId]);
+
   async function fetchData() {
+    if (!currentUserId) {
+      setError("No logged in user found. Please login again.");
+      return;
+    }
     setIsLoading(true);
     try {
       // Fetch livestock for dropdown
       const { data: livestockData, error: livestockError } = await supabase
         .from("livestock")
         .select("id, name")
+        .eq("user_id", currentUserId)
         .order("name");
 
       if (livestockError) {
@@ -63,6 +78,7 @@ export default function ProductivityPage() {
       const { data: summaryData, error: summaryError } = await supabase
         .from("production_logs")
         .select("litres, milk_kg")
+        .eq("user_id", currentUserId)
         .gte("created_at", startOfMonth)
         .lte("created_at", endOfMonth);
 
@@ -78,6 +94,7 @@ export default function ProductivityPage() {
       const { data: ledgerData, error: ledgerError } = await supabase
         .from("production_logs")
         .select("*")
+        .eq("user_id", currentUserId)
         .order("created_at", { ascending: false })
         .limit(50);
 
@@ -113,6 +130,12 @@ export default function ProductivityPage() {
     setError("");
     setIsSaving(true);
 
+    if (!currentUserId) {
+      setError("No logged in user found. Please login again.");
+      setIsSaving(false);
+      return;
+    }
+
     const parsedLitres = Number(litres);
     const parsedMilkKg = Number(milkKg);
 
@@ -138,6 +161,7 @@ export default function ProductivityPage() {
       const { data: insertedData, error: insertError } = await supabase
         .from("production_logs")
         .insert({
+          user_id: currentUserId,
           livestock_id: selectedLivestockId,
           litres: parsedLitres,
           milk_kg: parsedMilkKg,

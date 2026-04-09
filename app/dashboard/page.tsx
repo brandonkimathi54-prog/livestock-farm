@@ -4,6 +4,7 @@ import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import { LayoutDashboard, Stethoscope, TrendingUp, DollarSign, Truck, BarChart3, ArrowLeft } from "lucide-react";
 import { supabase } from "@/src/lib/supabase";
+import { useRouter } from "next/navigation";
 
 const PHOTO_BG_URL =
   "https://images.unsplash.com/photo-1500595046743-cd271d694d30?auto=format&fit=crop&w=1920&q=80";
@@ -18,6 +19,7 @@ interface LivestockStatusItem {
 
 export default function DashboardPage() {
   const AUTH_STORAGE_KEY = "dashboard_pin_authenticated";
+  const router = useRouter();
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -76,6 +78,9 @@ export default function DashboardPage() {
     }
 
     setAuthError("");
+    if (data[0]?.id !== undefined && data[0]?.id !== null) {
+      localStorage.setItem("currentUserId", String(data[0].id));
+    }
     localStorage.setItem(AUTH_STORAGE_KEY, "true");
     setIsAuthenticated(true);
   }
@@ -83,9 +88,12 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!isAuthenticated) return;
     async function fetchLivestockPreview() {
+      const currentUserId = localStorage.getItem("currentUserId");
+      if (!currentUserId) return;
       const { data, error } = await supabase
         .from("livestock")
         .select("id, name, health_status, breed, age")
+        .eq("user_id", currentUserId)
         .order("created_at", { ascending: false })
         .limit(4);
 
@@ -175,6 +183,12 @@ export default function DashboardPage() {
   const averageProduction = 38;
   const productionPercent = Math.max(0, Math.min(100, Math.round((todayProduction / dailyTarget) * 100)));
   const isAboveAverage = todayProduction > averageProduction;
+
+  function handleLogout() {
+    localStorage.clear();
+    setIsAuthenticated(false);
+    router.push("/");
+  }
 
   if (isCheckingAuth) {
     return (
@@ -276,13 +290,22 @@ export default function DashboardPage() {
       <main className="relative mx-auto w-full max-w-7xl space-y-12 rounded-2xl border border-slate-700/70 bg-slate-900/50 p-8 font-[var(--font-geist-sans)] shadow-xl backdrop-blur-xl">
         {/* Header */}
         <section className="space-y-4">
-          <Link
-            href="/"
-            className="mb-4 inline-flex items-center gap-2 text-base font-semibold text-slate-300 transition-colors hover:text-lime-300"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>Back to Home</span>
-          </Link>
+          <div className="mb-4 flex items-center justify-between">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-2 text-base font-semibold text-slate-300 transition-colors hover:text-lime-300"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Back to Home</span>
+            </Link>
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="rounded-lg border border-rose-400/40 bg-rose-500/20 px-4 py-2 text-sm font-semibold text-rose-200 transition hover:bg-rose-500/30"
+            >
+              Logout
+            </button>
+          </div>
 
           <div className="space-y-3">
             <h1 className="text-5xl font-bold tracking-tight text-slate-100 sm:text-6xl lg:text-7xl">

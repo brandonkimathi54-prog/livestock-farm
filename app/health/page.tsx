@@ -30,18 +30,33 @@ export default function HealthPage() {
   const [healthLogs, setHealthLogs] = useState<HealthLog[]>([]);
   const [successMessage, setSuccessMessage] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [currentUserId, setCurrentUserId] = useState("");
 
   useEffect(() => {
-    fetchData();
+    const storedUserId = localStorage.getItem("currentUserId") ?? "";
+    setCurrentUserId(storedUserId);
   }, []);
 
+  useEffect(() => {
+    if (currentUserId) {
+      fetchData();
+    } else {
+      setIsLoading(false);
+    }
+  }, [currentUserId]);
+
   async function fetchData() {
+    if (!currentUserId) {
+      setError("No logged in user found. Please login again.");
+      return;
+    }
     setIsLoading(true);
     try {
       // Fetch livestock for dropdown
       const { data: livestockData, error: livestockError } = await supabase
         .from("livestock")
         .select("id, name")
+        .eq("user_id", currentUserId)
         .order("name");
 
       if (livestockError) {
@@ -56,6 +71,7 @@ export default function HealthPage() {
       const { data: logsData, error: logsError } = await supabase
         .from("health_logs")
         .select("*, livestock!health_logs_cow_id_fkey(name)")
+        .eq("user_id", currentUserId)
         .order("created_at", { ascending: false });
 
       if (logsError) {
@@ -81,6 +97,12 @@ export default function HealthPage() {
     setSuccessMessage("");
     setIsSaving(true);
 
+    if (!currentUserId) {
+      setError("No logged in user found. Please login again.");
+      setIsSaving(false);
+      return;
+    }
+
     const parsedCost = Number(cost);
     if (!Number.isFinite(parsedCost) || parsedCost < 0) {
       setError("Please provide a valid cost (0 or greater).");
@@ -104,6 +126,7 @@ export default function HealthPage() {
       const { data: insertedData, error: insertError } = await supabase
         .from("health_logs")
         .insert({
+          user_id: currentUserId,
           livestock_id: selectedLivestockId,
           condition: condition.trim(),
           treatment: treatment.trim() || null,

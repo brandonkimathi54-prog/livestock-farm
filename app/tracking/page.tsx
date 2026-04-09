@@ -32,13 +32,22 @@ export default function TrackingPage() {
   const [healthStatus, setHealthStatus] = useState("Healthy");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState("");
 
   async function loadTrackingData() {
+    if (!currentUserId) {
+      setError("No logged in user found. Please login again.");
+      return;
+    }
     const [livestockResponse, logsResponse] = await Promise.all([
-      supabase.from("livestock").select("id, name, breed, created_at, image_url").order("created_at", {
-        ascending: false,
-      }),
-      supabase.from("health_logs").select("livestock_id, date, log_type"),
+      supabase
+        .from("livestock")
+        .select("id, name, breed, created_at, image_url")
+        .eq("user_id", currentUserId)
+        .order("created_at", {
+          ascending: false,
+        }),
+      supabase.from("health_logs").select("livestock_id, date, log_type").eq("user_id", currentUserId),
     ]);
 
     if (livestockResponse.error) {
@@ -56,13 +65,26 @@ export default function TrackingPage() {
   }
 
   useEffect(() => {
-    void loadTrackingData();
+    const storedUserId = localStorage.getItem("currentUserId") ?? "";
+    setCurrentUserId(storedUserId);
   }, []);
+
+  useEffect(() => {
+    if (currentUserId) {
+      void loadTrackingData();
+    }
+  }, [currentUserId]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
     setIsSaving(true);
+
+    if (!currentUserId) {
+      setError("No logged in user found. Please login again.");
+      setIsSaving(false);
+      return;
+    }
 
     let imageUrl: string | null = null;
     if (selectedFile) {
@@ -92,6 +114,7 @@ export default function TrackingPage() {
     }
 
     const { error: insertError } = await supabase.from("livestock").insert({
+      user_id: currentUserId,
       name: cowName.trim(),
       breed: breed.trim(),
       health_status: healthStatus.trim(),

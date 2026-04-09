@@ -206,3 +206,16 @@ create policy "Public insert expenses"
   for insert
   to anon, authenticated
   with check (true);
+
+-- Multi-account isolation columns
+alter table public.livestock add column if not exists user_id bigint;
+alter table public.health_logs add column if not exists user_id bigint;
+alter table public.production_logs add column if not exists user_id bigint;
+alter table public.expenses add column if not exists user_id bigint;
+alter table public.farm_settings add column if not exists user_id bigint;
+
+create index if not exists livestock_user_id_idx on public.livestock(user_id);
+create index if not exists health_logs_user_id_idx on public.health_logs(user_id);
+create index if not exists production_logs_user_id_idx on public.production_logs(user_id);
+create index if not exists expenses_user_id_idx on public.expenses(user_id);
+create index if not exists farm_settings_user_id_idx on public.farm_settings(user_id);

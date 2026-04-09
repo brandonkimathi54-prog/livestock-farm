@@ -37,12 +37,24 @@ export default function AdminPage() {
   const [livestock, setLivestock] = useState<Livestock[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [editingCowId, setEditingCowId] = useState<number | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string>("");
+
+  useEffect(() => {
+    const storedUserId = localStorage.getItem("currentUserId") ?? "";
+    setCurrentUserId(storedUserId);
+  }, []);
 
   async function fetchLivestock() {
+    if (!currentUserId) {
+      setError("No logged in user found. Please login again.");
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     const { data, error } = await supabase
       .from("livestock")
       .select("*")
+      .eq("user_id", currentUserId)
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -55,8 +67,10 @@ export default function AdminPage() {
   }
 
   useEffect(() => {
-    fetchLivestock();
-  }, []);
+    if (currentUserId) {
+      fetchLivestock();
+    }
+  }, [currentUserId]);
 
   async function deleteCow(id: number) {
     if (!confirm("Are you sure you want to delete this cow?")) {
@@ -64,7 +78,11 @@ export default function AdminPage() {
     }
 
     try {
-      const { error } = await supabase.from("livestock").delete().eq("id", id);
+      const { error } = await supabase
+        .from("livestock")
+        .delete()
+        .eq("id", id)
+        .eq("user_id", currentUserId);
 
       if (error) {
         console.error("Error deleting cow:", error);
@@ -128,6 +146,12 @@ export default function AdminPage() {
     event.preventDefault();
     setError("");
     setIsSaving(true);
+
+    if (!currentUserId) {
+      setError("No logged in user found. Please login again.");
+      setIsSaving(false);
+      return;
+    }
 
     const parsedPrice = Number(price);
     const parsedWeight = Number(weight);
@@ -218,10 +242,12 @@ export default function AdminPage() {
           image_url: imageUrl,
           video_url: videoUrl,
         })
-        .eq("id", editingCowId);
+        .eq("id", editingCowId)
+        .eq("user_id", currentUserId);
     } else {
       // Insert new cow
       result = await supabase.from("livestock").insert({
+        user_id: currentUserId,
         name: cowName.trim(),
         breed: breed.trim(),
         price_ksh: parsedPrice,
@@ -261,9 +287,13 @@ export default function AdminPage() {
 
     try {
       const [livestockResponse, productionResponse, expensesResponse] = await Promise.all([
-        supabase.from("livestock").select("name, breed, weight, price_ksh").order("name", { ascending: true }),
-        supabase.from("production_logs").select("*").order("date", { ascending: false }),
-        supabase.from("expenses").select("*").order("date", { ascending: false }),
+        supabase
+          .from("livestock")
+          .select("name, breed, weight, price_ksh")
+          .eq("user_id", currentUserId)
+          .order("name", { ascending: true }),
+        supabase.from("production_logs").select("*").eq("user_id", currentUserId).order("date", { ascending: false }),
+        supabase.from("expenses").select("*").eq("user_id", currentUserId).order("date", { ascending: false }),
       ]);
 
       if (livestockResponse.error) throw livestockResponse.error;
