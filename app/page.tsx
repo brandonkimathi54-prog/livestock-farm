@@ -140,20 +140,20 @@ export default function HomePage() {
 
   return (
     <div
-      className="relative min-h-screen bg-cover bg-center bg-no-repeat px-6 py-12"
+      className="relative min-h-screen bg-cover bg-center bg-no-repeat px-6 py-12 md:py-16"
       style={{ backgroundImage: `url('${PHOTO_BG_URL}')` }}
     >
       <div className="absolute inset-0 bg-slate-900/35" aria-hidden="true" />
-      <main className="relative mx-auto flex min-h-[80vh] w-full max-w-5xl items-center justify-center">
-        <section className="w-full max-w-2xl rounded-3xl border border-white/40 bg-white/55 p-8 font-[var(--font-geist-sans)] shadow-xl backdrop-blur-xl sm:p-10">
+      <main className="relative mx-auto flex min-h-[80vh] w-full max-w-5xl items-center justify-center pb-8 md:pb-12">
+        <section className="w-[92%] md:w-[450px] mx-auto rounded-3xl border border-white/40 bg-white/55 p-6 md:p-8 font-[var(--font-geist-sans)] shadow-xl backdrop-blur-xl">
           <div className="space-y-3 text-center">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
               Smart Farmer Entry Gate
             </p>
-            <h1 className="text-6xl font-black tracking-tight text-emerald-900 sm:text-7xl">
+            <h1 className="text-4xl md:text-6xl font-black tracking-tight text-emerald-900 sm:text-7xl">
               SMART FARMER
             </h1>
-            <p className="text-base text-slate-700 sm:text-lg">
+            <p className="text-sm md:text-base text-slate-700 sm:text-lg">
               {mode === "login"
                 ? "Login to access your farm marketplace."
                 : "Create your farm profile and start listing livestock."}
@@ -207,7 +207,7 @@ export default function HomePage() {
                     value={farmName}
                     onChange={(e) => setFarmName(e.target.value)}
                     placeholder="e.g. Kirinyaga Valley Farm"
-                    className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-lg text-slate-900 outline-none ring-emerald-600 transition focus:ring-2"
+                    className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-3 md:px-4 py-3 text-base md:text-lg text-slate-900 outline-none ring-emerald-600 transition focus:ring-2"
                   />
                 </div>
               </>
@@ -224,7 +224,7 @@ export default function HomePage() {
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               placeholder="Enter your username"
-              className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-lg text-slate-900 outline-none ring-emerald-600 transition focus:ring-2"
+              className="w-full rounded-xl border border-slate-300 bg-white px-3 md:px-4 py-3 text-base md:text-lg text-slate-900 outline-none ring-emerald-600 transition focus:ring-2"
             />
             <label
               htmlFor="password"
@@ -238,7 +238,7 @@ export default function HomePage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Enter your password"
-              className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-lg text-slate-900 outline-none ring-emerald-600 transition focus:ring-2"
+              className="w-full rounded-xl border border-slate-300 bg-white px-3 md:px-4 py-3 text-base md:text-lg text-slate-900 outline-none ring-emerald-600 transition focus:ring-2"
             />
 
             {error ? (
@@ -250,7 +250,7 @@ export default function HomePage() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-800 bg-gradient-to-r from-emerald-700 to-emerald-800 px-6 py-4 text-lg font-bold text-white transition hover:from-emerald-800 hover:to-emerald-900 disabled:opacity-70"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-800 bg-gradient-to-r from-emerald-700 to-emerald-800 px-4 md:px-6 py-3 md:py-4 text-base md:text-lg font-bold text-white transition hover:from-emerald-800 hover:to-emerald-900 disabled:opacity-70"
             >
               {isSubmitting
                 ? mode === "login"
@@ -270,7 +270,7 @@ export default function HomePage() {
               setPassword("");
               setError("");
             }}
-            className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+            className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 md:px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
           >
             <Lock className="h-4 w-4" />
             Farmer Login
