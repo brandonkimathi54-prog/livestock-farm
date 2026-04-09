@@ -144,7 +144,8 @@ export default function FinancePage() {
           </div>
 
           {financialData && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
+            <div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
               {/* Total Revenue */}
               <div className="bg-white/60 backdrop-blur-lg border border-white/40 rounded-3xl p-6 shadow-lg">
                 <div className="flex items-center justify-between mb-4">
@@ -208,7 +209,7 @@ export default function FinancePage() {
               </div>
             </div>
 
-            {/* Monthly Performance */}
+            // Monthly Performance
             <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
               {/* Monthly Revenue */}
               <div className="bg-white/60 backdrop-blur-lg border border-white/40 rounded-3xl p-6 shadow-lg">
@@ -231,6 +232,7 @@ export default function FinancePage() {
                   </p>
                 </div>
               </div>
+            </div>
             </div>
           )}
         </main>
