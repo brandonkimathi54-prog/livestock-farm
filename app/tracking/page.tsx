@@ -216,10 +216,17 @@ export default function TrackingPage() {
   return (
     <>
       <Navigation currentPage="/tracking" />
-      <div className="min-h-screen bg-black text-green-400 px-4 md:px-6 py-12 pt-20 lg:pt-16 pb-20 lg:pb-16">
-        <main className="mx-auto w-full max-w-6xl space-y-6 md:space-y-8 lg:ml-64">
-        {/* Add Livestock Form */}
-        <section className="rounded-2xl border border-zinc-800 bg-zinc-900 p-6 shadow-sm">
+      <div className="relative min-h-screen">
+        <div 
+          className="fixed inset-0 bg-cover bg-center bg-no-repeat" 
+          style={{ backgroundImage: "url('https://images.unsplash.com/photo-1500595046743-cd271d694d30?auto=format&fit=crop&w=1920&q=80')" }}
+        />
+        <div className="fixed inset-0 bg-white/40" aria-hidden="true" />
+        
+        <main className="relative z-10 mx-auto w-full max-w-7xl px-4 md:px-6 py-12 pt-20 lg:pt-20 pb-24 lg:pb-24">
+          <div className="lg:ml-64 space-y-6 md:space-y-8">
+            {/* Add Livestock Form */}
+            <section className="bg-white/60 backdrop-blur-lg border border-white/40 rounded-3xl p-6 shadow-lg">
           <h2 className="text-xl font-semibold mb-4">Add New Livestock</h2>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -373,6 +380,7 @@ export default function TrackingPage() {
             </table>
           </div>
         </section>
+          </div>
         </main>
       </div>
     </>

@@ -47,12 +47,10 @@ export default function ExpensesPage() {
   }, [currentUserId]);
 
   useEffect(() => {
-    // Update input price when milk price changes (e.g., from database load)
     setInputPrice(milkPricePerKg);
   }, [milkPricePerKg]);
 
   useEffect(() => {
-    // Recalculate revenue and net profit when milk price changes
     const newRevenue = totalMilkKg * milkPricePerKg;
     setTotalRevenue(newRevenue);
     setNetProfit(newRevenue - totalCosts);
@@ -93,7 +91,6 @@ export default function ExpensesPage() {
 
     if (settingsRes.error) {
       console.error("Error fetching farm settings:", settingsRes.error);
-      // Keep default value of 60 if settings can't be loaded
     } else {
       const price = settingsRes.data?.milk_price_per_kg || 60;
       setMilkPricePerKg(price);
@@ -181,7 +178,6 @@ export default function ExpensesPage() {
 
     let result;
     if (editingExpenseId) {
-      // Update existing expense
       result = await supabase
         .from("expenses")
         .update({
@@ -192,7 +188,6 @@ export default function ExpensesPage() {
         .eq("id", editingExpenseId)
         .eq("user_id", currentUserId);
     } else {
-      // Insert new expense
       result = await supabase.from("expenses").insert({
         user_id: currentUserId,
         category,
@@ -210,38 +205,29 @@ export default function ExpensesPage() {
       return;
     }
 
-    // Reset form
     cancelEdit();
-
-    // Refresh expenses
     await fetchExpenses();
     setIsSaving(false);
   }
-
-  const getCategoryColor = (cat: string) => {
-    switch (cat) {
-      case "Feed":
-        return "bg-blue-900/30 border-blue-600/50 text-blue-300";
-      case "Vet":
-        return "bg-red-900/30 border-red-600/50 text-red-300";
-      case "Worker":
-        return "bg-purple-900/30 border-purple-600/50 text-purple-300";
-      case "AI":
-        return "bg-green-900/30 border-green-600/50 text-green-300";
-      default:
-        return "bg-zinc-800/30 border-zinc-600/50 text-zinc-300";
-    }
-  };
 
   if (isLoading) {
     return (
       <>
         <Navigation currentPage="/expenses" />
-        <div className="min-h-screen bg-black text-green-400 px-4 md:px-6 py-12 pt-20 lg:pt-16 pb-20 lg:pb-16">
-          <div className="max-w-4xl mx-auto lg:ml-64">
-            <h1 className="text-2xl md:text-3xl font-bold mb-6 md:mb-8">Expenses</h1>
-            <div className="text-center">Loading...</div>
-          </div>
+        <div className="relative min-h-screen">
+          <div 
+            className="fixed inset-0 bg-cover bg-center bg-no-repeat" 
+            style={{ backgroundImage: "url('https://images.unsplash.com/photo-1500595046743-cd271d694d30?auto=format&fit=crop&w=1920&q=80')" }}
+          />
+          <div className="fixed inset-0 bg-white/40" aria-hidden="true" />
+          <main className="relative z-10 mx-auto w-full max-w-7xl px-4 md:px-6 py-12 pt-20 lg:pt-20 pb-24 lg:pb-24">
+            <div className="max-w-4xl mx-auto lg:ml-64">
+              <div className="bg-white/60 backdrop-blur-lg border border-white/40 rounded-3xl p-8 shadow-lg">
+                <h1 className="text-2xl md:text-3xl font-bold text-green-900 mb-6">Expenses</h1>
+                <div className="text-center text-gray-600">Loading expenses data...</div>
+              </div>
+            </div>
+          </main>
         </div>
       </>
     );
@@ -250,214 +236,193 @@ export default function ExpensesPage() {
   return (
     <>
       <Navigation currentPage="/expenses" />
-      <div className="min-h-screen bg-black text-green-400 px-4 md:px-6 py-12 pt-20 lg:pt-16 pb-20 lg:pb-16">
-        <div className="max-w-4xl mx-auto lg:ml-64">
-          <h1 className="text-2xl md:text-3xl font-bold mb-6 md:mb-8">Expenses</h1>
+      <div className="relative min-h-screen">
+        <div 
+          className="fixed inset-0 bg-cover bg-center bg-no-repeat" 
+          style={{ backgroundImage: "url('https://images.unsplash.com/photo-1500595046743-cd271d694d30?auto=format&fit=crop&w=1920&q=80')" }}
+        />
+        <div className="fixed inset-0 bg-white/40" aria-hidden="true" />
+        
+        <main className="relative z-10 mx-auto w-full max-w-7xl px-4 md:px-6 py-12 pt-20 lg:pt-20 pb-24 lg:pb-24">
+          <div className="max-w-4xl mx-auto lg:ml-64">
+            <h1 className="text-2xl md:text-3xl font-bold text-green-900 mb-6 md:mb-8">Expenses</h1>
 
-        {/* Price Settings Card */}
-        <div className="bg-gray-900 p-4 md:p-6 rounded-lg border border-yellow-400 mb-6 md:mb-8">
-          <h2 className="text-base md:text-lg font-semibold text-yellow-300 mb-4">Price Settings</h2>
-          <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
-            <label htmlFor="milkPrice" className="text-sm font-medium text-yellow-200">
-              Current Milk Price (KSh/kg):
-            </label>
-            <input
-              type="number"
-              id="milkPrice"
-              value={inputPrice}
-              onChange={(e) => setInputPrice(Number(e.target.value) || 0)}
-              step="0.01"
-              min="0"
-              className="h-11 bg-gray-800 border border-yellow-400 rounded px-3 py-2 text-yellow-400 focus:outline-none focus:ring-2 focus:ring-yellow-400 w-full sm:w-32"
-            />
-            <button
-              onClick={() => updateMilkPrice(inputPrice)}
-              disabled={isSavingPrice || inputPrice === milkPricePerKg}
-              className="h-11 bg-yellow-600 hover:bg-yellow-700 disabled:bg-gray-600 text-black font-semibold px-4 py-2 rounded transition-colors disabled:cursor-not-allowed"
-            >
-              {isSavingPrice ? "Saving..." : "Save"}
-            </button>
-          </div>
-          {error && error.includes("milk price") && (
-            <p className="text-red-400 text-sm mt-2">{error}</p>
-          )}
-        </div>
-
-        {/* Financial Summary Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
-          {/* Total Revenue Card */}
-          <div className="bg-gray-900 p-4 md:p-6 rounded-lg border border-blue-400">
-            <h3 className="text-sm font-semibold text-blue-300 mb-2">Total Revenue</h3>
-            <p className="text-2xl md:text-3xl lg:text-4xl font-bold text-blue-400">
-              KSh {totalRevenue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </p>
-            <p className="text-xs text-blue-200 mt-2">@ KSh {milkPricePerKg}/kg</p>
-          </div>
-
-          {/* Total Expenses Card */}
-          <div className="bg-gray-900 p-4 md:p-6 rounded-lg border border-red-400">
-            <h3 className="text-sm font-semibold text-red-300 mb-2">Total Expenses</h3>
-            <p className="text-2xl md:text-3xl lg:text-4xl font-bold text-red-400">
-              KSh {totalCosts.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </p>
-            <p className="text-xs text-red-200 mt-2">All costs tracked</p>
-          </div>
-
-          {/* Net Profit/Loss Card */}
-          <div className={`bg-gray-900 p-4 md:p-6 rounded-lg border ${netProfit >= 0 ? "border-green-400" : "border-red-400"}`}>
-            <h3 className={`text-sm font-semibold mb-2 ${netProfit >= 0 ? "text-green-300" : "text-red-300"}`}>
-              Net Profit/Loss
-            </h3>
-            <p className={`text-2xl md:text-3xl lg:text-4xl font-bold ${netProfit >= 0 ? "text-green-400" : "text-red-400"}`}>
-              KSh {netProfit.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </p>
-            <p className={`text-xs mt-2 ${netProfit >= 0 ? "text-green-200" : "text-red-200"}`}>
-              {netProfit >= 0 ? "✓ Profitable" : "✗ Operating at loss"}
-            </p>
-          </div>
-        </div>
-
-        {/* Total Costs Card */}
-        <div className="bg-gray-900 p-4 md:p-6 rounded-lg border border-green-400 mb-6 md:mb-8">
-          <h2 className="text-base md:text-lg font-semibold mb-2">Expense Summary</h2>
-          <p className="text-2xl md:text-3xl font-bold text-green-400">KSh {totalCosts.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-        </div>
-
-        {/* Expense Entry Form */}
-        <div className="bg-gray-900 p-4 md:p-6 rounded-lg border border-green-400 mb-6 md:mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg md:text-xl font-semibold">
-              {editingExpenseId ? "Update Expense" : "Record Expense"}
-            </h2>
-            {editingExpenseId && (
-              <button
-                onClick={cancelEdit}
-                className="text-gray-400 hover:text-white transition-colors"
-              >
-                Cancel
-              </button>
-            )}
-          </div>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label htmlFor="category" className="block text-sm font-medium mb-1">
-                  Category
-                </label>
-                <select
-                  id="category"
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value as typeof EXPENSE_CATEGORIES[number])}
-                  className="h-11 w-full bg-gray-800 border border-green-400 rounded px-3 py-2 text-green-400 focus:outline-none focus:ring-2 focus:ring-green-400"
-                >
-                  {EXPENSE_CATEGORIES.map((cat) => (
-                    <option key={cat} value={cat}>
-                      {cat}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label htmlFor="amount" className="block text-sm font-medium mb-1">
-                  Amount (KSh)
+            {/* Price Settings Card */}
+            <div className="bg-white/60 backdrop-blur-lg border border-white/40 rounded-3xl p-4 md:p-6 shadow-lg mb-6 md:mb-8">
+              <h2 className="text-base md:text-lg font-semibold text-gray-700 mb-4">Price Settings</h2>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+                <label htmlFor="milkPrice" className="text-sm font-medium text-gray-600">
+                  Current Milk Price (KSh/kg):
                 </label>
                 <input
                   type="number"
-                  id="amount"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
+                  id="milkPrice"
+                  value={inputPrice}
+                  onChange={(e) => setInputPrice(Number(e.target.value) || 0)}
                   step="0.01"
                   min="0"
-                  className="h-11 w-full bg-gray-800 border border-green-400 rounded px-3 py-2 text-green-400 focus:outline-none focus:ring-2 focus:ring-green-400"
-                  required
+                  className="h-11 w-full bg-white/80 border border-gray-300 rounded-xl px-3 py-2 text-green-900 placeholder-green-700/50 outline-none ring-green-600 transition focus:ring-2 sm:w-32"
                 />
+                <button
+                  onClick={() => updateMilkPrice(inputPrice)}
+                  disabled={isSavingPrice || inputPrice === milkPricePerKg}
+                  className="h-11 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-semibold px-4 py-2 rounded-xl transition-colors disabled:cursor-not-allowed"
+                >
+                  {isSavingPrice ? "Saving..." : "Save"}
+                </button>
+              </div>
+              {error && error.includes("milk price") && (
+                <p className="text-red-600 text-sm mt-2">{error}</p>
+              )}
+            </div>
+
+            {/* Financial Summary Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
+              <div className="bg-white/60 backdrop-blur-lg border border-white/40 rounded-3xl p-4 md:p-6 shadow-lg">
+                <h3 className="text-sm font-semibold text-gray-700 mb-2">Total Revenue</h3>
+                <p className="text-2xl md:text-3xl lg:text-4xl font-bold text-blue-600">
+                  KSh {totalRevenue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+                <p className="text-xs text-gray-600 mt-2">@ KSh {milkPricePerKg}/kg</p>
               </div>
 
-              <div>
-                <label htmlFor="date" className="block text-sm font-medium mb-1">
-                  Date
-                </label>
-                <input
-                  type="date"
-                  id="date"
-                  value={expenseDate}
-                  onChange={(e) => setExpenseDate(e.target.value)}
-                  className="h-11 w-full bg-gray-800 border border-green-400 rounded px-3 py-2 text-green-400 focus:outline-none focus:ring-2 focus:ring-green-400"
-                  required
-                />
+              <div className="bg-white/60 backdrop-blur-lg border border-white/40 rounded-3xl p-4 md:p-6 shadow-lg">
+                <h3 className="text-sm font-semibold text-gray-700 mb-2">Total Expenses</h3>
+                <p className="text-2xl md:text-3xl lg:text-4xl font-bold text-red-600">
+                  KSh {totalCosts.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+                <p className="text-xs text-gray-600 mt-2">All costs tracked</p>
+              </div>
+
+              <div className="bg-white/60 backdrop-blur-lg border border-white/40 rounded-3xl p-4 md:p-6 shadow-lg">
+                <h3 className="text-sm font-semibold mb-2 text-gray-700">Net Profit/Loss</h3>
+                <p className={`text-2xl md:text-3xl lg:text-4xl font-bold ${netProfit >= 0 ? "text-green-600" : "text-red-600"}`}>
+                  KSh {netProfit.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+                <p className="text-xs mt-2 text-gray-600">
+                  {netProfit >= 0 ? "Profitable" : "Operating at loss"}
+                </p>
               </div>
             </div>
 
-            {error && (
-              <div className="bg-red-900 border border-red-400 text-red-400 px-3 py-2 md:px-4 rounded text-sm">
-                {error}
+            {/* Expense Form */}
+            <div className="bg-white/60 backdrop-blur-lg border border-white/40 rounded-3xl p-4 md:p-6 shadow-lg mb-6 md:mb-8">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg md:text-xl font-semibold text-gray-700">
+                  {editingExpenseId ? "Update Expense" : "Record Expense"}
+                </h2>
+                {editingExpenseId && (
+                  <button onClick={cancelEdit} className="text-gray-600 hover:text-gray-800 transition-colors">
+                    Cancel
+                  </button>
+                )}
               </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={isSaving}
-              className="h-11 w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-black font-semibold py-2 px-4 rounded transition-colors"
-            >
-              {isSaving ? "Saving..." : editingExpenseId ? "Update Expense" : "Record Expense"}
-            </button>
-          </form>
-        </div>
-
-        {/* Expenses List */}
-        <div className="bg-gray-900 p-4 md:p-6 rounded-lg border border-green-400">
-          <h2 className="text-lg md:text-xl font-semibold mb-4">Expense History</h2>
-          {expenses.length === 0 ? (
-            <p className="text-gray-400">No expenses recorded yet.</p>
-          ) : (
-            <div className="space-y-3">
-              {expenses.map((expense) => (
-                <div
-                  key={expense.id}
-                  className={`border rounded-lg p-3 md:p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 ${getCategoryColor(expense.category)}`}
-                >
-                  <div className="flex items-center gap-3 md:gap-4 flex-grow">
-                    <div className="font-semibold text-lg rounded-full w-10 h-10 md:w-12 md:h-12 flex items-center justify-center bg-black/30">
-                      {expense.category[0]}
-                    </div>
-                    <div>
-                      <p className="font-semibold text-sm md:text-base">{expense.category}</p>
-                      <p className="text-xs md:text-sm opacity-75">
-                        {new Date(expense.created_at).toLocaleDateString()}
-                      </p>
-                    </div>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1 text-gray-600">Category</label>
+                    <select
+                      value={category}
+                      onChange={(e) => setCategory(e.target.value as typeof EXPENSE_CATEGORIES[number])}
+                      className="h-11 w-full bg-white/80 border border-gray-300 rounded-xl px-3 py-2 text-green-900 outline-none ring-green-600 transition focus:ring-2"
+                    >
+                      {EXPENSE_CATEGORIES.map((cat) => (
+                        <option key={cat} value={cat}>{cat}</option>
+                      ))}
+                    </select>
                   </div>
-                  <div className="flex items-center justify-between sm:justify-end gap-3 md:gap-4 w-full sm:w-auto">
-                    <div className="text-right">
-                      <p className="font-bold text-base md:text-xl">
-                        KSh {expense.amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </p>
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => editExpense(expense)}
-                        className="p-2 hover:bg-black/20 rounded transition-colors"
-                        title="Edit expense"
-                      >
-                        <Pencil className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => deleteExpense(expense.id)}
-                        className="p-2 hover:bg-red-500/20 rounded transition-colors text-red-400 hover:text-red-300"
-                        title="Delete expense"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1 text-gray-600">Amount (KSh)</label>
+                    <input
+                      type="number"
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
+                      step="0.01"
+                      className="h-11 w-full bg-white/80 border border-gray-300 rounded-xl px-3 py-2 text-green-900 outline-none ring-green-600 transition focus:ring-2"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1 text-gray-600">Date</label>
+                    <input
+                      type="date"
+                      value={expenseDate}
+                      onChange={(e) => setExpenseDate(e.target.value)}
+                      className="h-11 w-full bg-white/80 border border-gray-300 rounded-xl px-3 py-2 text-green-900 outline-none ring-green-600 transition focus:ring-2"
+                      required
+                    />
                   </div>
                 </div>
-              ))}
+                <button
+                  type="submit"
+                  disabled={isSaving}
+                  className="h-11 w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-semibold py-2 px-4 rounded-xl transition-colors"
+                >
+                  {isSaving ? "Saving..." : editingExpenseId ? "Update Expense" : "Record Expense"}
+                </button>
+              </form>
             </div>
-          )}
-        </div>
-        </div>
+
+            {/* History Table */}
+            <div className="bg-white/60 backdrop-blur-lg border border-white/40 rounded-3xl p-4 md:p-6 shadow-lg">
+              <h2 className="text-lg md:text-xl font-semibold text-gray-700 mb-4">Expense History</h2>
+              {expenses.length === 0 ? (
+                <p className="text-gray-600">No expenses recorded yet.</p>
+              ) : (
+                <div className="space-y-3">
+                  {expenses.map((expense) => (
+                    <div key={expense.id} className="border border-white/40 rounded-xl p-3 md:p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white/60 backdrop-blur-lg shadow-sm">
+                      <div className="flex items-center gap-3 md:gap-4 flex-grow">
+                        <div className="font-semibold text-lg rounded-full w-10 h-10 md:w-12 md:h-12 flex items-center justify-center bg-green-600/10 text-green-600">
+                          {expense.category[0]}
+                        </div>
+                        <div>
+                          <p className="font-semibold text-sm md:text-base text-gray-700">{expense.category}</p>
+                          <p className="text-xs md:text-sm text-gray-500">{new Date(expense.created_at).toLocaleDateString()}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between sm:justify-end gap-3 md:gap-4 w-full sm:w-auto">
+                        <p className="font-bold text-base md:text-xl text-gray-700">
+                          KSh {expense.amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </p>
+                        <div className="flex gap-2">
+                          <button onClick={() => editExpense(expense)} className="p-2 hover:bg-gray-100 rounded-lg text-gray-600">
+                            <Pencil className="w-4 h-4" />
+                          </button>
+                          <button onClick={() => deleteExpense(expense.id)} className="p-2 hover:bg-red-50 rounded-lg text-red-600">
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Signature with Rotating LED Effect */}
+            <footer className="mt-12 text-center pb-8">
+              <p className="text-gray-700 font-medium">
+                Created by{" "}
+                <span className="inline-block font-extrabold animate-led-rotate bg-[length:200%_auto] bg-clip-text text-transparent bg-gradient-to-r from-green-900 via-emerald-400 via-white to-green-900">
+                  Brandon
+                </span>
+              </p>
+            </footer>
+          </div>
+        </main>
       </div>
+      
+      {/* Global CSS for the LED effect */}
+      <style jsx global>{`
+        @keyframes led-rotate {
+          0% { background-position: 0% center; }
+          100% { background-position: 200% center; }
+        }
+        .animate-led-rotate {
+          animation: led-rotate 4s linear infinite;
+        }
+      `}</style>
     </>
   );
 }

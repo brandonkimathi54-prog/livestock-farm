@@ -334,23 +334,23 @@ export default function HealthPage() {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-gray-200">
-                        <th className="text-left py-3 text-gray-700">Date</th>
-                        <th className="text-left py-3 text-gray-700">Livestock</th>
-                        <th className="text-left py-3 text-gray-700">Condition</th>
-                        <th className="text-left py-3 text-gray-700">Treatment</th>
-                        <th className="text-right py-3 text-gray-700">Cost (KSh)</th>
+                        <th className="text-left py-3 text-emerald-950 font-semibold">Date</th>
+                        <th className="text-left py-3 text-emerald-950 font-semibold">Livestock</th>
+                        <th className="text-left py-3 text-emerald-950 font-semibold">Condition</th>
+                        <th className="text-left py-3 text-emerald-950 font-semibold">Treatment</th>
+                        <th className="text-right py-3 text-emerald-950 font-semibold">Cost (KSh)</th>
                       </tr>
                     </thead>
                     <tbody>
                       {healthLogs.map((log) => (
                         <tr key={log.id} className="border-b border-gray-200">
-                          <td className="py-3">
+                          <td className="py-3 text-emerald-950">
                             {new Date(log.created_at).toLocaleDateString()}
                           </td>
-                          <td className="py-3">{log.livestock?.name || 'Unknown'}</td>
-                          <td className="py-3">{log.condition}</td>
-                          <td className="py-3">{log.treatment || "None"}</td>
-                          <td className="text-right py-3">{log.cost.toFixed(2)}</td>
+                          <td className="py-3 text-emerald-950">{log.livestock?.name || 'Unknown'}</td>
+                          <td className="py-3 text-emerald-950">{log.condition}</td>
+                          <td className="py-3 text-emerald-950">{log.treatment || "None"}</td>
+                          <td className="text-right py-3 text-emerald-950">{log.cost.toFixed(2)}</td>
                         </tr>
                       ))}
                     </tbody>
