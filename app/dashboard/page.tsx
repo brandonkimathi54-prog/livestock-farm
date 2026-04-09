@@ -3,14 +3,13 @@
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import { LayoutDashboard, Stethoscope, TrendingUp, DollarSign, Truck, BarChart3, ArrowLeft } from "lucide-react";
+import { supabase } from "@/src/lib/supabase";
 
 export default function DashboardPage() {
   const AUTH_STORAGE_KEY = "dashboard_pin_authenticated";
-  const CORRECT_USERNAME = "farmer";
-  const CORRECT_PIN = "1234";
 
   const [username, setUsername] = useState("");
-  const [pin, setPin] = useState("");
+  const [password, setPassword] = useState("");
   const [authError, setAuthError] = useState("");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
@@ -23,24 +22,36 @@ export default function DashboardPage() {
     setIsCheckingAuth(false);
   }, []);
 
-  function handleLogin(event: FormEvent<HTMLFormElement>) {
+  async function handleLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const normalizedUsername = username.trim().toLowerCase();
-    const normalizedPin = pin.trim();
+    const normalizedPassword = password.trim();
 
     if (!normalizedUsername) {
       setAuthError("Please enter your username.");
       return;
     }
 
-    if (!/^\d{4}$/.test(normalizedPin)) {
-      setAuthError("PIN must be exactly 4 digits.");
+    if (!normalizedPassword) {
+      setAuthError("Please enter your password.");
       return;
     }
 
-    if (normalizedUsername !== CORRECT_USERNAME || normalizedPin !== CORRECT_PIN) {
-      setAuthError("Incorrect username or PIN.");
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("id")
+      .ilike("username", normalizedUsername)
+      .eq("password", normalizedPassword)
+      .limit(1);
+
+    if (error) {
+      setAuthError("Unable to login right now. Please try again.");
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      setAuthError("Incorrect username or password.");
       return;
     }
 
@@ -136,7 +147,7 @@ export default function DashboardPage() {
                 Management Portal Login
               </h1>
               <p className="mt-2 text-sm text-slate-700">
-                Enter your username and 4-digit PIN to continue.
+                Enter your username and password to continue.
               </p>
             </div>
 
@@ -160,19 +171,17 @@ export default function DashboardPage() {
 
               <div>
                 <label
-                  htmlFor="pin"
+                  htmlFor="password"
                   className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-slate-500"
                 >
-                  4-Digit PIN
+                  Password
                 </label>
                 <input
-                  id="pin"
+                  id="password"
                   type="password"
-                  inputMode="numeric"
-                  maxLength={4}
-                  value={pin}
-                  onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                  placeholder="••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter your password"
                   className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-base text-slate-900 outline-none ring-emerald-600 transition focus:ring-2"
                 />
               </div>

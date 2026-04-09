@@ -27,74 +27,95 @@ export default function HomePage() {
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [farmName, setFarmName] = useState("");
   const [username, setUsername] = useState("");
-  const [pin, setPin] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const trimmedUsername = username.trim();
-    const trimmedPin = pin.trim();
+  async function handleRegister() {
     const trimmedFarmName = farmName.trim();
+    const trimmedUsername = username.trim();
+    const trimmedPassword = String(password.trim());
 
     if (!trimmedFarmName) {
       setError("Please enter your farm name.");
       return;
     }
-
-    if (!/^\d{4}$/.test(trimmedPin)) {
-      setError("Please enter a valid 4-digit PIN.");
-      return;
-    }
-
-    if (mode === "signup" && !trimmedUsername) {
+    if (!trimmedUsername) {
       setError("Please enter your username.");
       return;
     }
+    if (!trimmedPassword) {
+      setError("Please enter your password.");
+      return;
+    }
 
+    const { error: insertError } = await supabase.from("profiles").insert({
+      farm_name: trimmedFarmName,
+      username: trimmedUsername,
+      password: trimmedPassword,
+    });
+
+    if (insertError) {
+      console.log("Supabase Error Details:", insertError);
+      setError(getSupabaseErrorMessage(insertError));
+      return;
+    }
+
+    localStorage.setItem("marketplaceFarmName", trimmedFarmName);
+    router.push("/shop");
+  }
+
+  async function handleLogin() {
+    const trimmedUsername = username.trim();
+    const trimmedPassword = String(password.trim());
+
+    if (!trimmedUsername) {
+      setError("Please enter your username.");
+      return;
+    }
+    if (!trimmedPassword) {
+      setError("Please enter your password.");
+      return;
+    }
+
+    const { data, error: loginError } = await supabase
+      .from("profiles")
+      .select("farm_name, username")
+      .ilike("username", trimmedUsername)
+      .eq("password", trimmedPassword)
+      .limit(1);
+
+    if (loginError) {
+      console.log("Supabase Error Details:", loginError);
+      console.log(data);
+      setError(getSupabaseErrorMessage(loginError));
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      console.log(data);
+      setError("Login failed: username or password is incorrect.");
+      return;
+    }
+
+    const resolvedFarmName = data[0].farm_name?.trim() || "";
+    if (resolvedFarmName) {
+      localStorage.setItem("marketplaceFarmName", resolvedFarmName);
+    }
+    router.push("/shop");
+  }
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
     setError("");
     setIsSubmitting(true);
-
     try {
       if (mode === "signup") {
-        const { error: insertError } = await supabase.from("profiles").insert({
-          farm_name: trimmedFarmName,
-          username: trimmedUsername,
-          pin: trimmedPin,
-        });
-
-        if (insertError) {
-          setError(getSupabaseErrorMessage(insertError));
-          return;
-        }
-
-        localStorage.setItem("marketplaceFarmName", trimmedFarmName);
-        router.push("/shop");
-        return;
+        await handleRegister();
+      } else {
+        await handleLogin();
       }
-
-      const { data, error: loginError } = await supabase
-        .from("profiles")
-        .select("farm_name")
-        .ilike("farm_name", trimmedFarmName)
-        .eq("pin", trimmedPin)
-        .limit(1);
-
-      if (loginError) {
-        setError(getSupabaseErrorMessage(loginError));
-        return;
-      }
-
-      if (!data || data.length === 0) {
-        setError("Login failed: farm name not found or PIN is incorrect.");
-        return;
-      }
-
-      if (data[0].farm_name) {
-        localStorage.setItem("marketplaceFarmName", data[0].farm_name);
-      }
-      router.push("/shop");
     } catch (submitError) {
       const message = submitError instanceof Error ? submitError.message : String(submitError);
       setError(`Network error: ${message}`);
@@ -157,55 +178,52 @@ export default function HomePage() {
           </div>
 
           <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-            <div>
-              <label
-                htmlFor="farmName"
-                className="block text-xs font-semibold uppercase tracking-[0.14em] text-emerald-900"
-              >
-                Enter your Farm Name
-              </label>
-              <input
-                id="farmName"
-                type="text"
-                value={farmName}
-                onChange={(e) => setFarmName(e.target.value)}
-                placeholder="e.g. Kirinyaga Valley Farm"
-                className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-lg text-slate-900 outline-none ring-emerald-600 transition focus:ring-2"
-              />
-            </div>
-
             {mode === "signup" ? (
               <>
-                <label
-                  htmlFor="username"
-                  className="block text-xs font-semibold uppercase tracking-[0.14em] text-emerald-900"
-                >
-                  Username
-                </label>
-                <input
-                  id="username"
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Enter your username"
-                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-lg text-slate-900 outline-none ring-emerald-600 transition focus:ring-2"
-                />
+                <div>
+                  <label
+                    htmlFor="farmName"
+                    className="block text-xs font-semibold uppercase tracking-[0.14em] text-emerald-900"
+                  >
+                    Enter your Farm Name
+                  </label>
+                  <input
+                    id="farmName"
+                    type="text"
+                    value={farmName}
+                    onChange={(e) => setFarmName(e.target.value)}
+                    placeholder="e.g. Kirinyaga Valley Farm"
+                    className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-lg text-slate-900 outline-none ring-emerald-600 transition focus:ring-2"
+                  />
+                </div>
               </>
             ) : null}
             <label
-              htmlFor="pin"
+              htmlFor="username"
               className="block text-xs font-semibold uppercase tracking-[0.14em] text-emerald-900"
             >
-              4-Digit PIN
+              Username
             </label>
             <input
-              id="pin"
+              id="username"
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="Enter your username"
+              className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-lg text-slate-900 outline-none ring-emerald-600 transition focus:ring-2"
+            />
+            <label
+              htmlFor="password"
+              className="block text-xs font-semibold uppercase tracking-[0.14em] text-emerald-900"
+            >
+              Password
+            </label>
+            <input
+              id="password"
               type="password"
-              inputMode="numeric"
-              maxLength={4}
-              value={pin}
-              onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
-              placeholder="••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Enter your password"
               className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-lg text-slate-900 outline-none ring-emerald-600 transition focus:ring-2"
             />
 
