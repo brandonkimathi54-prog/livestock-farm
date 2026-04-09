@@ -94,8 +94,9 @@ export default function MarketplacePage() {
   }
 
   const handleWhatsAppInquiry = (animal: LivestockItem) => {
+    // Corrected logic to match the formatPrice safety check
     const priceText =
-      animal.price_ksh === null || animal.price_ksh === undefined
+      animal.price_ksh === null || animal.price_ksh <= 0
         ? "Price on request"
         : `KSh ${animal.price_ksh.toLocaleString()}`;
     const message = `Hello! I am interested in buying ${animal.name}, the ${animal.breed} listed for ${priceText}. Is it still available?`;
@@ -104,11 +105,15 @@ export default function MarketplacePage() {
     window.open(`https://wa.me/${phoneNumber}?text=${encodedMessage}`, "_blank");
   };
 
+  /**
+   * FIXED: This function now checks for null before performing numeric comparisons.
+   * This resolves the TypeScript build error on Vercel.
+   */
   function formatPrice(value: number | null) {
-    const formattedPrice = value?.toLocaleString();
-    if (!formattedPrice || value <= 0) {
+    if (value === null || value <= 0) {
       return "Price on request";
     }
+    const formattedPrice = value.toLocaleString();
     return `KSh ${formattedPrice}`;
   }
 
