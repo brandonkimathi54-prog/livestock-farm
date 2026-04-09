@@ -1,0 +1,20 @@
+<svg width="1200" height="800" viewBox="0 0 1200 800" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="800" fill="#EAF4EC"/>
+  <rect y="520" width="1200" height="280" fill="#C7DFC9"/>
+  <path d="M0 520C150 450 260 430 390 470C540 515 650 560 840 510C980 474 1080 490 1200 520V800H0V520Z" fill="#9FC8A3"/>
+  <rect x="760" y="330" width="220" height="170" rx="8" fill="#F6F1E7"/>
+  <rect x="845" y="395" width="50" height="105" fill="#8C5A3C"/>
+  <path d="M740 350L870 250L1000 350H740Z" fill="#3F6D47"/>
+  <rect x="180" y="350" width="26" height="170" fill="#5E7F5E"/>
+  <circle cx="193" cy="320" r="55" fill="#6FA26F"/>
+  <rect x="260" y="380" width="22" height="140" fill="#5E7F5E"/>
+  <circle cx="271" cy="355" r="45" fill="#6FA26F"/>
+  <path d="M520 420C560 405 620 405 670 425C720 445 740 475 730 500H520V420Z" fill="#4A6F4A"/>
+  <rect x="0" y="500" width="1200" height="10" fill="#7DAE84" opacity="0.5"/>
+  <text x="60" y="90" fill="#2F5D3A" font-family="Arial, sans-serif" font-size="44" font-weight="700">
+    Meme Livestock Farm
+  </text>
+  <text x="60" y="130" fill="#4F7A58" font-family="Arial, sans-serif" font-size="24">
+    Professional farm profile image placeholder
+  </text>
+</svg>
