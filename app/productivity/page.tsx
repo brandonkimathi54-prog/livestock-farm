@@ -4,6 +4,7 @@ import { supabase } from "@/src/lib/supabase";
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import Navigation from "@/app/components/Navigation";
+import { TrendingUp, Calendar, Milk } from "lucide-react";
 
 interface Livestock {
   id: string;
@@ -34,7 +35,7 @@ export default function ProductivityPage() {
   const [monthlySummary, setMonthlySummary] = useState<MonthlySummary>({ total_litres: 0, total_milk_kg: 0 });
   const [ledger, setLedger] = useState<ProductionLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [currentUserId, setCurrentUserId] = useState("");
+  const [currentUserId, setCurrentUserId] = useState<string>("");
 
   useEffect(() => {
     const storedUserId = localStorage.getItem("currentUserId") ?? "";
@@ -44,8 +45,6 @@ export default function ProductivityPage() {
   useEffect(() => {
     if (currentUserId) {
       fetchData();
-    } else {
-      setIsLoading(false);
     }
   }, [currentUserId]);
 
@@ -101,12 +100,6 @@ export default function ProductivityPage() {
 
       if (ledgerError) {
         console.error("Error fetching ledger:", ledgerError);
-        console.log(
-          "Ledger Fetch Error Details:",
-          ledgerError.message,
-          ledgerError.details,
-          ledgerError.hint
-        );
       } else {
         const ledgerWithNames = (ledgerData || []).map((log) => ({
           ...log,
@@ -184,7 +177,7 @@ export default function ProductivityPage() {
       setLitres("");
       setMilkKg("");
 
-      // Add the new record to the local state instantly
+      // Add to new record to local state instantly
       if (insertedData && insertedData.length > 0) {
         const newRecord = insertedData[0];
         const livestockName =
@@ -211,7 +204,6 @@ export default function ProductivityPage() {
       }
 
       // Refresh data to ensure correct names are displayed
-      console.log("Refreshing data after insert...");
       await fetchData();
     } catch (err) {
       console.error("Unexpected error during submission:", err);
@@ -225,11 +217,19 @@ export default function ProductivityPage() {
     return (
       <>
         <Navigation currentPage="/productivity" />
-        <div className="min-h-screen bg-black text-green-400 px-4 md:px-6 py-12 pt-20 lg:pt-16 pb-20 lg:pb-16">
-          <div className="max-w-4xl mx-auto lg:ml-64">
-            <h1 className="text-2xl md:text-3xl font-bold mb-6 md:mb-8">Productivity Logs</h1>
-            <div className="text-center">Loading...</div>
-          </div>
+        <div className="relative min-h-screen">
+          <div 
+            className="fixed inset-0 bg-cover bg-center bg-no-repeat" 
+            style={{ backgroundImage: "url('https://images.unsplash.com/photo-1500595046743-cd271d694d30?auto=format&fit=crop&w=1920&q=80')" }}
+          />
+          <div className="fixed inset-0 bg-white/40" aria-hidden="true" />
+          
+          <main className="relative z-10 mx-auto w-full max-w-7xl px-4 md:px-6 py-12 pt-20 lg:pt-20 pb-24 lg:pb-24">
+            <div className="bg-white/60 backdrop-blur-lg border border-white/40 rounded-3xl p-8 shadow-lg">
+              <h1 className="text-center text-3xl md:text-4xl font-bold text-green-900 mb-6">Productivity Logs</h1>
+              <div className="text-center text-lg text-gray-600">Loading production data...</div>
+            </div>
+          </main>
         </div>
       </>
     );
@@ -238,130 +238,186 @@ export default function ProductivityPage() {
   return (
     <>
       <Navigation currentPage="/productivity" />
-      <div className="min-h-screen bg-black text-green-400 px-4 md:px-6 py-12 pt-20 lg:pt-16 pb-20 lg:pb-16">
-        <div className="max-w-4xl mx-auto lg:ml-64">
-          <h1 className="text-2xl md:text-3xl font-bold mb-6 md:mb-8">Productivity Logs</h1>
-
-        {/* Monthly Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          <div className="bg-gray-900 p-6 rounded-lg border border-green-400">
-            <h2 className="text-xl font-semibold mb-2">Monthly Total Litres</h2>
-            <p className="text-3xl font-bold">{monthlySummary.total_litres.toFixed(2)} L</p>
+      <div className="relative min-h-screen">
+        <div 
+          className="fixed inset-0 bg-cover bg-center bg-no-repeat" 
+          style={{ backgroundImage: "url('https://images.unsplash.com/photo-1500595046743-cd271d694d30?auto=format&fit=crop&w=1920&q=80')" }}
+        />
+        <div className="fixed inset-0 bg-white/40" aria-hidden="true" />
+        
+        <main className="relative z-10 mx-auto w-full max-w-7xl px-4 md:px-6 py-12 pt-20 lg:pt-20 pb-24 lg:pb-24">
+          {/* Header */}
+          <div className="text-center mb-12">
+            <h1 className="text-4xl md:text-5xl font-bold text-green-900 mb-4">
+              Productivity Logs
+            </h1>
+            <p className="text-lg md:text-xl text-gray-600">
+              Track your farm's milk production
+            </p>
           </div>
-          <div className="bg-gray-900 p-6 rounded-lg border border-green-400">
-            <h2 className="text-xl font-semibold mb-2">Monthly Total Milk KG</h2>
-            <p className="text-3xl font-bold">{monthlySummary.total_milk_kg.toFixed(2)} KG</p>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 md:gap-12">
+            {/* Monthly Summary Cards */}
+            <div className="lg:col-span-1 space-y-6">
+              <div className="bg-white/60 backdrop-blur-lg border border-white/40 rounded-3xl p-6 shadow-lg">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-green-600/10 rounded-xl p-3">
+                      <Milk className="w-6 h-6 text-green-600" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-700">Monthly Total Litres</h3>
+                  </div>
+                </div>
+                <p className="text-3xl font-bold text-green-900">
+                  {monthlySummary.total_litres.toFixed(2)} L
+                </p>
+              </div>
+
+              <div className="bg-white/60 backdrop-blur-lg border border-white/40 rounded-3xl p-6 shadow-lg">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-blue-600/10 rounded-xl p-3">
+                      <Calendar className="w-6 h-6 text-blue-600" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-700">Monthly Total Milk KG</h3>
+                  </div>
+                </div>
+                <p className="text-3xl font-bold text-green-900">
+                  {monthlySummary.total_milk_kg.toFixed(2)} KG
+                </p>
+              </div>
+            </div>
+
+            {/* Record Production Form */}
+            <div className="lg:col-span-2">
+              <div className="bg-white/60 backdrop-blur-lg border border-white/40 rounded-3xl p-8 shadow-lg">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-green-600/10 rounded-xl p-3">
+                      <TrendingUp className="w-6 h-6 text-green-600" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-700">Record Production</h3>
+                  </div>
+                </div>
+                
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  <div>
+                    <label htmlFor="livestock" className="mb-2 block text-sm font-semibold text-green-900">
+                      Select Livestock
+                    </label>
+                    <select
+                      id="livestock"
+                      value={selectedLivestockId}
+                      onChange={(e) => setSelectedLivestockId(e.target.value)}
+                      className="h-11 w-full rounded-xl border border-gray-300 bg-white/80 px-4 py-3 text-base text-green-900 placeholder-green-700/50 outline-none ring-green-600 transition focus:ring-2"
+                      required
+                    >
+                      <option value="">Choose a livestock...</option>
+                      {livestock.map((item) => (
+                        <option key={item.id} value={String(item.id)}>
+                          {item.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label htmlFor="litres" className="mb-2 block text-sm font-semibold text-green-900">
+                        Litres
+                      </label>
+                      <input
+                        type="number"
+                        id="litres"
+                        value={litres}
+                        onChange={(e) => setLitres(e.target.value)}
+                        step="0.01"
+                        min="0"
+                        className="h-11 w-full rounded-xl border border-gray-300 bg-white/80 px-4 py-3 text-base text-green-900 placeholder-green-700/50 outline-none ring-green-600 transition focus:ring-2"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="milkKg" className="mb-2 block text-sm font-semibold text-green-900">
+                        Milk KG
+                      </label>
+                      <input
+                        type="number"
+                        id="milkKg"
+                        value={milkKg}
+                        onChange={(e) => setMilkKg(e.target.value)}
+                        step="0.01"
+                        min="0"
+                        className="h-11 w-full rounded-xl border border-gray-300 bg-white/80 px-4 py-3 text-base text-green-900 placeholder-green-700/50 outline-none ring-green-600 transition focus:ring-2"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  {error && (
+                    <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
+                      {error}
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={isSaving}
+                    className="w-full h-12 rounded-xl bg-green-600 px-6 py-3 text-base font-semibold text-white shadow-md transition-all hover:bg-green-700 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isSaving ? "Saving..." : "Record Production"}
+                  </button>
+                </form>
+              </div>
+            </div>
+
+            {/* Production Ledger Table */}
+            <div className="lg:col-span-3">
+              <div className="bg-white/60 backdrop-blur-lg border border-white/40 rounded-3xl p-6 shadow-lg">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-purple-600/10 rounded-xl p-3">
+                      <TrendingUp className="w-6 h-6 text-purple-600" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-700">Production Ledger</h3>
+                  </div>
+                </div>
+                
+                {ledger.length === 0 ? (
+                  <div className="text-center py-12">
+                    <p className="text-gray-600">No production records yet.</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-gray-200">
+                          <th className="text-left py-3 text-gray-700">Date</th>
+                          <th className="text-left py-3 text-gray-700">Livestock</th>
+                          <th className="text-right py-3 text-gray-700">Litres</th>
+                          <th className="text-right py-3 text-gray-700">Milk KG</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {ledger.map((log) => (
+                          <tr key={log.id} className="border-b border-gray-200">
+                            <td className="py-3">
+                              {new Date(log.created_at).toLocaleDateString()}
+                            </td>
+                            <td className="py-3">{log.livestock?.name || 'Unknown'}</td>
+                            <td className="text-right py-3">{log.litres.toFixed(2)}</td>
+                            <td className="text-right py-3">{log.milk_kg.toFixed(2)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
-        </div>
-
-        {/* Form */}
-        <div className="bg-gray-900 p-6 rounded-lg border border-green-400 mb-8">
-          <h2 className="text-xl font-semibold mb-4">Record Production</h2>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label htmlFor="livestock" className="block text-sm font-medium mb-1">
-                Select Livestock
-              </label>
-              <select
-                id="livestock"
-                value={selectedLivestockId}
-                onChange={(e) => setSelectedLivestockId(e.target.value)}
-                className="w-full bg-gray-800 border border-green-400 rounded px-3 py-2 text-green-400 focus:outline-none focus:ring-2 focus:ring-green-400"
-                required
-              >
-                <option value="">Choose a livestock...</option>
-                {livestock.map((item) => (
-                  <option key={item.id} value={String(item.id)}>
-                    {item.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="litres" className="block text-sm font-medium mb-1">
-                  Litres
-                </label>
-                <input
-                  type="number"
-                  id="litres"
-                  value={litres}
-                  onChange={(e) => setLitres(e.target.value)}
-                  step="0.01"
-                  min="0"
-                  className="w-full bg-gray-800 border border-green-400 rounded px-3 py-2 text-green-400 focus:outline-none focus:ring-2 focus:ring-green-400"
-                  required
-                />
-              </div>
-
-              <div>
-                <label htmlFor="milkKg" className="block text-sm font-medium mb-1">
-                  Milk KG
-                </label>
-                <input
-                  type="number"
-                  id="milkKg"
-                  value={milkKg}
-                  onChange={(e) => setMilkKg(e.target.value)}
-                  step="0.01"
-                  min="0"
-                  className="w-full bg-gray-800 border border-green-400 rounded px-3 py-2 text-green-400 focus:outline-none focus:ring-2 focus:ring-green-400"
-                  required
-                />
-              </div>
-            </div>
-
-            {error && (
-              <div className="bg-red-900 border border-red-400 text-red-400 px-4 py-2 rounded">
-                {error}
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={isSaving}
-              className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-black font-semibold py-2 px-4 rounded transition-colors"
-            >
-              {isSaving ? "Saving..." : "Record Production"}
-            </button>
-          </form>
-        </div>
-
-        {/* Ledger Table */}
-        <div className="bg-gray-900 p-6 rounded-lg border border-green-400">
-          <h2 className="text-xl font-semibold mb-4">Production Ledger</h2>
-          {ledger.length === 0 ? (
-            <p className="text-gray-400">No production records yet.</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-green-400">
-                    <th className="text-left py-2">Date</th>
-                    <th className="text-left py-2">Livestock</th>
-                    <th className="text-right py-2">Litres</th>
-                    <th className="text-right py-2">Milk KG</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {ledger.map((log) => (
-                    <tr key={log.id} className="border-b border-gray-700">
-                      <td className="py-2">
-                        {new Date(log.created_at).toLocaleDateString()}
-                      </td>
-                      <td className="py-2">{log.livestock?.name || 'Unknown'}</td>
-                      <td className="text-right py-2">{log.litres.toFixed(2)}</td>
-                      <td className="text-right py-2">{log.milk_kg.toFixed(2)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+        </main>
       </div>
-    </div>
     </>
   );
 }

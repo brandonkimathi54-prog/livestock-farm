@@ -203,8 +203,7 @@ export default function FinancePage() {
                 <p className="text-3xl font-bold text-purple-600">
                   {financialData.total_revenue > 0 
                     ? `${((financialData.net_profit / financialData.total_revenue) * 100).toFixed(1)}%`
-                    : '0%'
-                  }
+                    : '0%'}
                 </p>
               </div>
             </div>

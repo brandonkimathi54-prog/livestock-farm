@@ -4,6 +4,7 @@ import { supabase } from "@/src/lib/supabase";
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import Navigation from "@/app/components/Navigation";
+import { Heart, Activity, Plus } from "lucide-react";
 
 interface Livestock {
   id: string;
@@ -29,9 +30,8 @@ export default function HealthPage() {
   const [error, setError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [healthLogs, setHealthLogs] = useState<HealthLog[]>([]);
-  const [successMessage, setSuccessMessage] = useState("");
   const [isLoading, setIsLoading] = useState(true);
-  const [currentUserId, setCurrentUserId] = useState("");
+  const [currentUserId, setCurrentUserId] = useState<string>("");
 
   useEffect(() => {
     const storedUserId = localStorage.getItem("currentUserId") ?? "";
@@ -41,8 +41,6 @@ export default function HealthPage() {
   useEffect(() => {
     if (currentUserId) {
       fetchData();
-    } else {
-      setIsLoading(false);
     }
   }, [currentUserId]);
 
@@ -79,6 +77,7 @@ export default function HealthPage() {
         console.error(
           "Detailed Fetch Error:",
           logsError.message,
+          logsError.details,
           logsError.hint
         );
       } else {
@@ -95,7 +94,6 @@ export default function HealthPage() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
-    setSuccessMessage("");
     setIsSaving(true);
 
     if (!currentUserId) {
@@ -105,6 +103,7 @@ export default function HealthPage() {
     }
 
     const parsedCost = Number(cost);
+
     if (!Number.isFinite(parsedCost) || parsedCost < 0) {
       setError("Please provide a valid cost (0 or greater).");
       setIsSaving(false);
@@ -135,10 +134,8 @@ export default function HealthPage() {
         })
         .select("*");
 
-      console.log("Supabase Response:", insertedData, insertError);
       if (insertError) {
         console.error("Error inserting health log:", insertError);
-        console.log("Database Error Details:", insertError);
         const details = [insertError.message, insertError.details, insertError.hint]
           .filter(Boolean)
           .join(" | ");
@@ -153,10 +150,7 @@ export default function HealthPage() {
       setTreatment("");
       setCost("");
 
-      // Show success message
-      setSuccessMessage("Health log saved successfully!");
-
-      // Add the new record to the local state instantly
+      // Add to new record to local state instantly
       if (insertedData && insertedData.length > 0) {
         const newRecord = insertedData[0];
         const livestockName =
@@ -170,14 +164,10 @@ export default function HealthPage() {
         };
 
         setHealthLogs((prev) => [newHealthLog, ...prev]);
+
+        // Refresh data to ensure correct names are displayed
+        await fetchData();
       }
-
-      // Refresh data to ensure correct names are displayed
-      console.log("Refreshing health data after insert...");
-      await fetchData();
-
-      // Clear success message after 3 seconds
-      setTimeout(() => setSuccessMessage(""), 3000);
     } catch (err) {
       console.error("Unexpected error during submission:", err);
       setError("An unexpected error occurred during submission");
@@ -190,11 +180,19 @@ export default function HealthPage() {
     return (
       <>
         <Navigation currentPage="/health" />
-        <div className="min-h-screen bg-black text-green-400 px-4 md:px-6 py-12 pt-20 lg:pt-16 pb-20 lg:pb-16">
-          <div className="max-w-4xl mx-auto lg:ml-64">
-            <h1 className="text-2xl md:text-3xl font-bold mb-6 md:mb-8">Health Logs</h1>
-            <div className="text-center">Loading...</div>
-          </div>
+        <div className="relative min-h-screen">
+          <div 
+            className="fixed inset-0 bg-cover bg-center bg-no-repeat" 
+            style={{ backgroundImage: "url('https://images.unsplash.com/photo-1500595046743-cd271d694d30?auto=format&fit=crop&w=1920&q=80')" }}
+          />
+          <div className="fixed inset-0 bg-white/40" aria-hidden="true" />
+          
+          <main className="relative z-10 mx-auto w-full max-w-7xl px-4 md:px-6 py-12 pt-20 lg:pt-20 pb-24 lg:pb-24">
+            <div className="bg-white/60 backdrop-blur-lg border border-white/40 rounded-3xl p-8 shadow-lg">
+              <h1 className="text-center text-3xl md:text-4xl font-bold text-green-900 mb-6">Health Logs</h1>
+              <div className="text-center text-lg text-gray-600">Loading health data...</div>
+            </div>
+          </main>
         </div>
       </>
     );
@@ -203,165 +201,353 @@ export default function HealthPage() {
   return (
     <>
       <Navigation currentPage="/health" />
-      <div className="min-h-screen bg-black text-green-400 px-4 md:px-6 py-12 pt-20 lg:pt-16 pb-20 lg:pb-16">
-        <div className="max-w-4xl mx-auto lg:ml-64">
-          <h1 className="text-2xl md:text-3xl font-bold mb-6 md:mb-8">Health Logs</h1>
+      <div className="relative min-h-screen">
+        <div 
+          className="fixed inset-0 bg-cover bg-center bg-no-repeat" 
+          style={{ backgroundImage: "url('https://images.unsplash.com/photo-1500595046743-cd271d694d30?auto=format&fit=crop&w=1920&q=80')" }}
+        />
+        <div className="fixed inset-0 bg-white/40" aria-hidden="true" />
+        
+        <main className="relative z-10 mx-auto w-full max-w-7xl px-4 md:px-6 py-12 pt-20 lg:pt-20 pb-24 lg:pb-24">
+          {/* Header */}
+          <div className="text-center mb-12">
+            <h1 className="text-4xl md:text-5xl font-bold text-green-900 mb-4">
+              Health Logs
+            </h1>
+            <p className="text-lg md:text-xl text-gray-600">
+              Track and manage livestock health records
+            </p>
+          </div>
 
-        {/* Form */}
-        <div className="bg-gray-900 p-4 md:p-6 rounded-lg border border-green-400 mb-6 md:mb-8">
-          <h2 className="text-lg md:text-xl font-semibold mb-4">Record Health Issue</h2>
-          <form onSubmit={handleSubmit} className="space-y-4 md:space-y-5">
-            <div>
-              <label htmlFor="livestock" className="block text-sm font-medium mb-1">
-                Select Livestock
-              </label>
-              <select
-                id="livestock"
-                value={selectedLivestockId}
-                onChange={(e) => setSelectedLivestockId(e.target.value)}
-                className="h-11 w-full bg-gray-800 border border-green-400 rounded px-3 py-2 text-green-400 focus:outline-none focus:ring-2 focus:ring-green-400"
-                required
-              >
-                <option value="">Choose a livestock...</option>
-                {livestock.map((item) => (
-                  <option key={item.id} value={String(item.id)}>
-                    {item.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="condition" className="block text-sm font-medium mb-1">
-                  Condition
-                </label>
-                <input
-                  type="text"
-                  id="condition"
-                  value={condition}
-                  onChange={(e) => setCondition(e.target.value)}
-                  className="h-11 w-full bg-gray-800 border border-green-400 rounded px-3 py-2 text-green-400 focus:outline-none focus:ring-2 focus:ring-green-400"
-                  required
-                />
-              </div>
-
-              <div>
-                <label htmlFor="cost" className="block text-sm font-medium mb-1">
-                  Cost (KSh)
-                </label>
-                <input
-                  type="number"
-                  id="cost"
-                  value={cost}
-                  onChange={(e) => setCost(e.target.value)}
-                  step="0.01"
-                  min="0"
-                  className="h-11 w-full bg-gray-800 border border-green-400 rounded px-3 py-2 text-green-400 focus:outline-none focus:ring-2 focus:ring-green-400"
-                  required
-                />
-              </div>
-            </div>
-
-            <div>
-              <label htmlFor="treatment" className="block text-sm font-medium mb-1">
-                Treatment (Optional)
-              </label>
-              <textarea
-                id="treatment"
-                value={treatment}
-                onChange={(e) => setTreatment(e.target.value)}
-                rows={3}
-                className="w-full bg-gray-800 border border-green-400 rounded px-3 py-2 text-green-400 focus:outline-none focus:ring-2 focus:ring-green-400"
-              />
-            </div>
-
-            {error && (
-              <div className="bg-red-900 border border-red-400 text-red-400 px-3 py-2 md:px-4 rounded text-sm">
-                {error}
-              </div>
-            )}
-
-            {successMessage && (
-              <div className="bg-green-900 border border-green-400 text-green-400 px-3 py-2 md:px-4 rounded font-semibold text-sm">
-                {successMessage}
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={isSaving}
-              className="h-11 w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-black font-semibold py-2 px-4 rounded transition-colors"
-            >
-              {isSaving ? "Saving..." : "Record Health Issue"}
-            </button>
-          </form>
-        </div>
-
-        {/* Health History Table */}
-        <div className="bg-gray-900 p-4 md:p-6 rounded-lg border border-green-400">
-          <h2 className="text-lg md:text-xl font-semibold mb-4">Health History</h2>
-          {healthLogs.length === 0 ? (
-            <p className="text-gray-400">No health records yet.</p>
-          ) : (
-            <>
-              {/* Mobile Card View */}
-              <div className="md:hidden space-y-3">
-                {healthLogs.map((log) => (
-                  <div key={log.id} className="border border-gray-700 rounded-lg p-3">
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <p className="font-semibold text-green-300">{log.livestock?.name || 'Unknown'}</p>
-                        <p className="text-xs text-gray-400">
-                          {new Date(log.created_at).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <p className="font-bold text-green-400">
-                        KSh {log.cost.toFixed(2)}
-                      </p>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-sm"><span className="text-gray-400">Condition:</span> {log.condition}</p>
-                      {log.treatment && (
-                        <p className="text-sm"><span className="text-gray-400">Treatment:</span> {log.treatment}</p>
-                      )}
-                    </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12">
+            {/* Record Health Issue Form */}
+            <div className="bg-white/60 backdrop-blur-lg border border-white/40 rounded-3xl p-8 shadow-lg">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="bg-red-600/10 rounded-xl p-3">
+                    <Heart className="w-6 h-6 text-red-600" />
                   </div>
-                ))}
+                  <h3 className="text-lg font-semibold text-gray-700">Record Health Issue</h3>
+                </div>
               </div>
-
-              {/* Desktop Table View */}
-              <div className="hidden md:block overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-green-400">
-                      <th className="text-left py-2">Date</th>
-                      <th className="text-left py-2">Livestock</th>
-                      <th className="text-left py-2">Condition</th>
-                      <th className="text-left py-2">Treatment</th>
-                      <th className="text-right py-2">Cost (KSh)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {healthLogs.map((log) => (
-                      <tr key={log.id} className="border-b border-gray-700">
-                        <td className="py-2">
-                          {new Date(log.created_at).toLocaleDateString()}
-                        </td>
-                        <td className="py-2">{log.livestock?.name || 'Unknown'}</td>
-                        <td className="py-2">{log.condition}</td>
-                        <td className="py-2">{log.treatment || "None"}</td>
-                        <td className="text-right py-2">{log.cost.toFixed(2)}</td>
-                      </tr>
+              
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div>
+                  <label htmlFor="livestock" className="mb-2 block text-sm font-semibold text-green-900">
+                    Select Livestock
+                  </label>
+                  <select
+                    id="livestock"
+                    value={selectedLivestockId}
+                    onChange={(e) => setSelectedLivestockId(e.target.value)}
+                    className="h-11 w-full rounded-xl border border-gray-300 bg-white/80 px-4 py-3 text-base text-green-900 placeholder-green-700/50 outline-none ring-green-600 transition focus:ring-2"
+                    required
+                  >
+                    <option value="">Choose a livestock...</option>
+                    {livestock.map((item) => (
+                      <option key={item.id} value={String(item.id)}>
+                        {item.name}
+                      </option>
                     ))}
-                  </tbody>
-                </table>
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="condition" className="mb-2 block text-sm font-semibold text-green-900">
+                      Condition
+                    </label>
+                    <input
+                      type="text"
+                      id="condition"
+                      value={condition}
+                      onChange={(e) => setCondition(e.target.value)}
+                      placeholder="Enter health condition"
+                      className="h-11 w-full rounded-xl border border-gray-300 bg-white/80 px-4 py-3 text-base text-green-900 placeholder-green-700/50 outline-none ring-green-600 transition focus:ring-2"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="treatment" className="mb-2 block text-sm font-semibold text-green-900">
+                      Treatment (Optional)
+                    </label>
+                    <textarea
+                      id="treatment"
+                      value={treatment}
+                      onChange={(e) => setTreatment(e.target.value)}
+                      rows={3}
+                      placeholder="Enter treatment details"
+                      className="h-11 w-full rounded-xl border border-gray-300 bg-white/80 px-4 py-3 text-base text-green-900 placeholder-green-700/50 outline-none ring-green-600 transition focus:ring-2"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="cost" className="mb-2 block text-sm font-semibold text-green-900">
+                      Cost (KSh)
+                    </label>
+                    <input
+                      type="number"
+                      id="cost"
+                      value={cost}
+                      onChange={(e) => setCost(e.target.value)}
+                      step="0.01"
+                      min="0"
+                      placeholder="Enter treatment cost"
+                      className="h-11 w-full rounded-xl border border-gray-300 bg-white/80 px-4 py-3 text-base text-green-900 placeholder-green-700/50 outline-none ring-green-600 transition focus:ring-2"
+                      required
+                    />
+                  </div>
+                </div>
+
+                {error && (
+                  <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
+                    {error}
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={isSaving}
+                  className="w-full h-12 rounded-xl bg-green-600 px-6 py-3 text-base font-semibold text-white shadow-md transition-all hover:bg-green-700 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isSaving ? "Saving..." : "Record Health Issue"}
+                </button>
+              </form>
+            </div>
+
+            {/* Health History Table */}
+            <div className="bg-white/60 backdrop-blur-lg border border-white/40 rounded-3xl p-8 shadow-lg">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="bg-purple-600/10 rounded-xl p-3">
+                    <Activity className="w-6 h-6 text-purple-600" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-700">Health History</h3>
+                </div>
               </div>
-            </>
-          )}
-        </div>
-        </div>
-      </div>
-    </>
-  );
+              
+              {healthLogs.length === 0 ? (
+                <div className="text-center py-12">
+                  <p className="text-gray-600">No health records yet.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-gray-200">
+                        <th className="text-left py-3 text-gray-700">Date</th>
+                        <th className="text-left py-3 text-gray-700">Livestock</th>
+                        <th className="text-left py-3 text-gray-700">Condition</th>
+                        <th className="text-left py-3 text-gray-700">Treatment</th>
+                        <th className="text-right py-3 text-gray-700">Cost (KSh)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {healthLogs.map((log) => (
+                        <tr key={log.id} className="border-b border-gray-200">
+                          <td className="py-3">
+                            {new Date(log.created_at).toLocaleDateString()}
+                          </td>
+                          <td className="py-3">{log.livestock?.name || 'Unknown'}</td>
+                          <td className="py-3">{log.condition}</td>
+                          <td className="py-3">{log.treatment || "None"}</td>
+                          <td className="text-right py-3">{log.cost.toFixed(2)}</td>
+                        </tr>
+                      ))}
+}
+} catch (err) {
+console.error("Unexpected error during submission:", err);
+setError("An unexpected error occurred during submission");
+} finally {
+setIsSaving(false);
+}
+}
+
+if (isLoading) {
+return (
+<>
+<Navigation currentPage="/health" />
+<div className="relative min-h-screen">
+<div 
+className="fixed inset-0 bg-cover bg-center bg-no-repeat" 
+style={{ backgroundImage: "url('https://images.unsplash.com/photo-1500595046743-cd271d694d30?auto=format&fit=crop&w=1920&q=80')" }}
+/>
+<div className="fixed inset-0 bg-white/40" aria-hidden="true" />
+  
+<main className="relative z-10 mx-auto w-full max-w-7xl px-4 md:px-6 py-12 pt-20 lg:pt-20 pb-24 lg:pb-24">
+<div className="bg-white/60 backdrop-blur-lg border border-white/40 rounded-3xl p-8 shadow-lg">
+<h1 className="text-center text-3xl md:text-4xl font-bold text-green-900 mb-6">Health Logs</h1>
+<div className="text-center text-lg text-gray-600">Loading health data...</div>
+</div>
+</main>
+</div>
+</>
+);
+}
+
+return (
+<>
+<Navigation currentPage="/health" />
+<div className="relative min-h-screen">
+<div 
+className="fixed inset-0 bg-cover bg-center bg-no-repeat" 
+style={{ backgroundImage: "url('https://images.unsplash.com/photo-1500595046743-cd271d694d30?auto=format&fit=crop&w=1920&q=80')" }}
+/>
+<div className="fixed inset-0 bg-white/40" aria-hidden="true" />
+  
+<main className="relative z-10 mx-auto w-full max-w-7xl px-4 md:px-6 py-12 pt-20 lg:pt-20 pb-24 lg:pb-24">
+{/* Header */}
+<div className="text-center mb-12">
+<h1 className="text-4xl md:text-5xl font-bold text-green-900 mb-4">
+Health Logs
+</h1>
+<p className="text-lg md:text-xl text-gray-600">
+Track and manage livestock health records
+</p>
+</div>
+
+<div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12">
+{/* Record Health Issue Form */}
+<div className="bg-white/60 backdrop-blur-lg border border-white/40 rounded-3xl p-8 shadow-lg">
+<div className="flex items-center justify-between mb-6">
+<div className="flex items-center gap-3">
+<div className="bg-red-600/10 rounded-xl p-3">
+<Heart className="w-6 h-6 text-red-600" />
+</div>
+<h3 className="text-lg font-semibold text-gray-700">Record Health Issue</h3>
+</div>
+</div>
+  
+<form onSubmit={handleSubmit} className="space-y-6">
+<div>
+<label htmlFor="livestock" className="mb-2 block text-sm font-semibold text-green-900">
+Select Livestock
+</label>
+<select
+id="livestock"
+value={selectedLivestockId}
+onChange={(e) => setSelectedLivestockId(e.target.value)}
+className="h-11 w-full rounded-xl border border-gray-300 bg-white/80 px-4 py-3 text-base text-green-900 placeholder-green-700/50 outline-none ring-green-600 transition focus:ring-2"
+required
+>
+<option value="">Choose a livestock...</option>
+{livestock.map((item) => (
+<option key={item.id} value={String(item.id)}>
+{item.name}
+</option>
+))}
+</select>
+</div>
+
+<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+<div>
+<label htmlFor="condition" className="mb-2 block text-sm font-semibold text-green-900">
+Condition
+</label>
+<input
+type="text"
+id="condition"
+value={condition}
+onChange={(e) => setCondition(e.target.value)}
+placeholder="Enter health condition"
+className="h-11 w-full rounded-xl border border-gray-300 bg-white/80 px-4 py-3 text-base text-green-900 placeholder-green-700/50 outline-none ring-green-600 transition focus:ring-2"
+required
+/>
+</div>
+<div>
+<label htmlFor="treatment" className="mb-2 block text-sm font-semibold text-green-900">
+Treatment (Optional)
+</label>
+<textarea
+id="treatment"
+value={treatment}
+onChange={(e) => setTreatment(e.target.value)}
+rows={3}
+placeholder="Enter treatment details"
+className="h-11 w-full rounded-xl border border-gray-300 bg-white/80 px-4 py-3 text-base text-green-900 placeholder-green-700/50 outline-none ring-green-600 transition focus:ring-2"
+/>
+</div>
+<div>
+<label htmlFor="cost" className="mb-2 block text-sm font-semibold text-green-900">
+Cost (KSh)
+</label>
+<input
+type="number"
+id="cost"
+value={cost}
+onChange={(e) => setCost(e.target.value)}
+step="0.01"
+min="0"
+placeholder="Enter treatment cost"
+className="h-11 w-full rounded-xl border border-gray-300 bg-white/80 px-4 py-3 text-base text-green-900 placeholder-green-700/50 outline-none ring-green-600 transition focus:ring-2"
+required
+/>
+</div>
+</div>
+
+{error && (
+<div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
+{error}
+</div>
+)}
+
+<button
+type="submit"
+disabled={isSaving}
+className="w-full h-12 rounded-xl bg-green-600 px-6 py-3 text-base font-semibold text-white shadow-md transition-all hover:bg-green-700 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+>
+{isSaving ? "Saving..." : "Record Health Issue"}
+</button>
+</form>
+</div>
+
+{/* Health History Table */}
+<div className="bg-white/60 backdrop-blur-lg border border-white/40 rounded-3xl p-8 shadow-lg">
+<div className="flex items-center justify-between mb-6">
+<div className="flex items-center gap-3">
+<div className="bg-purple-600/10 rounded-xl p-3">
+<Activity className="w-6 h-6 text-purple-600" />
+</div>
+<h3 className="text-lg font-semibold text-gray-700">Health History</h3>
+</div>
+</div>
+  
+{healthLogs.length === 0 ? (
+<div className="text-center py-12">
+<p className="text-gray-600">No health records yet.</p>
+</div>
+) : (
+<div className="overflow-x-auto">
+<table className="w-full text-sm">
+<thead>
+<tr className="border-b border-gray-200">
+<th className="text-left py-3 text-gray-700">Date</th>
+<th className="text-left py-3 text-gray-700">Livestock</th>
+<th className="text-left py-3 text-gray-700">Condition</th>
+<th className="text-left py-3 text-gray-700">Treatment</th>
+<th className="text-right py-3 text-gray-700">Cost (KSh)</th>
+</tr>
+</thead>
+<tbody>
+{healthLogs.map((log) => (
+<tr key={log.id} className="border-b border-gray-200">
+<td className="py-3">
+{new Date(log.created_at).toLocaleDateString()}
+</td>
+<td className="py-3">{log.livestock?.name || 'Unknown'}</td>
+<td className="py-3">{log.condition}</td>
+<td className="py-3">{log.treatment || "None"}</td>
+<td className="text-right py-3">{log.cost.toFixed(2)}</td>
+</tr>
+))}
+</tbody>
+</table>
+</div>
+)}
+</div>
+</div>
+</div>
+</main>
+</div>
+</>
+);
 }
