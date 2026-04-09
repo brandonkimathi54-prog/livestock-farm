@@ -39,11 +39,62 @@ export default function AdminPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [editingCowId, setEditingCowId] = useState<number | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string>("");
+  const [whatsappNumber, setWhatsappNumber] = useState<string>("");
+  const [isSavingWhatsApp, setIsSavingWhatsApp] = useState(false);
+  const [whatsappSaveSuccess, setWhatsappSaveSuccess] = useState(false);
 
   useEffect(() => {
     const storedUserId = localStorage.getItem("currentUserId") ?? "";
     setCurrentUserId(storedUserId);
   }, []);
+
+  useEffect(() => {
+    if (currentUserId) {
+      fetchWhatsAppNumber();
+    }
+  }, [currentUserId]);
+
+  async function fetchWhatsAppNumber() {
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("whatsapp_number")
+        .eq("id", currentUserId)
+        .single();
+      
+      if (error && error.code !== "PGRST116") {
+        console.error("Error fetching WhatsApp number:", error);
+      } else if (data) {
+        setWhatsappNumber(data.whatsapp_number || "");
+      }
+    } catch (err) {
+      console.error("Unexpected error fetching WhatsApp number:", err);
+    }
+  }
+
+  async function saveWhatsAppNumber() {
+    setIsSavingWhatsApp(true);
+    setError("");
+    setWhatsappSaveSuccess(false);
+    
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ whatsapp_number: whatsappNumber.trim() })
+        .eq("id", currentUserId);
+        
+      if (error) {
+        setError("Failed to save WhatsApp number: " + error.message);
+      } else {
+        setWhatsappSaveSuccess(true);
+        setTimeout(() => setWhatsappSaveSuccess(false), 3000);
+      }
+    } catch (err) {
+      setError("An unexpected error occurred while saving WhatsApp number.");
+    } finally {
+      setIsSavingWhatsApp(false);
+    }
+  }
 
   async function fetchLivestock() {
     if (!currentUserId) {
@@ -368,7 +419,7 @@ export default function AdminPage() {
             Meme Livestock Farm
           </p>
         </div>
-        <div className="mt-4">
+        <div className="mt-4 space-y-4">
           <button
             type="button"
             onClick={downloadCsvReport}
@@ -377,6 +428,48 @@ export default function AdminPage() {
           >
             {isDownloadingReport ? "Generating Report..." : "Download CSV Report"}
           </button>
+        </div>
+
+        {/* WhatsApp Settings Section */}
+        <div className="mt-8 bg-white/60 backdrop-blur-lg border border-white/40 rounded-3xl p-6 shadow-lg">
+          <h2 className="mb-4 text-xl font-bold text-green-900">WhatsApp Contact Settings</h2>
+          <p className="mb-6 text-sm text-gray-600">
+            Set your WhatsApp number so buyers can contact you directly from the marketplace.
+          </p>
+          
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="whatsapp" className="mb-2 block text-sm font-semibold text-green-900">
+                WhatsApp Number
+              </label>
+              <input
+                id="whatsapp"
+                type="tel"
+                value={whatsappNumber}
+                onChange={(e) => setWhatsappNumber(e.target.value)}
+                placeholder="e.g., +254793412488"
+                className="h-11 w-full rounded-xl border border-gray-300 bg-white/80 px-4 py-3 text-base text-green-900 placeholder-green-700/50 outline-none ring-green-600 transition focus:ring-2"
+              />
+              <p className="mt-2 text-xs text-gray-500">
+                Include country code (e.g., +254 for Kenya)
+              </p>
+            </div>
+            
+            {whatsappSaveSuccess && (
+              <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-xl text-sm">
+                WhatsApp number saved successfully!
+              </div>
+            )}
+            
+            <button
+              type="button"
+              onClick={saveWhatsAppNumber}
+              disabled={isSavingWhatsApp}
+              className="inline-flex items-center justify-center h-11 rounded-xl bg-green-600 px-6 py-3 text-base font-semibold text-white shadow-md transition-all hover:bg-green-700 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSavingWhatsApp ? "Saving..." : "Save WhatsApp Number"}
+            </button>
+          </div>
         </div>
 
         <h1 className="mt-4 text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight text-emerald-900">

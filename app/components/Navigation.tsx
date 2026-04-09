@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Home, LayoutDashboard, ShoppingCart, TrendingUp, DollarSign, Truck, BarChart3, Stethoscope, LogOut, Menu, X } from "lucide-react";
+import { Home, LayoutDashboard, ShoppingCart, TrendingUp, DollarSign, Truck, BarChart3, Stethoscope, LogOut, Menu, X, Wallet } from "lucide-react";
 
 interface NavigationProps {
   currentPage?: string;
@@ -18,6 +18,7 @@ const navigationItems = [
   { name: "Livestock", href: "/admin", icon: LayoutDashboard },
   { name: "Health", href: "/health", icon: Stethoscope },
   { name: "Productivity", href: "/productivity", icon: TrendingUp },
+  { name: "Finance", href: "/finance", icon: Wallet },
   { name: "Expenses", href: "/expenses", icon: DollarSign },
   { name: "Tracking", href: "/tracking", icon: Truck },
   { name: "Trends", href: "/trends", icon: BarChart3 },
@@ -175,7 +176,7 @@ export default function Navigation({ currentPage, showBackButton = false, onLogo
             { name: "Home", href: "/", icon: Home },
             { name: "Market", href: "/shop", icon: ShoppingCart },
             { name: "Livestock", href: "/admin", icon: LayoutDashboard },
-            { name: "Health", href: "/health", icon: Stethoscope },
+            { name: "Finance", href: "/finance", icon: Wallet },
             { name: "More", href: "/dashboard", icon: Menu },
           ].map((item) => {
             const Icon = item.icon;

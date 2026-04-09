@@ -85,16 +85,12 @@ export default function HomePage() {
       setError("Please enter your username.");
       return;
     }
-    if (!trimmedPassword) {
-      setError("Please enter your password.");
-      return;
-    }
 
+    // For marketplace access, only username is required
     const { data, error: loginError } = await supabase
       .from("profiles")
       .select("id, farm_name, username")
       .ilike("username", trimmedUsername)
-      .eq("password", trimmedPassword)
       .limit(1);
 
     if (loginError) {
@@ -105,8 +101,7 @@ export default function HomePage() {
     }
 
     if (!data || data.length === 0) {
-      console.log(data);
-      setError("Login failed: username or password is incorrect.");
+      setError("Username not found. Please check the farmer's username.");
       return;
     }
 
@@ -153,10 +148,8 @@ export default function HomePage() {
             <h1 className="text-4xl md:text-6xl font-black tracking-tight text-emerald-900 sm:text-7xl">
               SMART FARMER
             </h1>
-            <p className="text-sm md:text-base text-slate-700 sm:text-lg">
-              {mode === "login"
-                ? "Login to access your farm marketplace."
-                : "Create your farm profile and start listing livestock."}
+            <p className="text-sm md:text-base text-gray-600 sm:text-lg">
+              {mode === "login" ? "Enter farmer's username to view their marketplace" : "Professional livestock and farm management system."}
             </p>
           </div>
 
@@ -229,20 +222,22 @@ export default function HomePage() {
               />
             </div>
 
-            <div>
-              <label htmlFor="password" className="mb-2 block text-sm font-semibold uppercase tracking-[0.14em] text-gray-500">
-                Password
-              </label>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter password"
-                className="mt-2 h-11 w-full rounded-xl border border-gray-300 bg-white/80 px-4 py-3 text-base md:text-lg text-green-900 placeholder-green-700/50 outline-none ring-green-600 transition focus:ring-2"
-                required
-              />
-            </div>
+            {mode === "signup" ? (
+              <div>
+                <label htmlFor="password" className="mb-2 block text-sm font-semibold uppercase tracking-[0.14em] text-gray-500">
+                  Password
+                </label>
+                <input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Create password"
+                  className="mt-2 h-11 w-full rounded-xl border border-gray-300 bg-white/80 px-4 py-3 text-base md:text-lg text-green-900 placeholder-green-700/50 outline-none ring-green-600 transition focus:ring-2"
+                  required
+                />
+              </div>
+            ) : null}
 
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
@@ -258,7 +253,7 @@ export default function HomePage() {
               {mode === "login" ? (
                 <>
                   <Lock className="h-4 w-4" />
-                  Farmer Login
+                  View Marketplace
                 </>
               ) : (
                 "Create Account"
