@@ -6,6 +6,9 @@ import { useRouter } from "next/navigation";
 import { ArrowRight, Lock } from "lucide-react";
 import { supabase } from "@/src/lib/supabase";
 
+const PHOTO_BG_URL =
+  "https://images.unsplash.com/photo-1500595046743-cd271d694d30?auto=format&fit=crop&w=1920&q=80";
+
 function getSupabaseErrorMessage(error: { message?: string; code?: string; details?: string; hint?: string } | null) {
   if (!error) {
     return "Network error: no response received from Supabase.";
@@ -127,11 +130,11 @@ export default function HomePage() {
   return (
     <div
       className="relative min-h-screen bg-cover bg-center bg-no-repeat px-6 py-12"
-      style={{ backgroundImage: "url('/farmer-pasture-bg.svg')" }}
+      style={{ backgroundImage: `url('${PHOTO_BG_URL}')` }}
     >
-      <div className="absolute inset-0 bg-slate-900/20 backdrop-blur-sm" aria-hidden="true" />
+      <div className="absolute inset-0 bg-slate-900/35" aria-hidden="true" />
       <main className="relative mx-auto flex min-h-[80vh] w-full max-w-5xl items-center justify-center">
-        <section className="w-full max-w-2xl rounded-3xl border border-slate-200 bg-white p-8 shadow-lg sm:p-10">
+        <section className="w-full max-w-2xl rounded-3xl border border-white/40 bg-white/55 p-8 font-[var(--font-geist-sans)] shadow-xl backdrop-blur-xl sm:p-10">
           <div className="space-y-3 text-center">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
               Smart Farmer Entry Gate
