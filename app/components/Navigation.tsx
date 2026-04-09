@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Home, LayoutDashboard, ShoppingCart, TrendingUp, DollarSign, Truck, BarChart3, Stethoscope, LogOut, Menu, X, Wallet } from "lucide-react";
@@ -11,10 +11,13 @@ interface NavigationProps {
   onLogout?: () => void;
 }
 
-const navigationItems = [
+const publicNavigationItems = [
   { name: "Home", href: "/", icon: Home },
-  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Marketplace", href: "/shop", icon: ShoppingCart },
+];
+
+const farmerNavigationItems = [
+  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Livestock", href: "/admin", icon: LayoutDashboard },
   { name: "Health", href: "/health", icon: Stethoscope },
   { name: "Productivity", href: "/productivity", icon: TrendingUp },
@@ -26,7 +29,22 @@ const navigationItems = [
 
 export default function Navigation({ currentPage, showBackButton = false, onLogout }: NavigationProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const router = useRouter();
+
+  useEffect(() => {
+    const role = typeof window !== 'undefined' ? localStorage.getItem('userRole') : null;
+    setUserRole(role);
+  }, []);
+
+  // Combine navigation items based on user role
+  const getNavigationItems = () => {
+    const items = [...publicNavigationItems];
+    if (userRole === 'farmer') {
+      items.push(...farmerNavigationItems);
+    }
+    return items;
+  };
 
   const handleLogout = () => {
     localStorage.clear();
@@ -55,7 +73,7 @@ export default function Navigation({ currentPage, showBackButton = false, onLogo
 
             {/* Navigation Items */}
             <div className="flex items-center space-x-1">
-              {navigationItems.slice(0, 6).map((item) => {
+              {getNavigationItems().slice(0, 6).map((item) => {
                 const Icon = item.icon;
                 const isActive = currentPage === item.href || 
                                (currentPage?.includes(item.href) && item.href !== "/");
@@ -134,7 +152,7 @@ export default function Navigation({ currentPage, showBackButton = false, onLogo
             </div>
             
             <div className="p-4 space-y-2">
-              {navigationItems.map((item) => {
+              {getNavigationItems().map((item) => {
                 const Icon = item.icon;
                 const isActive = currentPage === item.href || 
                                (currentPage?.includes(item.href) && item.href !== "/");
@@ -172,32 +190,42 @@ export default function Navigation({ currentPage, showBackButton = false, onLogo
       {/* Mobile Bottom Navigation */}
       <nav className="lg:hidden fixed bottom-4 left-4 right-4 z-40 bg-white/60 backdrop-blur-lg border border-white/40 rounded-2xl shadow-lg">
         <div className="grid grid-cols-5 gap-1 p-2">
-          {[
-            { name: "Home", href: "/", icon: Home },
-            { name: "Market", href: "/shop", icon: ShoppingCart },
-            { name: "Livestock", href: "/admin", icon: LayoutDashboard },
-            { name: "Finance", href: "/finance", icon: Wallet },
-            { name: "More", href: "/dashboard", icon: Menu },
-          ].map((item) => {
-            const Icon = item.icon;
-            const isActive = currentPage === item.href || 
-                           (currentPage?.includes(item.href) && item.href !== "/");
+          {(() => {
+            const bottomNavItems = [
+              { name: "Home", href: "/", icon: Home },
+              { name: "Market", href: "/shop", icon: ShoppingCart },
+              ...(userRole === 'farmer' ? [
+                { name: "Livestock", href: "/admin", icon: LayoutDashboard },
+                { name: "Finance", href: "/finance", icon: Wallet },
+                { name: "More", href: "/dashboard", icon: Menu },
+              ] : [
+                { name: "More", href: "/shop", icon: Menu },
+                { name: "About", href: "/", icon: Home },
+                { name: "Contact", href: "/shop", icon: ShoppingCart },
+              ])
+            ];
             
-            return (
-              <button
-                key={item.name}
-                onClick={() => handleNavigation(item.href)}
-                className={`flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-colors ${
-                  isActive
-                    ? "text-green-600"
-                    : "text-green-900 hover:bg-green-100"
-                }`}
-              >
-                <Icon className="w-5 h-5" />
-                <span className="text-xs font-medium">{item.name}</span>
-              </button>
-            );
-          })}
+            return bottomNavItems.slice(0, 5).map((item) => {
+              const Icon = item.icon;
+              const isActive = currentPage === item.href || 
+                             (currentPage?.includes(item.href) && item.href !== "/");
+              
+              return (
+                <button
+                  key={item.name}
+                  onClick={() => handleNavigation(item.href)}
+                  className={`flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-colors ${
+                    isActive
+                      ? "text-green-600"
+                      : "text-green-900 hover:bg-green-100"
+                  }`}
+                >
+                  <Icon className="w-5 h-5" />
+                  <span className="text-xs font-medium">{item.name}</span>
+                </button>
+              );
+            });
+          })()}
         </div>
       </nav>
     </>

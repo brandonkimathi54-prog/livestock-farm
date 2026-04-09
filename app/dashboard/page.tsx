@@ -1,55 +1,94 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { LayoutDashboard, Stethoscope, TrendingUp, DollarSign, Truck, BarChart3 } from "lucide-react";
 import Navigation from "@/app/components/Navigation";
+import { supabase } from "@/src/lib/supabase";
 
 const PHOTO_BG_URL = "https://images.unsplash.com/photo-1500595046743-cd271d694d30?auto=format&fit=crop&w=1920&q=80";
-const AUTH_STORAGE_KEY = "dashboard_pin_authenticated";
 
 export default function DashboardPage() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [pin, setPin] = useState("");
-  const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [totalCows, setTotalCows] = useState(0);
+  const [dailyMilk, setDailyMilk] = useState(0);
+  const [monthlyProfit, setMonthlyProfit] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const [currentUserId, setCurrentUserId] = useState<string>("");
   const router = useRouter();
 
   useEffect(() => {
-    const savedAuth = localStorage.getItem(AUTH_STORAGE_KEY);
-    if (savedAuth === "true") {
-      setIsAuthenticated(true);
-    }
+    const storedUserId = localStorage.getItem("currentUserId") ?? "";
+    setCurrentUserId(storedUserId);
   }, []);
 
-  const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-
-    const normalizedPin = pin.trim();
-
-    if (!normalizedPin) {
-      setError("Please enter your PIN.");
-      return;
+  useEffect(() => {
+    if (currentUserId) {
+      fetchQuickStats();
     }
+  }, [currentUserId]);
 
+  async function fetchQuickStats() {
     setIsLoading(true);
-    
-    // Simple PIN validation (in real app, this would be server-side)
-    if (normalizedPin === "1234") {
-      setError("");
-      localStorage.setItem(AUTH_STORAGE_KEY, "true");
-      setIsAuthenticated(true);
-    } else {
-      setError("Incorrect PIN. Please try again.");
+    try {
+      // Get total cows count
+      const { data: livestockData, error: livestockError } = await supabase
+        .from("livestock")
+        .select("id")
+        .eq("user_id", currentUserId);
+
+      if (!livestockError) {
+        setTotalCows(livestockData?.length || 0);
+      }
+
+      // Get today's milk production
+      const today = new Date().toISOString().split('T')[0];
+      const { data: productionData, error: productionError } = await supabase
+        .from("production_logs")
+        .select("litres")
+        .eq("user_id", currentUserId)
+        .eq("date", today);
+
+      if (!productionError) {
+        const dailyTotal = (productionData || []).reduce((sum, log) => sum + (log.litres || 0), 0);
+        setDailyMilk(dailyTotal);
+      }
+
+      // Calculate monthly profit (revenue - expenses)
+      const currentMonth = new Date().toISOString().slice(0, 7);
+      
+      const [revenueResponse, expensesResponse] = await Promise.all([
+        supabase
+          .from("production_logs")
+          .select("litres")
+          .eq("user_id", currentUserId)
+          .gte("date", currentMonth),
+        supabase
+          .from("expenses")
+          .select("amount")
+          .eq("user_id", currentUserId)
+          .gte("date", currentMonth)
+      ]);
+
+      if (!revenueResponse.error && !expensesResponse.error) {
+        // Calculate monthly revenue (assuming KES 50 per liter)
+        const monthlyRevenue = (revenueResponse.data || [])
+          .reduce((sum, log) => sum + ((log.litres || 0) * 50), 0);
+
+        const monthlyExpenses = (expensesResponse.data || [])
+          .reduce((sum, expense) => sum + (expense.amount || 0), 0);
+
+        setMonthlyProfit(monthlyRevenue - monthlyExpenses);
+      }
+    } catch (error) {
+      console.error("Error fetching quick stats:", error);
+    } finally {
+      setIsLoading(false);
     }
-    
-    setIsLoading(false);
-  };
+  }
 
   const handleLogout = () => {
     localStorage.clear();
-    setIsAuthenticated(false);
     router.push("/");
   };
 
@@ -94,89 +133,34 @@ export default function DashboardPage() {
 
   const quickStats = [
     {
-      title: "Total Livestock",
-      value: "24",
+      title: "Total Cows",
+      value: isLoading ? "..." : totalCows.toString(),
       icon: LayoutDashboard,
       color: "text-green-600",
       bgColor: "bg-green-50",
     },
     {
-      title: "Health Alerts",
-      value: "3",
-      icon: Stethoscope,
-      color: "text-red-600",
-      bgColor: "bg-red-50",
+      title: "Daily Milk",
+      value: isLoading ? "..." : `${dailyMilk}L`,
+      icon: TrendingUp,
+      color: "text-blue-600",
+      bgColor: "bg-blue-50",
     },
     {
-      title: "Monthly Revenue",
-      value: "KSh 45K",
-      icon: TrendingUp,
+      title: "Monthly Profit",
+      value: isLoading ? "..." : `KSh ${monthlyProfit.toLocaleString()}`,
+      icon: DollarSign,
+      color: monthlyProfit >= 0 ? "text-green-600" : "text-red-600",
+      bgColor: monthlyProfit >= 0 ? "bg-green-50" : "bg-red-50",
+    },
+    {
+      title: "Health Status",
+      value: "Healthy",
+      icon: Stethoscope,
       color: "text-green-600",
       bgColor: "bg-green-50",
     },
-    {
-      title: "Active Tasks",
-      value: "7",
-      icon: BarChart3,
-      color: "text-amber-600",
-      bgColor: "bg-amber-50",
-    },
   ];
-
-  if (!isAuthenticated) {
-    return (
-      <>
-        <Navigation currentPage="/dashboard" />
-        <div className="relative min-h-screen">
-          <div 
-            className="fixed inset-0 bg-cover bg-center bg-no-repeat" 
-            style={{ backgroundImage: `url('${PHOTO_BG_URL}')` }}
-          />
-          <div className="fixed inset-0 bg-white/40" aria-hidden="true" />
-          
-          <main className="relative z-10 mx-auto flex min-h-[80vh] w-full max-w-7xl items-center justify-center px-4 py-12">
-            <div className="w-full max-w-md bg-white/60 backdrop-blur-lg border border-white/40 rounded-3xl p-8 shadow-xl">
-              <div className="text-center mb-8">
-                <h1 className="text-4xl md:text-5xl font-black tracking-tight text-green-900">
-                  SMART FARMER
-                </h1>
-                <p className="text-sm md:text-base text-gray-600 mt-2">
-                  Management Portal
-                </p>
-              </div>
-
-              <form onSubmit={handleLogin} className="space-y-6">
-                <div>
-                  <input
-                    type="password"
-                    value={pin}
-                    onChange={(e) => setPin(e.target.value)}
-                    placeholder="Enter PIN"
-                    className="w-full h-12 rounded-xl border border-gray-300 bg-white/80 px-4 py-3 text-center text-lg font-semibold text-green-900 placeholder-green-700/50 outline-none ring-green-600 transition focus:ring-2"
-                    maxLength={10}
-                  />
-                </div>
-
-                {error && (
-                  <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
-                    {error}
-                  </div>
-                )}
-
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="w-full h-12 rounded-xl bg-green-600 px-6 py-4 h-12 text-base font-semibold text-white shadow-md transition-all hover:bg-green-700 hover:shadow-lg disabled:opacity-70 disabled:cursor-not-allowed"
-                >
-                  {isLoading ? "Authenticating..." : "Access Dashboard"}
-                </button>
-              </form>
-            </div>
-          </main>
-        </div>
-      </>
-    );
-  }
 
   return (
     <>

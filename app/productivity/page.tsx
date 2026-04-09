@@ -4,7 +4,7 @@ import { supabase } from "@/src/lib/supabase";
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import Navigation from "@/app/components/Navigation";
-import { TrendingUp, Calendar, Milk } from "lucide-react";
+import { TrendingUp, Calendar, Milk, Download } from "lucide-react";
 
 interface Livestock {
   id: string;
@@ -118,6 +118,11 @@ export default function ProductivityPage() {
       setIsLoading(false);
     }
   }
+
+  const downloadReport = () => {
+    // This triggers a print-to-PDF view of the current ledger
+    window.print();
+  };
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -381,6 +386,12 @@ export default function ProductivityPage() {
                     </div>
                     <h3 className="text-lg font-semibold text-gray-700">Production Ledger</h3>
                   </div>
+                  <button 
+                    onClick={downloadReport}
+                    className="flex items-center gap-2 text-blue-600 hover:underline font-medium"
+                  >
+                    <Download size={18} /> Download Records as PDF
+                  </button>
                 </div>
                 
                 {ledger.length === 0 ? (
@@ -401,12 +412,12 @@ export default function ProductivityPage() {
                       <tbody>
                         {ledger.map((log) => (
                           <tr key={log.id} className="border-b border-gray-200">
-                            <td className="py-3 text-emerald-950">
+                            <td className="py-3 text-gray-900">
                               {new Date(log.created_at).toLocaleDateString()}
                             </td>
-                            <td className="py-3 text-emerald-950">{log.livestock?.name || 'Unknown'}</td>
-                            <td className="text-right py-3 text-emerald-950">{log.litres.toFixed(2)}</td>
-                            <td className="text-right py-3 text-emerald-950">{log.milk_kg.toFixed(2)}</td>
+                            <td className="py-3 text-gray-900">{log.livestock?.name || 'Unknown'}</td>
+                            <td className="text-right py-3 text-gray-900">{log.litres.toFixed(2)}</td>
+                            <td className="text-right py-3 text-gray-900">{log.milk_kg.toFixed(2)}</td>
                           </tr>
                         ))}
                       </tbody>

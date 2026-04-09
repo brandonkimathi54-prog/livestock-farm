@@ -42,6 +42,10 @@ export default function AdminPage() {
   const [whatsappNumber, setWhatsappNumber] = useState<string>("");
   const [isSavingWhatsApp, setIsSavingWhatsApp] = useState(false);
   const [whatsappSaveSuccess, setWhatsappSaveSuccess] = useState(false);
+  
+  // State to handle the modal visibility and new cow data
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [newCow, setNewCow] = useState({ name: '', breed: '', age: '', price: '' });
 
   useEffect(() => {
     const storedUserId = localStorage.getItem("currentUserId") ?? "";
@@ -96,6 +100,24 @@ export default function AdminPage() {
     }
   }
 
+  const handleAddCow = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Add logic to save cow to your list
+    const cowToAdd: Livestock = {
+      id: Date.now(),
+      name: newCow.name,
+      breed: newCow.breed,
+      price_ksh: parseFloat(newCow.price) || 0,
+      health_status: "Healthy",
+      status: "Active",
+      age: parseFloat(newCow.age) || 0,
+      created_at: new Date().toISOString()
+    };
+    setLivestock([...livestock, cowToAdd]);
+    setIsModalOpen(false);
+    setNewCow({ name: '', breed: '', age: '', price: '' });
+  };
+
   async function fetchLivestock() {
     if (!currentUserId) {
       setError("No logged in user found. Please login again.");
@@ -149,11 +171,23 @@ export default function AdminPage() {
     }
   }
 
-  async function toggleSaleStatus(cow: Livestock) {
-    const nextStatus = cow.status === "For Sale" ? "Active" : "For Sale";
+  const sellLivestock = (id: number) => {
+  setLivestock(prev => prev.map(item => {
+    if (item.id === id) {
+      // Mark as for sale and set a timestamp
+      return { ...item, status: "For Sale", listedAt: new Date().toISOString() };
+    }
+    return item;
+  }));
+  alert("Livestock listed in Marketplace!");
+};
+
+async function toggleSaleStatus(cow: Livestock) {
+  if (cow.status === "For Sale") {
+    // Unlist from marketplace
     const { error: updateError } = await supabase
       .from("livestock")
-      .update({ status: nextStatus })
+      .update({ status: "Active" })
       .eq("id", cow.id);
 
     if (updateError) {
@@ -161,10 +195,15 @@ export default function AdminPage() {
       setError("Failed to update sale status");
       return;
     }
-
-    setError("");
-    await fetchLivestock();
+  } else {
+    // List for sale using the new sellLivestock function
+    sellLivestock(cow.id);
+    return;
   }
+
+  setError("");
+  await fetchLivestock();
+}
 
   function editCow(cow: Livestock) {
     setEditingCowId(cow.id);
@@ -671,6 +710,12 @@ export default function AdminPage() {
 
         {/* Livestock Inventory */}
         <div className="mt-8 md:mt-12">
+          <button 
+            onClick={() => setIsModalOpen(true)}
+            className="bg-green-600 text-white px-6 py-3 rounded-xl font-bold mb-6 hover:bg-green-700 transition"
+          >
+            + Add New Cow
+          </button>
           <h2 className="mb-4 md:mb-6 text-2xl md:text-3xl font-bold text-emerald-900">
             Livestock Inventory
           </h2>
@@ -776,6 +821,87 @@ export default function AdminPage() {
             </div>
           )}
         </div>
+
+        {/* Add Cow Modal */}
+        {isModalOpen && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-2xl p-8 max-w-md w-full mx-4">
+              <h2 className="text-2xl font-bold text-green-900 mb-6">Add New Cow</h2>
+              <form onSubmit={handleAddCow} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-green-900 mb-2">
+                    Cow Name
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={newCow.name}
+                    onChange={(e) => setNewCow({...newCow, name: e.target.value})}
+                    className="w-full p-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-500 outline-none"
+                    placeholder="Enter cow name"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-green-900 mb-2">
+                    Breed
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={newCow.breed}
+                    onChange={(e) => setNewCow({...newCow, breed: e.target.value})}
+                    className="w-full p-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-500 outline-none"
+                    placeholder="Enter breed"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-green-900 mb-2">
+                    Age (years)
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={newCow.age}
+                    onChange={(e) => setNewCow({...newCow, age: e.target.value})}
+                    className="w-full p-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-500 outline-none"
+                    placeholder="Enter age"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-green-900 mb-2">
+                    Price (KSh)
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={newCow.price}
+                    onChange={(e) => setNewCow({...newCow, price: e.target.value})}
+                    className="w-full p-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-500 outline-none"
+                    placeholder="Enter price"
+                  />
+                </div>
+                <div className="flex gap-4 mt-6">
+                  <button
+                    type="submit"
+                    className="flex-1 bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition"
+                  >
+                    Add Cow
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsModalOpen(false);
+                      setNewCow({ name: '', breed: '', age: '', price: '' });
+                    }}
+                    className="flex-1 bg-gray-600 text-white py-3 rounded-lg font-semibold hover:bg-gray-700 transition"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
         </main>
       </div>
     </>

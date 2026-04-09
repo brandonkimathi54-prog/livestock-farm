@@ -4,7 +4,7 @@ import { supabase } from "@/src/lib/supabase";
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import Navigation from "@/app/components/Navigation";
-import { Heart, Activity, Plus } from "lucide-react";
+import { Heart, Activity, Plus, Download } from "lucide-react";
 
 interface Livestock {
   id: string;
@@ -90,6 +90,11 @@ export default function HealthPage() {
       setIsLoading(false);
     }
   }
+
+  const downloadReport = () => {
+    // This triggers a print-to-PDF view of the current ledger
+    window.print();
+  };
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -323,6 +328,12 @@ export default function HealthPage() {
                   </div>
                   <h3 className="text-lg font-semibold text-gray-700">Health History</h3>
                 </div>
+                <button 
+                  onClick={downloadReport}
+                  className="flex items-center gap-2 text-blue-600 hover:underline font-medium"
+                >
+                  <Download size={18} /> Download Records as PDF
+                </button>
               </div>
               
               {healthLogs.length === 0 ? (
@@ -344,13 +355,13 @@ export default function HealthPage() {
                     <tbody>
                       {healthLogs.map((log) => (
                         <tr key={log.id} className="border-b border-gray-200">
-                          <td className="py-3 text-emerald-950">
+                          <td className="py-3 text-gray-900">
                             {new Date(log.created_at).toLocaleDateString()}
                           </td>
-                          <td className="py-3 text-emerald-950">{log.livestock?.name || 'Unknown'}</td>
-                          <td className="py-3 text-emerald-950">{log.condition}</td>
-                          <td className="py-3 text-emerald-950">{log.treatment || "None"}</td>
-                          <td className="text-right py-3 text-emerald-950">{log.cost.toFixed(2)}</td>
+                          <td className="py-3 text-gray-900">{log.livestock?.name || 'Unknown'}</td>
+                          <td className="py-3 text-gray-900">{log.condition}</td>
+                          <td className="py-3 text-gray-900">{log.treatment || "None"}</td>
+                          <td className="text-right py-3 text-gray-900">{log.cost.toFixed(2)}</td>
                         </tr>
                       ))}
                     </tbody>

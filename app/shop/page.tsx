@@ -74,25 +74,16 @@ export default function MarketplacePage() {
             whatsapp_number
           )
         `)
-        .or("status.eq.For Sale,status.eq.available,is_for_sale.eq.true")
+        .eq("status", "For Sale")
         .order("created_at", { ascending: false });
 
       if (fetchError) {
         console.error("Error fetching livestock:", fetchError);
         setError("Failed to load marketplace inventory");
       } else {
-        const availableLivestock = ((data || []) as LivestockItem[]).filter(
-          (animal) => animal.status === "For Sale" || animal.status === "available" || animal.is_for_sale === true
-        );
-        const normalizedFarmName = savedFarmName.toLowerCase();
-        const filteredByFarm =
-          normalizedFarmName.length > 0
-            ? availableLivestock.filter((animal) => {
-                const farmName = animal.farm_name?.toLowerCase() ?? "";
-                return farmName.includes(normalizedFarmName);
-              })
-            : availableLivestock;
-        setLivestock(filteredByFarm);
+        // Only display cows that have been marked 'For Sale' by the farmer
+        const marketItems = ((data || []) as LivestockItem[]).filter(item => item.status === "For Sale");
+        setLivestock(marketItems);
       }
     } catch (err) {
       console.error("Unexpected error:", err);
