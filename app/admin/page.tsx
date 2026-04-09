@@ -4,6 +4,7 @@ import { supabase } from "@/src/lib/supabase";
 import Link from "next/link";
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { Pencil, Trash2 } from "lucide-react";
+import Navigation from "@/app/components/Navigation";
 
 interface Livestock {
   id: number;
@@ -355,45 +356,41 @@ export default function AdminPage() {
   }
 
   return (
-    <div
-      className="min-h-screen bg-cover bg-center bg-no-repeat px-6 py-12"
-      style={{ backgroundImage: "url('/farmer-pasture-bg.svg')" }}
-    >
-      <main className="mx-auto w-full max-w-6xl rounded-2xl bg-white/80 p-8 shadow-xl backdrop-blur-md">
-        <div className="flex items-center justify-between">
+    <>
+      <Navigation currentPage="/admin" />
+      <div
+        className="min-h-screen bg-cover bg-center bg-no-repeat px-4 md:px-6 py-12 pt-20 lg:pt-16 pb-20 lg:pb-16"
+        style={{ backgroundImage: "url('/farmer-pasture-bg.svg')" }}
+      >
+        <main className="mx-auto w-full max-w-6xl rounded-2xl bg-white/80 p-4 md:p-6 lg:p-8 shadow-xl backdrop-blur-md lg:ml-64">
+        <div className="mb-4 md:mb-6">
           <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-900">
             Meme Livestock Farm
           </p>
-          <Link
-            href="/"
-            className="text-base font-semibold text-emerald-900 hover:text-emerald-700"
-          >
-            Back to Home
-          </Link>
         </div>
         <div className="mt-4">
           <button
             type="button"
             onClick={downloadCsvReport}
             disabled={isDownloadingReport}
-            className="inline-flex items-center justify-center rounded-lg bg-emerald-800 px-5 py-3 text-base font-bold text-white shadow-md transition hover:bg-emerald-900 disabled:cursor-not-allowed disabled:opacity-70"
+            className="inline-flex items-center justify-center h-11 rounded-lg bg-emerald-800 px-4 py-2 md:px-5 md:py-3 text-sm md:text-base font-bold text-white shadow-md transition hover:bg-emerald-900 disabled:cursor-not-allowed disabled:opacity-70"
           >
             {isDownloadingReport ? "Generating Report..." : "Download CSV Report"}
           </button>
         </div>
 
-        <h1 className="mt-4 text-4xl font-bold tracking-tight text-emerald-900 sm:text-5xl">
+        <h1 className="mt-4 text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight text-emerald-900">
           {editingCowId ? "Edit Livestock" : "Add Livestock"}
         </h1>
-        <p className="mt-3 text-lg text-gray-700">
+        <p className="mt-3 text-sm md:text-base lg:text-lg text-gray-700">
           {editingCowId ? "Update cow profile with pricing and health details." : "Add a new cow profile with pricing and health details for your clients."}
         </p>
 
-        <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+        <form onSubmit={handleSubmit} className="mt-6 md:mt-8 space-y-4 md:space-y-5">
           <div>
             <label
               htmlFor="cowName"
-              className="mb-2 block text-base font-semibold text-emerald-900"
+              className="mb-2 block text-sm md:text-base font-semibold text-emerald-900"
             >
               Cow Name
             </label>
@@ -403,14 +400,14 @@ export default function AdminPage() {
               required
               value={cowName}
               onChange={(e) => setCowName(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none ring-emerald-500 transition focus:ring-2"
+              className="h-11 w-full rounded-lg border border-gray-300 bg-white px-3 md:px-4 py-2 md:py-3 text-gray-900 outline-none ring-emerald-500 transition focus:ring-2"
             />
           </div>
 
           <div>
             <label
               htmlFor="breed"
-              className="mb-2 block text-base font-semibold text-emerald-900"
+              className="mb-2 block text-sm md:text-base font-semibold text-emerald-900"
             >
               Breed
             </label>
@@ -420,14 +417,14 @@ export default function AdminPage() {
               required
               value={breed}
               onChange={(e) => setBreed(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none ring-emerald-500 transition focus:ring-2"
+              className="h-11 w-full rounded-lg border border-gray-300 bg-white px-3 md:px-4 py-2 md:py-3 text-gray-900 outline-none ring-emerald-500 transition focus:ring-2"
             />
           </div>
 
           <div>
             <label
               htmlFor="price"
-              className="mb-2 block text-base font-semibold text-emerald-900"
+              className="mb-2 block text-sm md:text-base font-semibold text-emerald-900"
             >
               Price in KSh
             </label>
@@ -439,14 +436,14 @@ export default function AdminPage() {
               required
               value={price}
               onChange={(e) => setPrice(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none ring-emerald-500 transition focus:ring-2"
+              className="h-11 w-full rounded-lg border border-gray-300 bg-white px-3 md:px-4 py-2 md:py-3 text-gray-900 outline-none ring-emerald-500 transition focus:ring-2"
             />
           </div>
 
           <div>
             <label
               htmlFor="healthStatus"
-              className="mb-2 block text-base font-semibold text-emerald-900"
+              className="mb-2 block text-sm md:text-base font-semibold text-emerald-900"
             >
               Health Status
             </label>
@@ -456,14 +453,14 @@ export default function AdminPage() {
               required
               value={healthStatus}
               onChange={(e) => setHealthStatus(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none ring-emerald-500 transition focus:ring-2"
+              className="h-11 w-full rounded-lg border border-gray-300 bg-white px-3 md:px-4 py-2 md:py-3 text-gray-900 outline-none ring-emerald-500 transition focus:ring-2"
             />
           </div>
 
           <div>
             <label
               htmlFor="weight"
-              className="mb-2 block text-base font-semibold text-emerald-900"
+              className="mb-2 block text-sm md:text-base font-semibold text-emerald-900"
             >
               Weight (kg)
             </label>
@@ -475,14 +472,14 @@ export default function AdminPage() {
               required
               value={weight}
               onChange={(e) => setWeight(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none ring-emerald-500 transition focus:ring-2"
+              className="h-11 w-full rounded-lg border border-gray-300 bg-white px-3 md:px-4 py-2 md:py-3 text-gray-900 outline-none ring-emerald-500 transition focus:ring-2"
             />
           </div>
 
           <div>
             <label
               htmlFor="age"
-              className="mb-2 block text-base font-semibold text-emerald-900"
+              className="mb-2 block text-sm md:text-base font-semibold text-emerald-900"
             >
               Age (years)
             </label>
@@ -493,7 +490,7 @@ export default function AdminPage() {
               step="0.1"
               value={age}
               onChange={(e) => setAge(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none ring-emerald-500 transition focus:ring-2"
+              className="h-11 w-full rounded-lg border border-gray-300 bg-white px-3 md:px-4 py-2 md:py-3 text-gray-900 outline-none ring-emerald-500 transition focus:ring-2"
             />
           </div>
 
@@ -501,7 +498,7 @@ export default function AdminPage() {
             <div>
               <label
                 htmlFor="imageFile"
-                className="mb-2 block text-base font-semibold text-emerald-900"
+                className="mb-2 block text-sm md:text-base font-semibold text-emerald-900"
               >
                 Cow Photo
               </label>
@@ -510,10 +507,10 @@ export default function AdminPage() {
                 type="file"
                 accept="image/*"
                 onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-                className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none ring-emerald-500 transition focus:ring-2"
+                className="h-11 w-full rounded-lg border border-gray-300 bg-white px-3 md:px-4 py-2 md:py-3 text-gray-900 outline-none ring-emerald-500 transition focus:ring-2"
               />
               {selectedFile ? (
-                <p className="mt-2 text-sm text-emerald-800">
+                <p className="mt-2 text-xs md:text-sm text-emerald-800">
                   Selected: {selectedFile.name}
                 </p>
               ) : null}
@@ -521,7 +518,7 @@ export default function AdminPage() {
             <div>
               <label
                 htmlFor="videoFile"
-                className="mb-2 block text-base font-semibold text-emerald-900"
+                className="mb-2 block text-sm md:text-base font-semibold text-emerald-900"
               >
                 Market Video
               </label>
@@ -536,17 +533,17 @@ export default function AdminPage() {
               <button
                 type="button"
                 onClick={() => videoInputRef.current?.click()}
-                className="rounded-lg border border-gray-300 bg-white px-5 py-3 text-base font-semibold text-gray-900 transition hover:bg-gray-100"
+                className="h-11 rounded-lg border border-gray-300 bg-white px-4 py-2 md:px-5 md:py-3 text-sm md:text-base font-semibold text-gray-900 transition hover:bg-gray-100"
               >
                 Upload Video
               </button>
               {editingCowId && existingVideoUrl ? (
-                <p className="mt-2 text-sm text-gray-700">
+                <p className="mt-2 text-xs md:text-sm text-gray-700">
                   Current video exists. Upload a new file to replace it.
                 </p>
               ) : null}
               {selectedVideoFile ? (
-                <p className="mt-2 text-sm text-emerald-800">
+                <p className="mt-2 text-xs md:text-sm text-emerald-800">
                   Selected: {selectedVideoFile.name}
                 </p>
               ) : null}
@@ -559,11 +556,11 @@ export default function AdminPage() {
             </p>
           ) : null}
 
-          <div className="flex gap-3">
+          <div className="flex flex-col sm:flex-row gap-3">
             <button
               type="submit"
               disabled={isSaving}
-              className="inline-flex flex-1 items-center justify-center rounded-lg bg-emerald-800 px-6 py-4 text-lg font-bold text-white shadow-md transition hover:bg-emerald-900 disabled:cursor-not-allowed disabled:opacity-70"
+              className="inline-flex flex-1 items-center justify-center h-12 rounded-lg bg-emerald-800 px-4 py-2 md:px-6 md:py-4 text-sm md:text-lg font-bold text-white shadow-md transition hover:bg-emerald-900 disabled:cursor-not-allowed disabled:opacity-70"
             >
               {isSaving ? "Saving..." : editingCowId ? "Update Livestock" : "Add Livestock"}
             </button>
@@ -571,7 +568,7 @@ export default function AdminPage() {
               <button
                 type="button"
                 onClick={cancelEdit}
-                className="inline-flex items-center justify-center rounded-lg bg-gray-600 px-6 py-4 text-base font-semibold text-white transition hover:bg-gray-700"
+                className="inline-flex items-center justify-center h-12 rounded-lg bg-gray-600 px-4 py-2 md:px-6 md:py-4 text-sm md:text-base font-semibold text-white transition hover:bg-gray-700"
               >
                 Cancel
               </button>
@@ -580,8 +577,8 @@ export default function AdminPage() {
         </form>
 
         {/* Livestock Inventory */}
-        <div className="mt-12">
-          <h2 className="mb-6 text-3xl font-bold text-emerald-900">
+        <div className="mt-8 md:mt-12">
+          <h2 className="mb-4 md:mb-6 text-2xl md:text-3xl font-bold text-emerald-900">
             Livestock Inventory
           </h2>
           {isLoading ? (
@@ -589,25 +586,25 @@ export default function AdminPage() {
           ) : livestock.length === 0 ? (
             <p className="text-gray-700">No livestock added yet.</p>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
               {livestock.map((cow) => (
                 <div
                   key={cow.id}
-                  className="rounded-lg border border-gray-200 bg-white p-6 shadow-md"
+                  className="rounded-lg border border-gray-200 bg-white p-4 md:p-6 shadow-md"
                 >
                   {cow.status === "For Sale" ? (
                     <div className="mb-3">
-                      <span className="inline-flex rounded-full border border-emerald-700 bg-emerald-950/40 px-3 py-1 text-xs font-semibold text-emerald-300">
+                      <span className="inline-flex rounded-full border border-emerald-700 bg-emerald-950/40 px-2 py-1 text-xs font-semibold text-emerald-300">
                         Live
                       </span>
                     </div>
                   ) : null}
                   {cow.image_url ? (
-                    <div className="mb-4 flex items-start gap-3">
+                    <div className="mb-4 flex items-start gap-2 md:gap-3">
                       <img
                         src={cow.image_url}
                         alt={cow.name}
-                        className="h-32 w-2/3 rounded-lg object-cover"
+                        className="h-24 md:h-32 w-2/3 rounded-lg object-cover"
                       />
                       {cow.video_url ? (
                         <video
@@ -616,7 +613,7 @@ export default function AdminPage() {
                           loop
                           controls
                           playsInline
-                          className="h-32 w-1/3 rounded-lg bg-black object-cover"
+                          className="h-24 md:h-32 w-1/3 rounded-lg bg-black object-cover"
                         />
                       ) : null}
                     </div>
@@ -628,54 +625,55 @@ export default function AdminPage() {
                         loop
                         controls
                         playsInline
-                        className="h-32 w-full rounded-lg bg-black object-cover"
+                        className="h-24 md:h-32 w-full rounded-lg bg-black object-cover"
                       />
                     </div>
                   ) : null}
-                  <h3 className="text-2xl font-bold text-emerald-900">
+                  <h3 className="text-lg md:text-xl lg:text-2xl font-bold text-emerald-900">
                     {cow.name}
                   </h3>
-                  <p className="text-base text-gray-700">
+                  <p className="text-sm md:text-base text-gray-700">
                     Breed: {cow.breed}
                   </p>
-                  <p className="text-base text-gray-700">
+                  <p className="text-sm md:text-base text-gray-700">
                     Health: {cow.health_status}
                   </p>
-                  <p className="text-base text-gray-700">
+                  <p className="text-sm md:text-base text-gray-700">
                     Status: {cow.status || "Active"}
                   </p>
                   {cow.weight && (
-                    <p className="text-base text-gray-700">
+                    <p className="text-sm md:text-base text-gray-700">
                       Weight: {cow.weight} kg
                     </p>
                   )}
                   {cow.age && (
-                    <p className="text-base text-gray-700">
+                    <p className="text-sm md:text-base text-gray-700">
                       Age: {cow.age} years
                     </p>
                   )}
-                  <p className="mt-2 text-2xl font-bold text-emerald-900">
+                  <p className="mt-2 text-lg md:text-xl lg:text-2xl font-bold text-emerald-900">
                     {cow.price_ksh !== null && cow.price_ksh !== undefined
                       ? `KSh ${cow.price_ksh.toLocaleString()}`
                       : "Price not set"}
                   </p>
-                  <div className="flex gap-2 mt-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-4">
                     <button
                       onClick={() => editCow(cow)}
-                      className="inline-flex items-center justify-center rounded-lg bg-blue-700 px-4 py-3 text-base font-semibold text-white transition hover:bg-blue-800"
+                      className="inline-flex items-center justify-center h-10 rounded-lg bg-blue-700 px-2 py-2 text-xs md:text-sm font-semibold text-white transition hover:bg-blue-800"
                     >
-                      <Pencil className="h-4 w-4" />
+                      <Pencil className="h-3 w-3 md:h-4 md:w-4" />
+                      <span className="hidden sm:inline ml-1">Edit</span>
                     </button>
                     <button
                       onClick={() => deleteCow(cow.id)}
-                      className="inline-flex items-center justify-center gap-2 rounded-lg bg-rose-700 px-5 py-3 text-base font-bold text-white transition hover:bg-rose-800"
+                      className="inline-flex items-center justify-center h-10 rounded-lg bg-rose-700 px-2 py-2 text-xs md:text-sm font-bold text-white transition hover:bg-rose-800"
                     >
-                      <Trash2 className="h-4 w-4" />
-                      Delete
+                      <Trash2 className="h-3 w-3 md:h-4 md:w-4" />
+                      <span className="hidden sm:inline ml-1">Delete</span>
                     </button>
                     <button
                       onClick={() => toggleSaleStatus(cow)}
-                      className="inline-flex items-center justify-center rounded-lg bg-emerald-700 px-4 py-3 text-base font-semibold text-white transition hover:bg-emerald-800"
+                      className="inline-flex items-center justify-center h-10 rounded-lg bg-emerald-700 px-2 py-2 text-xs md:text-sm font-semibold text-white transition hover:bg-emerald-800"
                     >
                       {cow.status === "For Sale" ? "Unlist" : "Sell"}
                     </button>
@@ -685,7 +683,8 @@ export default function AdminPage() {
             </div>
           )}
         </div>
-      </main>
-    </div>
+        </main>
+      </div>
+    </>
   );
 }

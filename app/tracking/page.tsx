@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/src/lib/supabase";
+import Navigation from "@/app/components/Navigation";
 
 type Livestock = {
   id: number;
@@ -213,8 +214,10 @@ export default function TrackingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-black px-6 py-12 text-white">
-      <main className="mx-auto w-full max-w-6xl space-y-8">
+    <>
+      <Navigation currentPage="/tracking" />
+      <div className="min-h-screen bg-black text-green-400 px-4 md:px-6 py-12 pt-20 lg:pt-16 pb-20 lg:pb-16">
+        <main className="mx-auto w-full max-w-6xl space-y-6 md:space-y-8 lg:ml-64">
         {/* Add Livestock Form */}
         <section className="rounded-2xl border border-zinc-800 bg-zinc-900 p-6 shadow-sm">
           <h2 className="text-xl font-semibold mb-4">Add New Livestock</h2>
@@ -370,7 +373,8 @@ export default function TrackingPage() {
             </table>
           </div>
         </section>
-      </main>
-    </div>
+        </main>
+      </div>
+    </>
   );
 }

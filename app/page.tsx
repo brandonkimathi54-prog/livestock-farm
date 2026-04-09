@@ -206,75 +206,65 @@ export default function HomePage() {
                     type="text"
                     value={farmName}
                     onChange={(e) => setFarmName(e.target.value)}
-                    placeholder="e.g. Kirinyaga Valley Farm"
-                    className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-3 md:px-4 py-3 text-base md:text-lg text-slate-900 outline-none ring-emerald-600 transition focus:ring-2"
+                    placeholder="Enter farm name"
+                    className="mt-2 h-11 w-full rounded-xl border border-gray-300 bg-white/80 px-4 py-3 text-base md:text-lg text-green-900 placeholder-green-700/50 outline-none ring-green-600 transition focus:ring-2"
+                    required
                   />
                 </div>
               </>
             ) : null}
-            <label
-              htmlFor="username"
-              className="block text-xs font-semibold uppercase tracking-[0.14em] text-emerald-900"
-            >
-              Username
-            </label>
-            <input
-              id="username"
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="Enter your username"
-              className="w-full rounded-xl border border-slate-300 bg-white px-3 md:px-4 py-3 text-base md:text-lg text-slate-900 outline-none ring-emerald-600 transition focus:ring-2"
-            />
-            <label
-              htmlFor="password"
-              className="block text-xs font-semibold uppercase tracking-[0.14em] text-emerald-900"
-            >
-              Password
-            </label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your password"
-              className="w-full rounded-xl border border-slate-300 bg-white px-3 md:px-4 py-3 text-base md:text-lg text-slate-900 outline-none ring-emerald-600 transition focus:ring-2"
-            />
 
-            {error ? (
-              <p className="rounded-lg border border-rose-300 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+            <div>
+              <label htmlFor="username" className="mb-2 block text-sm font-semibold uppercase tracking-[0.14em] text-gray-500">
+                Username
+              </label>
+              <input
+                id="username"
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="Enter username"
+                className="mt-2 h-11 w-full rounded-xl border border-gray-300 bg-white/80 px-4 py-3 text-base md:text-lg text-green-900 placeholder-green-700/50 outline-none ring-green-600 transition focus:ring-2"
+                required
+              />
+            </div>
+
+            <div>
+              <label htmlFor="password" className="mb-2 block text-sm font-semibold uppercase tracking-[0.14em] text-gray-500">
+                Password
+              </label>
+              <input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter password"
+                className="mt-2 h-11 w-full rounded-xl border border-gray-300 bg-white/80 px-4 py-3 text-base md:text-lg text-green-900 placeholder-green-700/50 outline-none ring-green-600 transition focus:ring-2"
+                required
+              />
+            </div>
+
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
                 {error}
-              </p>
-            ) : null}
+              </div>
+            )}
 
             <button
               type="submit"
               disabled={isSubmitting}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-800 bg-gradient-to-r from-emerald-700 to-emerald-800 px-4 md:px-6 py-3 md:py-4 text-base md:text-lg font-bold text-white transition hover:from-emerald-800 hover:to-emerald-900 disabled:opacity-70"
+              className="w-full h-12 rounded-xl bg-green-600 px-4 py-2 md:px-6 md:py-4 text-sm md:text-base font-bold text-white shadow-md transition-all hover:bg-green-700 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isSubmitting
-                ? mode === "login"
-                  ? "Logging in..."
-                  : "Registering..."
-                : mode === "login"
-                ? "Login"
-                : "Register"}
-              <ArrowRight className="h-5 w-5" />
+              {mode === "login" ? (
+                <>
+                  <Lock className="h-4 w-4" />
+                  Farmer Login
+                </>
+              ) : (
+                "Create Account"
+              )}
             </button>
           </form>
-
-          <Link
-            href="/dashboard"
-            onClick={() => {
-              setUsername("");
-              setPassword("");
-              setError("");
-            }}
-            className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 md:px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-          >
-            <Lock className="h-4 w-4" />
-            Farmer Login
-          </Link>
         </section>
       </main>
     </div>

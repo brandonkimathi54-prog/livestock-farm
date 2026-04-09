@@ -3,6 +3,7 @@
 import { supabase } from "@/src/lib/supabase";
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
+import Navigation from "@/app/components/Navigation";
 
 interface Livestock {
   id: string;
@@ -187,32 +188,29 @@ export default function HealthPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-black text-green-400 p-8">
-        <div className="max-w-4xl mx-auto">
-          <h1 className="text-3xl font-bold mb-8">Health Logs</h1>
-          <div className="text-center">Loading...</div>
+      <>
+        <Navigation currentPage="/health" />
+        <div className="min-h-screen bg-black text-green-400 px-4 md:px-6 py-12 pt-20 lg:pt-16 pb-20 lg:pb-16">
+          <div className="max-w-4xl mx-auto lg:ml-64">
+            <h1 className="text-2xl md:text-3xl font-bold mb-6 md:mb-8">Health Logs</h1>
+            <div className="text-center">Loading...</div>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
   return (
-    <div className="min-h-screen bg-black text-green-400 p-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="text-3xl font-bold">Health Logs</h1>
-          <Link
-            href="/"
-            className="bg-green-600 hover:bg-green-700 text-black px-4 py-2 rounded transition-colors"
-          >
-            ← Back to Home
-          </Link>
-        </div>
+    <>
+      <Navigation currentPage="/health" />
+      <div className="min-h-screen bg-black text-green-400 px-4 md:px-6 py-12 pt-20 lg:pt-16 pb-20 lg:pb-16">
+        <div className="max-w-4xl mx-auto lg:ml-64">
+          <h1 className="text-2xl md:text-3xl font-bold mb-6 md:mb-8">Health Logs</h1>
 
         {/* Form */}
-        <div className="bg-gray-900 p-6 rounded-lg border border-green-400 mb-8">
-          <h2 className="text-xl font-semibold mb-4">Record Health Issue</h2>
-          <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="bg-gray-900 p-4 md:p-6 rounded-lg border border-green-400 mb-6 md:mb-8">
+          <h2 className="text-lg md:text-xl font-semibold mb-4">Record Health Issue</h2>
+          <form onSubmit={handleSubmit} className="space-y-4 md:space-y-5">
             <div>
               <label htmlFor="livestock" className="block text-sm font-medium mb-1">
                 Select Livestock
@@ -221,7 +219,7 @@ export default function HealthPage() {
                 id="livestock"
                 value={selectedLivestockId}
                 onChange={(e) => setSelectedLivestockId(e.target.value)}
-                className="w-full bg-gray-800 border border-green-400 rounded px-3 py-2 text-green-400 focus:outline-none focus:ring-2 focus:ring-green-400"
+                className="h-11 w-full bg-gray-800 border border-green-400 rounded px-3 py-2 text-green-400 focus:outline-none focus:ring-2 focus:ring-green-400"
                 required
               >
                 <option value="">Choose a livestock...</option>
@@ -243,7 +241,7 @@ export default function HealthPage() {
                   id="condition"
                   value={condition}
                   onChange={(e) => setCondition(e.target.value)}
-                  className="w-full bg-gray-800 border border-green-400 rounded px-3 py-2 text-green-400 focus:outline-none focus:ring-2 focus:ring-green-400"
+                  className="h-11 w-full bg-gray-800 border border-green-400 rounded px-3 py-2 text-green-400 focus:outline-none focus:ring-2 focus:ring-green-400"
                   required
                 />
               </div>
@@ -259,7 +257,7 @@ export default function HealthPage() {
                   onChange={(e) => setCost(e.target.value)}
                   step="0.01"
                   min="0"
-                  className="w-full bg-gray-800 border border-green-400 rounded px-3 py-2 text-green-400 focus:outline-none focus:ring-2 focus:ring-green-400"
+                  className="h-11 w-full bg-gray-800 border border-green-400 rounded px-3 py-2 text-green-400 focus:outline-none focus:ring-2 focus:ring-green-400"
                   required
                 />
               </div>
@@ -279,13 +277,13 @@ export default function HealthPage() {
             </div>
 
             {error && (
-              <div className="bg-red-900 border border-red-400 text-red-400 px-4 py-2 rounded">
+              <div className="bg-red-900 border border-red-400 text-red-400 px-3 py-2 md:px-4 rounded text-sm">
                 {error}
               </div>
             )}
 
             {successMessage && (
-              <div className="bg-green-900 border border-green-400 text-green-400 px-4 py-2 rounded font-semibold">
+              <div className="bg-green-900 border border-green-400 text-green-400 px-3 py-2 md:px-4 rounded font-semibold text-sm">
                 {successMessage}
               </div>
             )}
@@ -293,7 +291,7 @@ export default function HealthPage() {
             <button
               type="submit"
               disabled={isSaving}
-              className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-black font-semibold py-2 px-4 rounded transition-colors"
+              className="h-11 w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-black font-semibold py-2 px-4 rounded transition-colors"
             >
               {isSaving ? "Saving..." : "Record Health Issue"}
             </button>
@@ -301,40 +299,69 @@ export default function HealthPage() {
         </div>
 
         {/* Health History Table */}
-        <div className="bg-gray-900 p-6 rounded-lg border border-green-400">
-          <h2 className="text-xl font-semibold mb-4">Health History</h2>
+        <div className="bg-gray-900 p-4 md:p-6 rounded-lg border border-green-400">
+          <h2 className="text-lg md:text-xl font-semibold mb-4">Health History</h2>
           {healthLogs.length === 0 ? (
             <p className="text-gray-400">No health records yet.</p>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-green-400">
-                    <th className="text-left py-2">Date</th>
-                    <th className="text-left py-2">Livestock</th>
-                    <th className="text-left py-2">Condition</th>
-                    <th className="text-left py-2">Treatment</th>
-                    <th className="text-right py-2">Cost (KSh)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {healthLogs.map((log) => (
-                    <tr key={log.id} className="border-b border-gray-700">
-                      <td className="py-2">
-                        {new Date(log.created_at).toLocaleDateString()}
-                      </td>
-                      <td className="py-2">{log.livestock?.name || 'Unknown'}</td>
-                      <td className="py-2">{log.condition}</td>
-                      <td className="py-2">{log.treatment || "None"}</td>
-                      <td className="text-right py-2">{log.cost.toFixed(2)}</td>
+            <>
+              {/* Mobile Card View */}
+              <div className="md:hidden space-y-3">
+                {healthLogs.map((log) => (
+                  <div key={log.id} className="border border-gray-700 rounded-lg p-3">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <p className="font-semibold text-green-300">{log.livestock?.name || 'Unknown'}</p>
+                        <p className="text-xs text-gray-400">
+                          {new Date(log.created_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <p className="font-bold text-green-400">
+                        KSh {log.cost.toFixed(2)}
+                      </p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm"><span className="text-gray-400">Condition:</span> {log.condition}</p>
+                      {log.treatment && (
+                        <p className="text-sm"><span className="text-gray-400">Treatment:</span> {log.treatment}</p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop Table View */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-green-400">
+                      <th className="text-left py-2">Date</th>
+                      <th className="text-left py-2">Livestock</th>
+                      <th className="text-left py-2">Condition</th>
+                      <th className="text-left py-2">Treatment</th>
+                      <th className="text-right py-2">Cost (KSh)</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {healthLogs.map((log) => (
+                      <tr key={log.id} className="border-b border-gray-700">
+                        <td className="py-2">
+                          {new Date(log.created_at).toLocaleDateString()}
+                        </td>
+                        <td className="py-2">{log.livestock?.name || 'Unknown'}</td>
+                        <td className="py-2">{log.condition}</td>
+                        <td className="py-2">{log.treatment || "None"}</td>
+                        <td className="text-right py-2">{log.cost.toFixed(2)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </div>
+        </div>
       </div>
-    </div>
+    </>
   );
 }

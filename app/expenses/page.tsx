@@ -4,6 +4,7 @@ import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import { supabase } from "@/src/lib/supabase";
 import { Pencil, Trash2 } from "lucide-react";
+import Navigation from "@/app/components/Navigation";
 
 type Expense = {
   id: number;
@@ -234,32 +235,29 @@ export default function ExpensesPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-black text-green-400 p-8">
-        <div className="max-w-4xl mx-auto">
-          <h1 className="text-3xl font-bold mb-8">Expenses</h1>
-          <div className="text-center">Loading...</div>
+      <>
+        <Navigation currentPage="/expenses" />
+        <div className="min-h-screen bg-black text-green-400 px-4 md:px-6 py-12 pt-20 lg:pt-16 pb-20 lg:pb-16">
+          <div className="max-w-4xl mx-auto lg:ml-64">
+            <h1 className="text-2xl md:text-3xl font-bold mb-6 md:mb-8">Expenses</h1>
+            <div className="text-center">Loading...</div>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
   return (
-    <div className="min-h-screen bg-black text-green-400 p-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="text-3xl font-bold">Expenses</h1>
-          <Link
-            href="/"
-            className="bg-green-600 hover:bg-green-700 text-black px-4 py-2 rounded transition-colors"
-          >
-            ← Back to Home
-          </Link>
-        </div>
+    <>
+      <Navigation currentPage="/expenses" />
+      <div className="min-h-screen bg-black text-green-400 px-4 md:px-6 py-12 pt-20 lg:pt-16 pb-20 lg:pb-16">
+        <div className="max-w-4xl mx-auto lg:ml-64">
+          <h1 className="text-2xl md:text-3xl font-bold mb-6 md:mb-8">Expenses</h1>
 
         {/* Price Settings Card */}
-        <div className="bg-gray-900 p-6 rounded-lg border border-yellow-400 mb-8">
-          <h2 className="text-lg font-semibold text-yellow-300 mb-4">Price Settings</h2>
-          <div className="flex items-center gap-4">
+        <div className="bg-gray-900 p-4 md:p-6 rounded-lg border border-yellow-400 mb-6 md:mb-8">
+          <h2 className="text-base md:text-lg font-semibold text-yellow-300 mb-4">Price Settings</h2>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
             <label htmlFor="milkPrice" className="text-sm font-medium text-yellow-200">
               Current Milk Price (KSh/kg):
             </label>
@@ -270,12 +268,12 @@ export default function ExpensesPage() {
               onChange={(e) => setInputPrice(Number(e.target.value) || 0)}
               step="0.01"
               min="0"
-              className="bg-gray-800 border border-yellow-400 rounded px-3 py-2 text-yellow-400 focus:outline-none focus:ring-2 focus:ring-yellow-400 w-32"
+              className="h-11 bg-gray-800 border border-yellow-400 rounded px-3 py-2 text-yellow-400 focus:outline-none focus:ring-2 focus:ring-yellow-400 w-full sm:w-32"
             />
             <button
               onClick={() => updateMilkPrice(inputPrice)}
               disabled={isSavingPrice || inputPrice === milkPricePerKg}
-              className="bg-yellow-600 hover:bg-yellow-700 disabled:bg-gray-600 text-black font-semibold px-4 py-2 rounded transition-colors disabled:cursor-not-allowed"
+              className="h-11 bg-yellow-600 hover:bg-yellow-700 disabled:bg-gray-600 text-black font-semibold px-4 py-2 rounded transition-colors disabled:cursor-not-allowed"
             >
               {isSavingPrice ? "Saving..." : "Save"}
             </button>
@@ -286,31 +284,31 @@ export default function ExpensesPage() {
         </div>
 
         {/* Financial Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
           {/* Total Revenue Card */}
-          <div className="bg-gray-900 p-6 rounded-lg border border-blue-400">
+          <div className="bg-gray-900 p-4 md:p-6 rounded-lg border border-blue-400">
             <h3 className="text-sm font-semibold text-blue-300 mb-2">Total Revenue</h3>
-            <p className="text-4xl font-bold text-blue-400">
+            <p className="text-2xl md:text-3xl lg:text-4xl font-bold text-blue-400">
               KSh {totalRevenue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </p>
             <p className="text-xs text-blue-200 mt-2">@ KSh {milkPricePerKg}/kg</p>
           </div>
 
           {/* Total Expenses Card */}
-          <div className="bg-gray-900 p-6 rounded-lg border border-red-400">
+          <div className="bg-gray-900 p-4 md:p-6 rounded-lg border border-red-400">
             <h3 className="text-sm font-semibold text-red-300 mb-2">Total Expenses</h3>
-            <p className="text-4xl font-bold text-red-400">
+            <p className="text-2xl md:text-3xl lg:text-4xl font-bold text-red-400">
               KSh {totalCosts.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </p>
             <p className="text-xs text-red-200 mt-2">All costs tracked</p>
           </div>
 
           {/* Net Profit/Loss Card */}
-          <div className={`bg-gray-900 p-6 rounded-lg border ${netProfit >= 0 ? "border-green-400" : "border-red-400"}`}>
+          <div className={`bg-gray-900 p-4 md:p-6 rounded-lg border ${netProfit >= 0 ? "border-green-400" : "border-red-400"}`}>
             <h3 className={`text-sm font-semibold mb-2 ${netProfit >= 0 ? "text-green-300" : "text-red-300"}`}>
               Net Profit/Loss
             </h3>
-            <p className={`text-4xl font-bold ${netProfit >= 0 ? "text-green-400" : "text-red-400"}`}>
+            <p className={`text-2xl md:text-3xl lg:text-4xl font-bold ${netProfit >= 0 ? "text-green-400" : "text-red-400"}`}>
               KSh {netProfit.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </p>
             <p className={`text-xs mt-2 ${netProfit >= 0 ? "text-green-200" : "text-red-200"}`}>
@@ -320,15 +318,15 @@ export default function ExpensesPage() {
         </div>
 
         {/* Total Costs Card */}
-        <div className="bg-gray-900 p-6 rounded-lg border border-green-400 mb-8">
-          <h2 className="text-lg font-semibold mb-2">Expense Summary</h2>
-          <p className="text-3xl font-bold text-green-400">KSh {totalCosts.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+        <div className="bg-gray-900 p-4 md:p-6 rounded-lg border border-green-400 mb-6 md:mb-8">
+          <h2 className="text-base md:text-lg font-semibold mb-2">Expense Summary</h2>
+          <p className="text-2xl md:text-3xl font-bold text-green-400">KSh {totalCosts.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
         </div>
 
         {/* Expense Entry Form */}
-        <div className="bg-gray-900 p-6 rounded-lg border border-green-400 mb-8">
+        <div className="bg-gray-900 p-4 md:p-6 rounded-lg border border-green-400 mb-6 md:mb-8">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold">
+            <h2 className="text-lg md:text-xl font-semibold">
               {editingExpenseId ? "Update Expense" : "Record Expense"}
             </h2>
             {editingExpenseId && (
@@ -350,7 +348,7 @@ export default function ExpensesPage() {
                   id="category"
                   value={category}
                   onChange={(e) => setCategory(e.target.value as typeof EXPENSE_CATEGORIES[number])}
-                  className="w-full bg-gray-800 border border-green-400 rounded px-3 py-2 text-green-400 focus:outline-none focus:ring-2 focus:ring-green-400"
+                  className="h-11 w-full bg-gray-800 border border-green-400 rounded px-3 py-2 text-green-400 focus:outline-none focus:ring-2 focus:ring-green-400"
                 >
                   {EXPENSE_CATEGORIES.map((cat) => (
                     <option key={cat} value={cat}>
@@ -371,7 +369,7 @@ export default function ExpensesPage() {
                   onChange={(e) => setAmount(e.target.value)}
                   step="0.01"
                   min="0"
-                  className="w-full bg-gray-800 border border-green-400 rounded px-3 py-2 text-green-400 focus:outline-none focus:ring-2 focus:ring-green-400"
+                  className="h-11 w-full bg-gray-800 border border-green-400 rounded px-3 py-2 text-green-400 focus:outline-none focus:ring-2 focus:ring-green-400"
                   required
                 />
               </div>
@@ -385,14 +383,14 @@ export default function ExpensesPage() {
                   id="date"
                   value={expenseDate}
                   onChange={(e) => setExpenseDate(e.target.value)}
-                  className="w-full bg-gray-800 border border-green-400 rounded px-3 py-2 text-green-400 focus:outline-none focus:ring-2 focus:ring-green-400"
+                  className="h-11 w-full bg-gray-800 border border-green-400 rounded px-3 py-2 text-green-400 focus:outline-none focus:ring-2 focus:ring-green-400"
                   required
                 />
               </div>
             </div>
 
             {error && (
-              <div className="bg-red-900 border border-red-400 text-red-400 px-4 py-2 rounded">
+              <div className="bg-red-900 border border-red-400 text-red-400 px-3 py-2 md:px-4 rounded text-sm">
                 {error}
               </div>
             )}
@@ -400,7 +398,7 @@ export default function ExpensesPage() {
             <button
               type="submit"
               disabled={isSaving}
-              className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-black font-semibold py-2 px-4 rounded transition-colors"
+              className="h-11 w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-black font-semibold py-2 px-4 rounded transition-colors"
             >
               {isSaving ? "Saving..." : editingExpenseId ? "Update Expense" : "Record Expense"}
             </button>
@@ -408,8 +406,8 @@ export default function ExpensesPage() {
         </div>
 
         {/* Expenses List */}
-        <div className="bg-gray-900 p-6 rounded-lg border border-green-400">
-          <h2 className="text-xl font-semibold mb-4">Expense History</h2>
+        <div className="bg-gray-900 p-4 md:p-6 rounded-lg border border-green-400">
+          <h2 className="text-lg md:text-xl font-semibold mb-4">Expense History</h2>
           {expenses.length === 0 ? (
             <p className="text-gray-400">No expenses recorded yet.</p>
           ) : (
@@ -417,22 +415,22 @@ export default function ExpensesPage() {
               {expenses.map((expense) => (
                 <div
                   key={expense.id}
-                  className={`border rounded-lg p-4 flex items-center justify-between ${getCategoryColor(expense.category)}`}
+                  className={`border rounded-lg p-3 md:p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 ${getCategoryColor(expense.category)}`}
                 >
-                  <div className="flex items-center gap-4 flex-grow">
-                    <div className="font-semibold text-lg rounded-full w-12 h-12 flex items-center justify-center bg-black/30">
+                  <div className="flex items-center gap-3 md:gap-4 flex-grow">
+                    <div className="font-semibold text-lg rounded-full w-10 h-10 md:w-12 md:h-12 flex items-center justify-center bg-black/30">
                       {expense.category[0]}
                     </div>
                     <div>
-                      <p className="font-semibold">{expense.category}</p>
-                      <p className="text-sm opacity-75">
+                      <p className="font-semibold text-sm md:text-base">{expense.category}</p>
+                      <p className="text-xs md:text-sm opacity-75">
                         {new Date(expense.created_at).toLocaleDateString()}
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center justify-between sm:justify-end gap-3 md:gap-4 w-full sm:w-auto">
                     <div className="text-right">
-                      <p className="font-bold text-xl">
+                      <p className="font-bold text-base md:text-xl">
                         KSh {expense.amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </p>
                     </div>
@@ -458,7 +456,8 @@ export default function ExpensesPage() {
             </div>
           )}
         </div>
+        </div>
       </div>
-    </div>
+    </>
   );
 }

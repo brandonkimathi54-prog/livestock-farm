@@ -3,6 +3,7 @@
 import { supabase } from "@/src/lib/supabase";
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
+import Navigation from "@/app/components/Navigation";
 
 interface Livestock {
   id: string;
@@ -222,27 +223,24 @@ export default function ProductivityPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-black text-green-400 p-8">
-        <div className="max-w-4xl mx-auto">
-          <h1 className="text-3xl font-bold mb-8">Milk Production Dashboard</h1>
-          <div className="text-center">Loading...</div>
+      <>
+        <Navigation currentPage="/productivity" />
+        <div className="min-h-screen bg-black text-green-400 px-4 md:px-6 py-12 pt-20 lg:pt-16 pb-20 lg:pb-16">
+          <div className="max-w-4xl mx-auto lg:ml-64">
+            <h1 className="text-2xl md:text-3xl font-bold mb-6 md:mb-8">Productivity Logs</h1>
+            <div className="text-center">Loading...</div>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
   return (
-    <div className="min-h-screen bg-black text-green-400 p-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="text-3xl font-bold">Milk Production Dashboard</h1>
-          <Link
-            href="/"
-            className="bg-green-600 hover:bg-green-700 text-black px-4 py-2 rounded transition-colors"
-          >
-            ← Back to Home
-          </Link>
-        </div>
+    <>
+      <Navigation currentPage="/productivity" />
+      <div className="min-h-screen bg-black text-green-400 px-4 md:px-6 py-12 pt-20 lg:pt-16 pb-20 lg:pb-16">
+        <div className="max-w-4xl mx-auto lg:ml-64">
+          <h1 className="text-2xl md:text-3xl font-bold mb-6 md:mb-8">Productivity Logs</h1>
 
         {/* Monthly Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
@@ -364,5 +362,6 @@ export default function ProductivityPage() {
         </div>
       </div>
     </div>
+    </>
   );
 }
