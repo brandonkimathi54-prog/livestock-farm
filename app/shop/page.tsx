@@ -64,9 +64,16 @@ export default function MarketplacePage() {
     setIsLoading(true);
     try {
       const savedFarmName = localStorage.getItem("marketplaceFarmName")?.trim() ?? "";
-      setFarmFilterName(savedFarmName);
+      const farmerUsername = localStorage.getItem("farmerUsername")?.trim() ?? "";
 
-      const { data, error: fetchError } = await supabase
+      // If client entered a specific farmer's username, use that as filter
+      if (farmerUsername) {
+        setFarmFilterName(farmerUsername);
+      } else {
+        setFarmFilterName(savedFarmName);
+      }
+
+      let query = supabase
         .from("livestock")
         .select(`
           *,
@@ -76,6 +83,13 @@ export default function MarketplacePage() {
         `)
         .eq("status", "For Sale")
         .order("created_at", { ascending: false });
+
+      // If client entered a specific farmer's username, filter by that farmer
+      if (farmerUsername) {
+        query = query.eq("profiles.username", farmerUsername);
+      }
+
+      const { data, error: fetchError } = await query;
 
       if (fetchError) {
         console.error("Error fetching livestock:", fetchError);

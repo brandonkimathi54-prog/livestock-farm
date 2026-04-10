@@ -27,7 +27,7 @@ function getSupabaseErrorMessage(error: { message?: string; code?: string; detai
 }
 
 export default function HomePage() {
-  const [mode, setMode] = useState<"entry-gate" | "farmer-login" | "farmer-signup">("entry-gate");
+  const [mode, setMode] = useState<"entry-gate" | "farmer-login" | "farmer-signup" | "client-login">("entry-gate");
   const [role, setRole] = useState<'farmer' | 'client'>('farmer');
   const [farmName, setFarmName] = useState("");
   const [username, setUsername] = useState("");
@@ -101,20 +101,29 @@ export default function HomePage() {
   }
 
   async function handleLogin() {
+    const trimmedUsername = username.trim();
     const trimmedPassword = String(password.trim());
 
-    if (role === 'farmer') {
-      // Hardcode a temporary password for now
-      if (trimmedPassword === 'farmer123') {
-        localStorage.setItem('userRole', 'farmer');
-        router.push('/dashboard');
-      } else {
-        setError("Invalid Farmer Password");
+    if (mode === "client-login") {
+      // Client enters farmer's username to access their marketplace
+      if (!trimmedUsername) {
+        setError("Please enter a farmer's username");
+        return;
       }
-    } else {
-      // Clients go directly to marketplace without login
       localStorage.setItem('userRole', 'client');
+      localStorage.setItem('farmerUsername', trimmedUsername);
       router.push('/shop');
+    } else {
+      // Farmer login
+      if (role === 'farmer') {
+        // Hardcode a temporary password for now
+        if (trimmedPassword === 'farmer123') {
+          localStorage.setItem('userRole', 'farmer');
+          router.push('/dashboard');
+        } else {
+          setError("Invalid Farmer Password");
+        }
+      }
     }
   }
 
@@ -187,7 +196,7 @@ export default function HomePage() {
               {/* Client Card */}
               <button
                 type="button"
-                onClick={() => router.push("/shop")}
+                onClick={() => setMode("client-login")}
                 className="group bg-white/60 backdrop-blur-lg border border-white/40 rounded-3xl p-8 shadow-lg transition-all hover:shadow-xl hover:bg-white/70 hover:scale-105"
               >
                 <div className="text-center space-y-4">
@@ -197,9 +206,9 @@ export default function HomePage() {
                     </svg>
                   </div>
                   <h2 className="text-2xl font-bold text-green-900">Client</h2>
-                  <p className="text-gray-600">Browse the marketplace</p>
+                  <p className="text-gray-600">Browse specific farmer's marketplace</p>
                   <div className="flex items-center justify-center text-green-600 font-semibold group-hover:text-green-700 transition-colors">
-                    <span>Visit Marketplace</span>
+                    <span>Enter Farmer Marketplace</span>
                     <svg className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                     </svg>
@@ -325,6 +334,57 @@ export default function HomePage() {
                     />
                   </div>
                 </div>
+              )}
+
+              {mode === "client-login" && (
+                <>
+                  <div className="mb-6 text-center">
+                    <h2 className="text-2xl md:text-3xl font-bold text-emerald-900 mb-2">
+                      Client Access
+                    </h2>
+                    <p className="text-gray-600">
+                      Enter farmer's username to browse their marketplace
+                    </p>
+                  </div>
+
+                  {/* Client login - farmer username input */}
+                  <div>
+                    <label htmlFor="farmerUsername" className="mb-2 block text-sm font-semibold uppercase tracking-[0.14em] text-gray-500">
+                      Enter Farmer Username
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <svg className="h-5 w-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                      </div>
+                      <input
+                        id="farmerUsername"
+                        type="text"
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        placeholder="Enter farmer's username"
+                        className="mt-2 h-11 w-full rounded-xl border border-gray-300 bg-white/80 pl-10 pr-4 py-3 text-base md:text-lg text-green-900 placeholder-green-700/50 outline-none ring-green-600 transition focus:ring-2"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  {error && (
+                    <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
+                      {error}
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="w-full h-12 rounded-xl bg-green-600 px-4 py-2 md:px-6 md:py-4 text-sm md:text-base font-bold text-white shadow-md transition-all hover:bg-green-700 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <ArrowRight className="h-4 w-4" />
+                    Browse Farmer's Marketplace
+                  </button>
+                </>
               )}
 
               {error && (
