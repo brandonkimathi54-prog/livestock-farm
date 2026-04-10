@@ -382,14 +382,9 @@ export default function ExpensesPage() {
           </div>
         </main>
       </div>
-      {/* Global CSS for the LED effect */}
       <style jsx global>{`
-        @keyframes led-rotate {
-          0% { background-position: 0% center; }
-          100% { background-position: 200% center; }
-        }
-        .animate-led-rotate {
-          animation: led-rotate 4s linear infinite;
+        .led-glow {
+          text-shadow: 0 0 10px rgba(34, 197, 94, 0.5);
         }
       `}</style>
     </>
