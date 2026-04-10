@@ -1,9 +1,21 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Navigation from "@/app/components/Navigation";
-import { Users, UserPlus, Phone, ShieldCheck } from "lucide-react";
+import { Users, UserPlus } from "lucide-react";
 
 export default function WorkersPage() {
+  const [displayName, setDisplayName] = useState("Farmer");
+
+  useEffect(() => {
+    // Get the username/email instead of the long ID number
+    const userEmail = localStorage.getItem("userEmail"); 
+    if (userEmail) {
+      // Takes the part before the @ in the email for a clean welcome
+      setDisplayName(userEmail.split('@')[0]);
+    }
+  }, []);
+
   return (
     <div className="min-h-screen bg-cover bg-fixed bg-center" 
          style={{ backgroundImage: "url('https://images.unsplash.com/photo-1500595046743-cd271d694d30?q=80')" }}>
@@ -13,30 +25,33 @@ export default function WorkersPage() {
       <main className="p-6 lg:ml-64 pt-24">
         <div className="max-w-5xl mx-auto">
           
-          {/* Header Section */}
-          <div className="bg-white/80 backdrop-blur-md p-8 rounded-[2.5rem] shadow-xl border border-white/20 mb-8">
-            <div className="flex justify-between items-center">
-              <div>
-                <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-3">
-                  <Users className="text-teal-600" /> Farm Workers
-                </h1>
-                <p className="text-gray-600 mt-1">Manage your team and assignments</p>
-              </div>
-              <button className="bg-teal-600 hover:bg-teal-700 text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 transition-all shadow-lg active:scale-95">
-                <UserPlus size={20} /> Add Staff
-              </button>
-            </div>
+          {/* Welcome Header */}
+          <div className="mb-8 px-4">
+            <h1 className="text-3xl font-bold text-white drop-shadow-md">
+              Welcome, {displayName}
+            </h1>
           </div>
 
-          {/* New Worker Form (Frosted Glass) */}
-          <div className="bg-white/40 backdrop-blur-xl p-8 rounded-[2.5rem] shadow-2xl border border-white/30 mb-10">
-            <h2 className="text-xl font-bold text-gray-800 mb-6">Register New Staff</h2>
+          {/* New Worker Form - Restored to White/Frosted Glass */}
+          <div className="bg-white/80 backdrop-blur-md p-8 rounded-[2.5rem] shadow-2xl border border-white/40 mb-10">
+            <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+              <Users className="text-teal-600" /> Register New Staff
+            </h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <input type="text" placeholder="Worker Name" className="h-12 px-4 rounded-xl bg-white/60 border border-white/40 text-gray-900 placeholder-gray-500 outline-none focus:ring-2 focus:ring-teal-500" />
-              <input type="text" placeholder="Role (e.g. Milker)" className="h-12 px-4 rounded-xl bg-white/60 border border-white/40 text-gray-900 placeholder-gray-500 outline-none focus:ring-2 focus:ring-teal-500" />
-              <input type="text" placeholder="Phone Number" className="h-12 px-4 rounded-xl bg-white/60 border border-white/40 text-gray-900 placeholder-gray-500 outline-none focus:ring-2 focus:ring-teal-500" />
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-gray-700 ml-1">Worker Name</label>
+                <input type="text" className="w-full h-12 px-4 rounded-xl bg-white border border-gray-200 text-gray-900 outline-none focus:ring-2 focus:ring-teal-500" placeholder="e.g. John" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-gray-700 ml-1">Role</label>
+                <input type="text" className="w-full h-12 px-4 rounded-xl bg-white border border-gray-200 text-gray-900 outline-none focus:ring-2 focus:ring-teal-500" placeholder="e.g. Milker" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-gray-700 ml-1">Contact</label>
+                <input type="text" className="w-full h-12 px-4 rounded-xl bg-white border border-gray-200 text-gray-900 outline-none focus:ring-2 focus:ring-teal-500" placeholder="Phone number" />
+              </div>
             </div>
-            <button className="w-full mt-6 h-14 bg-teal-600 text-white font-bold rounded-2xl shadow-lg hover:bg-teal-700 transition-all">
+            <button className="w-full mt-8 h-14 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-2xl shadow-lg transition-all active:scale-95">
               Save Worker Record
             </button>
           </div>
