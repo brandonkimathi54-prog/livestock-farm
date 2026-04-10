@@ -46,9 +46,9 @@ export const metadata: Metadata = {
     locale: "en_US",
   },
   icons: {
-    icon: "/icon-192x192.svg",
+    icon: "/icon-192x192.png",
     apple: {
-      url: "/icon-192x192.svg",
+      url: "/icon-192x192.png",
       sizes: "192x192",
     },
   },
