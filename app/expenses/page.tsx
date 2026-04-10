@@ -213,7 +213,7 @@ export default function ExpensesPage() {
   if (isLoading) {
     return (
       <>
-        <Navigation />
+        <Navigation currentPage="/expenses" onLogout={() => {localStorage.clear(); window.location.href='/';}} />
         <div className="relative min-h-screen">
           <div 
             className="fixed inset-0 bg-cover bg-center bg-no-repeat" 
@@ -228,19 +228,7 @@ export default function ExpensesPage() {
               </div>
             </div>
           </main>
-  }
-
-  cancelEdit();
-  await fetchExpenses();
-  setIsSaving(false);
-}
-
-if (isLoading) {
-  return (
-    <>
-      <Navigation currentPage="/expenses" onLogout={() => {localStorage.clear(); window.location.href='/';}} />
-      <div className="relative min-h-screen">
-        <div 
+        </div>
           className="fixed inset-0 bg-cover bg-center bg-no-repeat" 
           style={{ backgroundImage: "url('https://images.unsplash.com/photo-1500595046743-cd271d694d30?auto=format&fit=crop&w=1920&q=80')" }}
         />
