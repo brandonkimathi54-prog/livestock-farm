@@ -154,7 +154,7 @@ export default function WorkersPage() {
                     type="text" 
                     value={workerName}
                     onChange={(e) => setWorkerName(e.target.value)}
-                    className="w-full h-12 px-4 rounded-xl bg-white border border-gray-200 text-gray-900 outline-none focus:ring-2 focus:ring-teal-500" 
+                    className="w-full h-12 px-4 rounded-xl bg-white/70 text-gray-900 border border-gray-200 placeholder-gray-500 outline-none focus:ring-2 focus:ring-teal-500" 
                     placeholder="e.g. John" 
                   />
                 </div>
@@ -164,7 +164,7 @@ export default function WorkersPage() {
                     type="text" 
                     value={role}
                     onChange={(e) => setRole(e.target.value)}
-                    className="w-full h-12 px-4 rounded-xl bg-white border border-gray-200 text-gray-900 outline-none focus:ring-2 focus:ring-teal-500" 
+                    className="w-full h-12 px-4 rounded-xl bg-white/70 text-gray-900 border border-gray-200 placeholder-gray-500 outline-none focus:ring-2 focus:ring-teal-500" 
                     placeholder="e.g. Milker" 
                   />
                 </div>
@@ -174,7 +174,7 @@ export default function WorkersPage() {
                     type="text" 
                     value={contact}
                     onChange={(e) => setContact(e.target.value)}
-                    className="w-full h-12 px-4 rounded-xl bg-white border border-gray-200 text-gray-900 outline-none focus:ring-2 focus:ring-teal-500" 
+                    className="w-full h-12 px-4 rounded-xl bg-white/70 text-gray-900 border border-gray-200 placeholder-gray-500 outline-none focus:ring-2 focus:ring-teal-500" 
                     placeholder="Phone number" 
                   />
                 </div>

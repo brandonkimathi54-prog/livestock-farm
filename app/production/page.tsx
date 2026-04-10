@@ -124,7 +124,7 @@ export default function ProductionPage() {
                     type="text" 
                     value={animalName}
                     onChange={(e) => setAnimalName(e.target.value)}
-                    className="w-full h-12 px-4 rounded-xl border border-gray-200 text-gray-900 outline-none focus:ring-2 focus:ring-blue-500" 
+                    className="w-full h-12 px-4 rounded-xl bg-white/70 text-gray-900 border border-gray-200 placeholder-gray-500 outline-none focus:ring-2 focus:ring-blue-500" 
                     placeholder="e.g. Mercy" 
                   />
                 </div>
@@ -134,7 +134,7 @@ export default function ProductionPage() {
                     type="number" 
                     value={milkAmount}
                     onChange={(e) => setMilkAmount(e.target.value)}
-                    className="w-full h-12 px-4 rounded-xl border border-gray-200 text-gray-900 outline-none focus:ring-2 focus:ring-blue-500" 
+                    className="w-full h-12 px-4 rounded-xl bg-white/70 text-gray-900 border border-gray-200 placeholder-gray-500 outline-none focus:ring-2 focus:ring-blue-500" 
                     placeholder="0.00" 
                   />
                 </div>

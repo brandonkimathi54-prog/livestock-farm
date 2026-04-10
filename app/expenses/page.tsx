@@ -177,7 +177,7 @@ export default function ExpensesPage() {
                   type="number"
                   value={inputPrice}
                   onChange={(e) => setInputPrice(Number(e.target.value))}
-                  className="h-11 w-full bg-white/80 border border-gray-300 rounded-xl px-4 text-black placeholder-gray-500 outline-none focus:ring-2 focus:ring-green-500"
+                  className="h-11 w-full bg-white/40 text-gray-900 border border-gray-200 placeholder-gray-500 rounded-xl px-4 outline-none focus:ring-2 focus:ring-green-500 backdrop-blur-sm"
                 />
                 <button
                   onClick={() => updateMilkPrice(inputPrice)}
@@ -212,11 +212,11 @@ export default function ExpensesPage() {
               <h2 className="text-xl font-semibold text-gray-700 mb-4">{editingExpenseId ? "Edit Expense" : "New Expense"}</h2>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <select value={category} onChange={(e) => setCategory(e.target.value as any)} className="h-11 rounded-xl border border-gray-300 px-3">
+                  <select value={category} onChange={(e) => setCategory(e.target.value as any)} className="h-11 rounded-xl bg-white/70 text-gray-900 border border-gray-200 placeholder-gray-500 px-3 outline-none focus:ring-2 focus:ring-green-500 backdrop-blur-sm bg-white/40">
                     {EXPENSE_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
-                  <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="Amount" className="h-11 rounded-xl border border-gray-300 px-3 text-black" required />
-                  <input type="date" value={expenseDate} onChange={(e) => setExpenseDate(e.target.value)} className="h-11 rounded-xl border border-gray-300 px-3" required />
+                  <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="Amount" className="h-11 rounded-xl bg-white/70 text-gray-900 border border-gray-200 placeholder-gray-500 px-3 outline-none focus:ring-2 focus:ring-green-500" required />
+                  <input type="date" value={expenseDate} onChange={(e) => setExpenseDate(e.target.value)} className="h-11 rounded-xl bg-white/70 text-gray-900 border border-gray-200 placeholder-gray-500 px-3 outline-none focus:ring-2 focus:ring-green-500 backdrop-blur-sm bg-white/40" required />
                 </div>
                 <button type="submit" className="w-full bg-green-600 text-white h-11 rounded-xl font-bold hover:bg-green-700">
                   {isSaving ? "Processing..." : "Save Record"}

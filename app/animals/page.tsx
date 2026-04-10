@@ -196,14 +196,14 @@ const handleSave = async () => {
                   placeholder="Animal Name"
                   value={animalName}
                   onChange={(e) => setAnimalName(e.target.value)}
-                  className="w-full h-12 px-4 rounded-xl border border-gray-200 text-gray-900 outline-none focus:ring-2 focus:ring-green-500"
+                  className="w-full h-12 px-4 rounded-xl bg-white/70 text-gray-900 border border-gray-200"
                 />
                 <input
                   type="text"
                   placeholder="Breed"
                   value={breed}
                   onChange={(e) => setBreed(e.target.value)}
-                  className="w-full h-12 px-4 rounded-xl border border-gray-200 text-gray-900 outline-none focus:ring-2 focus:ring-green-500"
+                  className="w-full h-12 px-4 rounded-xl bg-white/70 text-gray-900 border border-gray-200"
                 />
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -212,7 +212,7 @@ const handleSave = async () => {
                   placeholder="Age"
                   value={age}
                   onChange={(e) => setAge(e.target.value)}
-                  className="w-full h-12 px-4 rounded-xl border border-gray-200 text-gray-900 outline-none focus:ring-2 focus:ring-green-500"
+                  className="w-full h-12 px-4 rounded-xl bg-white/70 text-gray-900 border border-gray-200"
                 />
                 <div className="w-full h-12 px-4 rounded-xl border border-gray-200 bg-white flex items-center">
                   <input
