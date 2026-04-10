@@ -93,11 +93,12 @@ export default function HomePage() {
       return;
     }
 
-    localStorage.setItem("marketplaceFarmName", insertedProfile?.farm_name ?? trimmedFarmName);
-    if (insertedProfile?.id !== undefined && insertedProfile?.id !== null) {
-      localStorage.setItem("currentUserId", String(insertedProfile.id));
-    }
-    router.push("/shop");
+    // Clear form and redirect to login for the new farmer
+    setFarmName("");
+    setUsername("");
+    setPassword("");
+    setMode("farmer-login");
+    setError("Account created successfully! Please login with your new credentials.");
   }
 
   async function handleLogin() {
@@ -116,12 +117,24 @@ export default function HomePage() {
     } else {
       // Farmer login
       if (role === 'farmer') {
-        // Hardcode a temporary password for now
-        if (trimmedPassword === 'farmer123') {
+        // Check actual password from database
+        const { data: farmer, error: loginError } = await supabase
+          .from("profiles")
+          .select("id, password")
+          .eq("username", trimmedUsername)
+          .single();
+
+        if (loginError || !farmer) {
+          setError("Invalid username or password");
+          return;
+        }
+
+        if (farmer.password === trimmedPassword) {
           localStorage.setItem('userRole', 'farmer');
+          localStorage.setItem('currentUserId', String(farmer.id));
           router.push('/dashboard');
         } else {
-          setError("Invalid Farmer Password");
+          setError("Invalid username or password");
         }
       }
     }
