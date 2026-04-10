@@ -537,6 +537,28 @@ async function toggleSaleStatus(cow: Livestock) {
       <label className="text-sm font-bold text-gray-700 ml-1">Name</label>
       <input 
         type="text" 
+        className="w-full h-12 px-4 rounded-xl bg-white/50 border border-gray-200 text-gray-900 placeholder-gray-400 outline-none focus:ring-2 focus:ring-green-500" 
+        placeholder="e.g. Kairo" 
+      />
+    </div>
+    <div className="space-y-2">
+      <label className="text-sm font-bold text-gray-700 ml-1">Breed</label>
+      <input 
+        type="text" 
+        className="w-full h-12 px-4 rounded-xl bg-white/50 border border-gray-200 text-gray-900 placeholder-gray-400 outline-none focus:ring-2 focus:ring-green-500" 
+        placeholder="e.g. Friesian" 
+      />
+    </div>
+    <div className="space-y-2">
+      <label className="text-sm font-bold text-gray-700 ml-1">Status</label>
+      <input 
+        type="text" 
+        className="w-full h-12 px-4 rounded-xl bg-white/50 border border-gray-200 text-gray-900 placeholder-gray-400 outline-none focus:ring-2 focus:ring-green-500" 
+        placeholder="e.g. Healthy" 
+      />
+    </div>
+  </div>
+
   <div>
             <label
               htmlFor="cowName"
