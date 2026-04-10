@@ -530,223 +530,78 @@ async function toggleSaleStatus(cow: Livestock) {
         </p>
 
         <div className="bg-white/80 backdrop-blur-xl p-8 rounded-[2.5rem] shadow-2xl border border-white/40 mb-10">
-  <h2 className="text-2xl font-bold text-gray-900 mb-6">Add New Livestock</h2>
+  <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">Add New Livestock</h2>
   
-  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-    <div className="space-y-2">
-      <label className="text-sm font-bold text-gray-700 ml-1">Name</label>
+  <div className="space-y-4 max-w-2xl mx-auto">
+    {/* 1. Cow Name */}
+    <div className="space-y-1">
+      <label className="text-sm font-bold text-green-800 ml-1">Cow Name</label>
       <input 
         type="text" 
         className="w-full h-12 px-4 rounded-xl bg-white/50 border border-gray-200 text-gray-900 placeholder-gray-400 outline-none focus:ring-2 focus:ring-green-500" 
         placeholder="e.g. Kairo" 
+        value={cowName}
+        onChange={(e) => setCowName(e.target.value)}
       />
     </div>
-    <div className="space-y-2">
-      <label className="text-sm font-bold text-gray-700 ml-1">Breed</label>
+
+    {/* 2. Breed */}
+    <div className="space-y-1">
+      <label className="text-sm font-bold text-green-800 ml-1">Breed</label>
       <input 
         type="text" 
         className="w-full h-12 px-4 rounded-xl bg-white/50 border border-gray-200 text-gray-900 placeholder-gray-400 outline-none focus:ring-2 focus:ring-green-500" 
         placeholder="e.g. Friesian" 
+        value={breed}
+        onChange={(e) => setBreed(e.target.value)}
       />
     </div>
-    <div className="space-y-2">
-      <label className="text-sm font-bold text-gray-700 ml-1">Status</label>
+
+    {/* 3. Price in KSh */}
+    <div className="space-y-1">
+      <label className="text-sm font-bold text-green-800 ml-1">Price (KSh)</label>
       <input 
-        type="text" 
-        className="w-full h-12 px-4 rounded-xl bg-white/50 border border-gray-200 text-gray-900 placeholder-gray-400 outline-none focus:ring-2 focus:ring-green-500" 
-        placeholder="e.g. Healthy" 
+        type="number" 
+        className="w-full h-12 px-4 rounded-xl bg-white/50 border border-gray-200 text-gray-900 outline-none" 
+        placeholder="e.g. 50000" 
+        value={price}
+        onChange={(e) => setPrice(e.target.value)}
       />
     </div>
+
+    {/* Row for Weight and Age to save space */}
+    <div className="grid grid-cols-2 gap-4">
+      <div className="space-y-1">
+        <label className="text-sm font-bold text-green-800 ml-1">Weight (kg)</label>
+        <input type="number" className="w-full h-12 px-4 rounded-xl bg-white/50 border border-gray-200" value={weight} onChange={(e) => setWeight(e.target.value)} />
+      </div>
+      <div className="space-y-1">
+        <label className="text-sm font-bold text-green-800 ml-1">Age (years)</label>
+        <input type="number" className="w-full h-12 px-4 rounded-xl bg-white/50 border border-gray-200" value={age} onChange={(e) => setAge(e.target.value)} />
+      </div>
+    </div>
+
+    {/* File Uploads */}
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
+      <div>
+        <label className="text-sm font-bold text-green-800 block mb-1">Cow Photo</label>
+        <input type="file" className="text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-green-50 file:text-green-700" onChange={(e) => setSelectedFile(e.target.files?.[0] || null)} />
+      </div>
+      <div>
+        <label className="text-sm font-bold text-green-800 block mb-1">Market Video</label>
+        <button className="w-full h-10 bg-white border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50">Upload Video</button>
+      </div>
+    </div>
+
+    <button 
+      type="submit"
+      disabled={isSaving}
+      className="w-full mt-6 h-14 bg-[#2E7D32] hover:bg-green-800 text-white font-bold rounded-2xl shadow-lg transition-all"
+    >
+      {isSaving ? "Saving..." : "Add Livestock"}
+    </button>
   </div>
-
-  <div>
-            <label
-              htmlFor="cowName"
-              className="mb-2 block text-sm md:text-base font-semibold text-emerald-900"
-            >
-              Cow Name
-            </label>
-            <input
-              id="cowName"
-              type="text"
-              required
-              value={cowName}
-              onChange={(e) => setCowName(e.target.value)}
-              className="h-11 w-full rounded-lg border border-gray-300 bg-white px-3 md:px-4 py-2 md:py-3 text-gray-900 outline-none ring-emerald-500 transition focus:ring-2"
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor="breed"
-              className="mb-2 block text-sm md:text-base font-semibold text-emerald-900"
-            >
-              Breed
-            </label>
-            <input
-              id="breed"
-              type="text"
-              required
-              value={breed}
-              onChange={(e) => setBreed(e.target.value)}
-              className="h-11 w-full rounded-lg border border-gray-300 bg-white px-3 md:px-4 py-2 md:py-3 text-gray-900 outline-none ring-emerald-500 transition focus:ring-2"
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor="price"
-              className="mb-2 block text-sm md:text-base font-semibold text-emerald-900"
-            >
-              Price in KSh
-            </label>
-            <input
-              id="price"
-              type="number"
-              min="0"
-              step="0.01"
-              required
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
-              className="h-11 w-full rounded-lg border border-gray-300 bg-white px-3 md:px-4 py-2 md:py-3 text-gray-900 outline-none ring-emerald-500 transition focus:ring-2"
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor="healthStatus"
-              className="mb-2 block text-sm md:text-base font-semibold text-emerald-900"
-            >
-              Health Status
-            </label>
-            <input
-              id="healthStatus"
-              type="text"
-              required
-              value={healthStatus}
-              onChange={(e) => setHealthStatus(e.target.value)}
-              className="h-11 w-full rounded-lg border border-gray-300 bg-white px-3 md:px-4 py-2 md:py-3 text-gray-900 outline-none ring-emerald-500 transition focus:ring-2"
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor="weight"
-              className="mb-2 block text-sm md:text-base font-semibold text-emerald-900"
-            >
-              Weight (kg)
-            </label>
-            <input
-              id="weight"
-              type="number"
-              min="0"
-              step="0.01"
-              required
-              value={weight}
-              onChange={(e) => setWeight(e.target.value)}
-              className="h-11 w-full rounded-lg border border-gray-300 bg-white px-3 md:px-4 py-2 md:py-3 text-gray-900 outline-none ring-emerald-500 transition focus:ring-2"
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor="age"
-              className="mb-2 block text-sm md:text-base font-semibold text-emerald-900"
-            >
-              Age (years)
-            </label>
-            <input
-              id="age"
-              type="number"
-              min="0"
-              step="0.1"
-              value={age}
-              onChange={(e) => setAge(e.target.value)}
-              className="h-11 w-full rounded-lg border border-gray-300 bg-white px-3 md:px-4 py-2 md:py-3 text-gray-900 outline-none ring-emerald-500 transition focus:ring-2"
-            />
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div>
-              <label
-                htmlFor="imageFile"
-                className="mb-2 block text-sm md:text-base font-semibold text-emerald-900"
-              >
-                Cow Photo
-              </label>
-              <input
-                id="imageFile"
-                type="file"
-                accept="image/*"
-                onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-                className="h-11 w-full rounded-lg border border-gray-300 bg-white px-3 md:px-4 py-2 md:py-3 text-gray-900 outline-none ring-emerald-500 transition focus:ring-2"
-              />
-              {selectedFile ? (
-                <p className="mt-2 text-xs md:text-sm text-emerald-800">
-                  Selected: {selectedFile.name}
-                </p>
-              ) : null}
-            </div>
-            <div>
-              <label
-                htmlFor="videoFile"
-                className="mb-2 block text-sm md:text-base font-semibold text-emerald-900"
-              >
-                Market Video
-              </label>
-              <input
-                ref={videoInputRef}
-                id="videoFile"
-                type="file"
-                accept="video/*"
-                onChange={(e) => setSelectedVideoFile(e.target.files?.[0] || null)}
-                className="hidden"
-              />
-              <button
-                type="button"
-                onClick={() => videoInputRef.current?.click()}
-                className="h-11 rounded-lg border border-gray-300 bg-white px-4 py-2 md:px-5 md:py-3 text-sm md:text-base font-semibold text-gray-900 transition hover:bg-gray-100"
-              >
-                Upload Video
-              </button>
-              {editingCowId && existingVideoUrl ? (
-                <p className="mt-2 text-xs md:text-sm text-gray-700">
-                  Current video exists. Upload a new file to replace it.
-                </p>
-              ) : null}
-              {selectedVideoFile ? (
-                <p className="mt-2 text-xs md:text-sm text-emerald-800">
-                  Selected: {selectedVideoFile.name}
-                </p>
-              ) : null}
-            </div>
-          </div>
-
-          {error ? (
-            <p className="rounded-lg border border-rose-300 bg-rose-50 px-3 py-2 text-sm text-rose-700">
-              {error}
-            </p>
-          ) : null}
-
-          <div className="flex flex-col sm:flex-row gap-3">
-            <button
-              type="submit"
-              disabled={isSaving}
-              className="inline-flex flex-1 items-center justify-center h-12 rounded-lg bg-[#2E7D32] px-4 py-2 md:px-6 md:py-4 text-sm md:text-lg font-bold text-white shadow-md transition hover:bg-[#2E7D32]/80 disabled:cursor-not-allowed disabled:opacity-70"
-            >
-              {isSaving ? "Saving..." : editingCowId ? "Update Livestock" : "Add Livestock"}
-            </button>
-            {editingCowId && (
-              <button
-                type="button"
-                onClick={cancelEdit}
-                className="inline-flex items-center justify-center h-12 rounded-lg bg-gray-600 px-4 py-2 md:px-6 md:py-4 text-sm md:text-base font-semibold text-white transition hover:bg-gray-700"
-              >
-                Cancel
-              </button>
-            )}
-          </div>
-        </div>
+</div>
 
         {/* Livestock Inventory */}
         <div className="mt-8 md:mt-12">
