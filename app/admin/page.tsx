@@ -13,6 +13,7 @@ interface Livestock {
   price_ksh: number;
   health_status: string;
   status?: string;
+  is_for_sale?: boolean;
   weight?: number;
   age?: number;
   image_url?: string;
@@ -171,31 +172,27 @@ export default function AdminPage() {
     }
   }
 
-  const listInMarketplace = async (cowId: number) => {
-  const { data, error } = await supabase
+  const handleSell = async (cowId: string) => {
+  const { error } = await supabase
     .from('livestock')
-    .update({ 
-      status: "For Sale",
-      listed_at: new Date().toISOString()
-    }) // This makes it appear in Marketplace
+    .update({ is_for_sale: true }) // Must match the column name exactly
     .eq('id', cowId);
 
-  if (!error) {
-    alert("Listed in Marketplace!");
-    // Refresh the livestock data to show updated status
-    await fetchLivestock();
+  if (error) {
+    alert("Error listing cow: " + error.message);
   } else {
-    console.error("Error listing in marketplace:", error);
-    alert("Failed to list in marketplace. Please try again.");
+    alert("Success! Cow is now in the Marketplace.");
+    // Force a refresh of the data or update local state
+    window.location.reload(); 
   }
 };
 
 async function toggleSaleStatus(cow: Livestock) {
-  if (cow.status === "For Sale") {
+  if (cow.is_for_sale === true) {
     // Unlist from marketplace
     const { error: updateError } = await supabase
       .from("livestock")
-      .update({ status: "Active" })
+      .update({ is_for_sale: false })
       .eq("id", cow.id);
 
     if (updateError) {
@@ -207,8 +204,8 @@ async function toggleSaleStatus(cow: Livestock) {
     setError("");
     await fetchLivestock();
   } else {
-    // List for sale using the new listInMarketplace function
-    await listInMarketplace(cow.id);
+    // List for sale using the new handleSell function
+    await handleSell(String(cow.id));
   }
 }
 
@@ -454,7 +451,7 @@ async function toggleSaleStatus(cow: Livestock) {
 
   return (
     <>
-      <Navigation currentPage="/admin" />
+      <Navigation />
       <div
         className="min-h-screen bg-cover bg-center bg-no-repeat px-4 md:px-6 py-12 pt-20 lg:pt-16 pb-20 lg:pb-16"
         style={{ backgroundImage: "url('/farmer-pasture-bg.svg')" }}

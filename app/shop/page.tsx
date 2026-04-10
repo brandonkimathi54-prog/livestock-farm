@@ -64,39 +64,26 @@ export default function MarketplacePage() {
     setIsLoading(true);
     try {
       const savedFarmName = localStorage.getItem("marketplaceFarmName")?.trim() ?? "";
-      const farmerUsername = localStorage.getItem("farmerUsername")?.trim() ?? "";
+      const targetFarm = localStorage.getItem("targetFarm")?.trim() ?? "";
 
       // If client entered a specific farmer's username, use that as filter
-      if (farmerUsername) {
-        setFarmFilterName(farmerUsername);
+      if (targetFarm) {
+        setFarmFilterName(targetFarm);
       } else {
         setFarmFilterName(savedFarmName);
       }
 
-      let query = supabase
+      const { data: marketplaceCows, error: fetchError } = await supabase
         .from("livestock")
-        .select(`
-          *,
-          profiles!inner (
-            whatsapp_number
-          )
-        `)
-        .eq("status", "For Sale")
-        .order("created_at", { ascending: false });
-
-      // If client entered a specific farmer's username, filter by that farmer
-      if (farmerUsername) {
-        query = query.eq("profiles.username", farmerUsername);
-      }
-
-      const { data, error: fetchError } = await query;
+        .select('*')
+        .eq('is_for_sale', true);
 
       if (fetchError) {
         console.error("Error fetching livestock:", fetchError);
         setError("Failed to load marketplace inventory");
       } else {
         // Only display cows that have been marked 'For Sale' by the farmer
-        const marketItems = ((data || []) as LivestockItem[]).filter(item => item.status === "For Sale");
+        const marketItems = ((marketplaceCows || []) as LivestockItem[]).filter(item => item.is_for_sale === true);
         setLivestock(marketItems);
       }
     } catch (err) {
@@ -134,7 +121,7 @@ export default function MarketplacePage() {
   if (isLoading) {
     return (
       <>
-        <Navigation currentPage="/shop" />
+        <Navigation />
         <div className="relative min-h-screen">
           <div 
             className="fixed inset-0 bg-cover bg-center bg-no-repeat" 
@@ -155,7 +142,7 @@ export default function MarketplacePage() {
 
   return (
     <>
-      <Navigation currentPage="/shop" />
+      <Navigation />
       <div className="relative min-h-screen">
         <div 
           className="fixed inset-0 bg-cover bg-center bg-no-repeat" 

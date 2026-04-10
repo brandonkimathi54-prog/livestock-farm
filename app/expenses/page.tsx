@@ -213,7 +213,7 @@ export default function ExpensesPage() {
   if (isLoading) {
     return (
       <>
-        <Navigation currentPage="/expenses" />
+        <Navigation />
         <div className="relative min-h-screen">
           <div 
             className="fixed inset-0 bg-cover bg-center bg-no-repeat" 
@@ -235,7 +235,7 @@ export default function ExpensesPage() {
 
   return (
     <>
-      <Navigation currentPage="/expenses" />
+      <Navigation />
       <div className="relative min-h-screen">
         <div 
           className="fixed inset-0 bg-cover bg-center bg-no-repeat" 
