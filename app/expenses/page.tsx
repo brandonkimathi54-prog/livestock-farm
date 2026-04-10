@@ -170,13 +170,13 @@ export default function ExpensesPage() {
 
             {/* Milk Price Section */}
             <div className="mb-8 p-6 bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-100">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Milk Price per Litre (KES)</label>
+              <label className="block text-sm font-bold text-gray-800 mb-2">Milk Price per Litre (KES)</label>
               <div className="flex gap-4">
                 <input
                   type="number"
                   value={inputPrice}
                   onChange={(e) => setInputPrice(Number(e.target.value))}
-                  className="h-11 w-full bg-white/80 border border-gray-300 rounded-xl px-4 outline-none focus:ring-2 focus:ring-green-500"
+                  className="h-11 w-full bg-white/80 border border-gray-300 rounded-xl px-4 text-black placeholder-gray-500 outline-none focus:ring-2 focus:ring-green-500"
                 />
                 <button
                   onClick={() => updateMilkPrice(inputPrice)}
@@ -214,7 +214,7 @@ export default function ExpensesPage() {
                   <select value={category} onChange={(e) => setCategory(e.target.value as any)} className="h-11 rounded-xl border border-gray-300 px-3">
                     {EXPENSE_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
-                  <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="Amount" className="h-11 rounded-xl border border-gray-300 px-3" required />
+                  <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="Amount" className="h-11 rounded-xl border border-gray-300 px-3 text-black" required />
                   <input type="date" value={expenseDate} onChange={(e) => setExpenseDate(e.target.value)} className="h-11 rounded-xl border border-gray-300 px-3" required />
                 </div>
                 <button type="submit" className="w-full bg-green-600 text-white h-11 rounded-xl font-bold hover:bg-green-700">
@@ -230,7 +230,7 @@ export default function ExpensesPage() {
                 {expenses.map((exp) => (
                   <div key={exp.id} className="flex justify-between items-center p-4 bg-white/50 rounded-2xl border border-white/20">
                     <div>
-                      <p className="font-bold text-gray-800">{exp.category}</p>
+                      <p className="font-bold text-gray-900">{exp.category}</p>
                       <p className="text-xs text-gray-500">{new Date(exp.created_at).toLocaleDateString()}</p>
                     </div>
                     <div className="flex items-center gap-4">
