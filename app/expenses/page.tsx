@@ -223,29 +223,14 @@ export default function ExpensesPage() {
           <main className="relative z-10 mx-auto w-full max-w-7xl px-4 md:px-6 py-12 pt-20 lg:pt-20 pb-24 lg:pb-24">
             <div className="max-w-4xl mx-auto lg:ml-64">
               <div className="bg-white/60 backdrop-blur-lg border border-white/40 rounded-3xl p-8 shadow-lg">
-                <h1 className="text-2xl md:text-3xl font-bold text-green-900 mb-6">Expenses</h1>
-                <div className="text-center text-gray-600">Loading expenses data...</div>
-              </div>
-            </div>
-          </main>
-        </div>
           className="fixed inset-0 bg-cover bg-center bg-no-repeat" 
           style={{ backgroundImage: "url('https://images.unsplash.com/photo-1500595046743-cd271d694d30?auto=format&fit=crop&w=1920&q=80')" }}
         />
         <div className="fixed inset-0 bg-white/40" aria-hidden="true" />
-        
         <main className="relative z-10 mx-auto w-full max-w-7xl px-4 md:px-6 py-12 pt-20 lg:pt-20 pb-24 lg:pb-24">
           <div className="max-w-4xl mx-auto lg:ml-64">
-            <h1 className="text-2xl md:text-3xl font-bold text-green-900 mb-6 md:mb-8">Expenses</h1>
-
-            {/* Price Settings Card */}
-            <div className="bg-white/60 backdrop-blur-lg border border-white/40 rounded-3xl p-4 md:p-6 shadow-lg mb-6 md:mb-8">
-              <h2 className="text-base md:text-lg font-semibold text-gray-700 mb-4">Price Settings</h2>
-              <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
-                <label htmlFor="milkPrice" className="text-sm font-medium text-gray-600">
-                  Current Milk Price (KSh/kg):
-                </label>
-                <input
+            <h1 className="text-2xl md:text-3xl font-bold text-green-900 mb-6">Expenses</h1>
+            <div className="text-center text-gray-600">Loading expenses data...</div>
                   type="number"
                   id="milkPrice"
                   value={inputPrice}
