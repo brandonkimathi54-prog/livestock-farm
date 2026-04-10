@@ -217,35 +217,29 @@ export default function ExpensesPage() {
         <div className="relative min-h-screen">
           <div 
             className="fixed inset-0 bg-cover bg-center bg-no-repeat" 
-            style={{ backgroundImage: "url('https://images.unsplash.com/photo-1500595046743-cd271d694d30?auto=format&fit=crop&w=1920&q=80')" }}
+            style={{ backgroundImage: "url('https://images.unsplash.com/photo-1500595046743-cd271d694d30?q=80&w=2074&auto=format&fit=crop')" }} 
           />
           <div className="fixed inset-0 bg-white/40" aria-hidden="true" />
-          <main className="relative z-10 mx-auto w-full max-w-7xl px-4 md:px-6 py-12 pt-20 lg:pt-20 pb-24 lg:pb-24">
+          <main className="relative z-10 mx-auto w-full max-w-7xl px-4 md:px-6 py-12 pt-20">
             <div className="max-w-4xl mx-auto lg:ml-64">
-              <div className="bg-white/60 backdrop-blur-lg border border-white/40 rounded-3xl p-8 shadow-lg">
-          className="fixed inset-0 bg-cover bg-center bg-no-repeat" 
-          style={{ backgroundImage: "url('https://images.unsplash.com/photo-1500595046743-cd271d694d30?auto=format&fit=crop&w=1920&q=80')" }}
-        />
-        <div className="fixed inset-0 bg-white/40" aria-hidden="true" />
-        <main className="relative z-10 mx-auto w-full max-w-7xl px-4 md:px-6 py-12 pt-20 lg:pt-20 pb-24 lg:pb-24">
-          <div className="max-w-4xl mx-auto lg:ml-64">
-            <h1 className="text-2xl md:text-3xl font-bold text-green-900 mb-6">Expenses</h1>
-            <div className="text-center text-gray-600">Loading expenses data...</div>
-                  type="number"
-                  id="milkPrice"
-                  value={inputPrice}
-                  onChange={(e) => setInputPrice(Number(e.target.value) || 0)}
-                  step="0.01"
-                  min="0"
-                  className="h-11 w-full bg-white/80 border border-gray-300 rounded-xl px-3 py-2 text-green-900 placeholder-green-700/50 outline-none ring-green-600 transition focus:ring-2 sm:w-32"
-                />
-                <button
-                  onClick={() => updateMilkPrice(inputPrice)}
-                  disabled={isSavingPrice || inputPrice === milkPricePerKg}
-                  className="h-11 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-semibold px-4 py-2 rounded-xl transition-colors disabled:cursor-not-allowed"
-                >
-                  {isSavingPrice ? "Saving..." : "Save"}
-                </button>
+              <div className="mb-8 p-6 bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-100">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Milk Price per Litre (KES)</label>
+                <div className="flex gap-4">
+                  <input
+                    type="number"
+                    value={inputPrice}
+                    onChange={(e) => setInputPrice(Number(e.target.value))}
+                    min="0"
+                    className="h-11 w-full bg-white/80 border border-gray-300 rounded-xl px-4 focus:ring-2 focus:ring-green-500 outline-none transition-all"
+                  />
+                  <button
+                    onClick={() => updateMilkPrice(inputPrice)}
+                    disabled={isSavingPrice || inputPrice === milkPricePerKg}
+                    className="px-6 py-2 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700 disabled:opacity-50 transition-colors"
+                  >
+                    {isSavingPrice ? 'Saving...' : 'Update'}
+                  </button>
+                </div>
               </div>
               {error && error.includes("milk price") && (
                 <p className="text-red-600 text-sm mt-2">{error}</p>
