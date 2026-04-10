@@ -173,18 +173,19 @@ export default function AdminPage() {
   }
 
   const handleSell = async (cowId: string) => {
-  // We use only the ID to target the cow, which avoids 400 errors
-  const { error } = await supabase
-    .from('livestock')
-    .update({ is_for_sale: true }) 
-    .match({ id: cowId }); // Match is more reliable than .eq in some cases
+  try {
+    const { error } = await supabase
+      .from('livestock')
+      .update({ is_for_sale: true })
+      .eq('id', cowId); // Use .eq instead of .match to keep it simple
 
-  if (error) {
-    console.error("Marketplace Error:", error);
-    alert("Failed: " + error.message);
-  } else {
-    alert("Success! Mercy is now in the market.");
+    if (error) throw error;
+    
+    alert("Success! Mercy is now live.");
     window.location.reload();
+  } catch (error) {
+    console.error("Listing Error:", error);
+    alert("Failed to list. Check console for details.");
   }
 };
 
