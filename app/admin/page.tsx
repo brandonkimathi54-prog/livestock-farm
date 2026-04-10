@@ -173,19 +173,20 @@ export default function AdminPage() {
   }
 
   const handleSell = async (cowId: string) => {
-  try {
-    const { error } = await supabase
-      .from('livestock')
-      .update({ is_for_sale: true })
-      .eq('id', cowId); // Use .eq instead of .match to keep it simple
+  if (!cowId) return alert("Cow ID missing!");
+  
+  const { data, error } = await supabase
+    .from('livestock')
+    .update({ is_for_sale: true })
+    .eq('id', cowId) // Use .eq for precise matching
+    .select(); // Returns data to confirm success
 
-    if (error) throw error;
-    
-    alert("Success! Mercy is now live.");
+  if (error) {
+    console.error("Supabase Error:", error);
+    alert(`Failed: ${error.message}`);
+  } else {
+    alert("Kairo is now listed!");
     window.location.reload();
-  } catch (error) {
-    console.error("Listing Error:", error);
-    alert("Failed to list. Check console for details.");
   }
 };
 
