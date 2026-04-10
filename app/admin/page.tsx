@@ -173,7 +173,7 @@ export default function AdminPage() {
   }
 
   const handleSell = async (id: string) => {
-  // Simple check to make sure we have an ID
+  // Simple ID check
   if (!id) return;
 
   const { error } = await supabase
@@ -182,10 +182,10 @@ export default function AdminPage() {
     .eq('id', id);
 
   if (error) {
-    console.error("Connection Error:", error.message);
-    alert("Connection failed: " + error.message);
+    console.error("Sell Error:", error.message);
+    alert("Still refusing: " + error.message);
   } else {
-    alert("Listing Successful!");
+    alert("Success! The cow is now listed.");
     window.location.reload();
   }
 };
