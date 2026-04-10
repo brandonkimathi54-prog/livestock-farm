@@ -382,6 +382,7 @@ export default function ExpensesPage() {
           </div>
         </main>
       </div>
+
       <style jsx global>{`
         .led-glow {
           text-shadow: 0 0 10px rgba(34, 197, 94, 0.5);
