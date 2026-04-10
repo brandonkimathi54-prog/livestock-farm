@@ -1,0 +1,7 @@
+<svg width="192" height="192" viewBox="0 0 192 192" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="192" height="192" rx="48" fill="#1A6650"/>
+  <rect x="24" y="24" width="144" height="144" rx="36" fill="#ffffff" fill-opacity="0.1"/>
+  <text x="96" y="100" font-family="Arial, sans-serif" font-size="24" font-weight="bold" text-anchor="middle" fill="#ffffff">🐄</text>
+  <text x="96" y="130" font-family="Arial, sans-serif" font-size="14" font-weight="600" text-anchor="middle" fill="#ffffff">SMART</text>
+  <text x="96" y="148" font-family="Arial, sans-serif" font-size="14" font-weight="600" text-anchor="middle" fill="#ffffff">FARMER</text>
+</svg>
