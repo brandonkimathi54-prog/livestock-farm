@@ -455,7 +455,7 @@ async function toggleSaleStatus(cow: Livestock) {
 
   return (
     <>
-      <Navigation />
+      <Navigation currentPage="/admin" onLogout={() => {localStorage.clear(); window.location.href='/';}} />
       <div
         className="min-h-screen bg-cover bg-center bg-no-repeat px-4 md:px-6 py-12 pt-20 lg:pt-16 pb-20 lg:pb-16"
         style={{ backgroundImage: "url('/farmer-pasture-bg.svg')" }}

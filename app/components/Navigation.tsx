@@ -2,7 +2,13 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
-export default function Navigation() {
+// Add or update this interface at the top of the file
+interface NavigationProps {
+  currentPage: string;
+  onLogout: () => void;
+}
+
+export default function Navigation({ currentPage, onLogout }: NavigationProps) {
   const [role, setRole] = useState<string | null>(null);
 
   useEffect(() => {

@@ -164,7 +164,7 @@ export default function DashboardPage() {
 
   return (
     <>
-      <Navigation currentPage="/dashboard" onLogout={handleLogout} />
+      <Navigation currentPage="/dashboard" />
       <div className="relative min-h-screen">
         <div 
           className="fixed inset-0 bg-cover bg-center bg-no-repeat" 

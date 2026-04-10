@@ -121,7 +121,7 @@ export default function MarketplacePage() {
   if (isLoading) {
     return (
       <>
-        <Navigation />
+        <Navigation currentPage="/shop" />
         <div className="relative min-h-screen">
           <div 
             className="fixed inset-0 bg-cover bg-center bg-no-repeat" 
@@ -142,7 +142,7 @@ export default function MarketplacePage() {
 
   return (
     <>
-      <Navigation />
+      <Navigation currentPage="/shop" onLogout={() => {localStorage.clear(); window.location.href='/';}} />
       <div className="relative min-h-screen">
         <div 
           className="fixed inset-0 bg-cover bg-center bg-no-repeat" 

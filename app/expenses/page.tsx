@@ -228,14 +228,17 @@ export default function ExpensesPage() {
               </div>
             </div>
           </main>
-        </div>
-      </>
-    );
   }
 
+  cancelEdit();
+  await fetchExpenses();
+  setIsSaving(false);
+}
+
+if (isLoading) {
   return (
     <>
-      <Navigation />
+      <Navigation currentPage="/expenses" onLogout={() => {localStorage.clear(); window.location.href='/';}} />
       <div className="relative min-h-screen">
         <div 
           className="fixed inset-0 bg-cover bg-center bg-no-repeat" 
