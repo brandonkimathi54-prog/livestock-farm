@@ -173,17 +173,18 @@ export default function AdminPage() {
   }
 
   const handleSell = async (cowId: string) => {
+  // We use only the ID to target the cow, which avoids 400 errors
   const { error } = await supabase
     .from('livestock')
-    .update({ is_for_sale: true }) // Must match the column name exactly
-    .eq('id', cowId);
+    .update({ is_for_sale: true }) 
+    .match({ id: cowId }); // Match is more reliable than .eq in some cases
 
   if (error) {
-    alert("Error listing cow: " + error.message);
+    console.error("Marketplace Error:", error);
+    alert("Failed: " + error.message);
   } else {
-    alert("Success! Cow is now in the Marketplace.");
-    // Force a refresh of the data or update local state
-    window.location.reload(); 
+    alert("Success! Mercy is now in the market.");
+    window.location.reload();
   }
 };
 
