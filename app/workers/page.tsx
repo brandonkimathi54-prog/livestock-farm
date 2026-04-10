@@ -2,17 +2,20 @@
 
 import { useEffect, useState } from "react";
 import Navigation from "@/app/components/Navigation";
-import { Users, UserPlus } from "lucide-react";
+// ADDED 'Phone' and 'Mail' to imports below
+import { Users, UserPlus, Phone, Mail } from "lucide-react";
 
 export default function WorkersPage() {
   const [displayName, setDisplayName] = useState("Farmer");
 
   useEffect(() => {
-    // Get the username/email instead of the long ID number
-    const userEmail = localStorage.getItem("userEmail"); 
-    if (userEmail) {
-      // Takes the part before the @ in the email for a clean welcome
-      setDisplayName(userEmail.split('@')[0]);
+    // Check if we are in the browser before accessing localStorage
+    if (typeof window !== "undefined") {
+      const userEmail = localStorage.getItem("userEmail"); 
+      if (userEmail) {
+        // Takes the part before @ in the email for a clean welcome
+        setDisplayName(userEmail.split('@')[0]);
+      }
     }
   }, []);
 
