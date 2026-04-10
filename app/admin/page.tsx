@@ -172,21 +172,20 @@ export default function AdminPage() {
     }
   }
 
-  const handleSell = async (cowId: string) => {
-  if (!cowId) return alert("Cow ID missing!");
-  
-  const { data, error } = await supabase
+  const handleSell = async (id: string) => {
+  // Simple check to make sure we have an ID
+  if (!id) return;
+
+  const { error } = await supabase
     .from('livestock')
     .update({ is_for_sale: true })
-    .eq('id', cowId) // Use .eq for precise matching
-    .eq('user_id', currentUserId) // Add user_id filter for RLS
-    .select(); // Returns data to confirm success
+    .eq('id', id);
 
   if (error) {
-    console.error("Supabase Error:", error);
-    alert(`Failed: ${error.message}`);
+    console.error("Connection Error:", error.message);
+    alert("Connection failed: " + error.message);
   } else {
-    alert("Kairo is now listed!");
+    alert("Listing Successful!");
     window.location.reload();
   }
 };
