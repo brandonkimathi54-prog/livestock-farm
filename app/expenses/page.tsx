@@ -403,7 +403,6 @@ export default function ExpensesPage() {
           </div>
         </main>
       </div>
-      
       {/* Global CSS for the LED effect */}
       <style jsx global>{`
         @keyframes led-rotate {
