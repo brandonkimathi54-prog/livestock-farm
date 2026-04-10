@@ -537,19 +537,7 @@ async function toggleSaleStatus(cow: Livestock) {
       <label className="text-sm font-bold text-gray-700 ml-1">Name</label>
       <input 
         type="text" 
-        /* text-gray-900 makes it readable, bg-white/50 keeps it light */
-        className="w-full h-12 px-4 rounded-xl bg-white/50 border border-gray-200 text-gray-900 placeholder-gray-400 outline-none focus:ring-2 focus:ring-green-500" 
-        placeholder="e.g. Kairo" 
-      />
-    </div>
-    {/* Repeat for Breed and Status */}
-  </div>
-
-  <button className="w-full mt-8 h-14 bg-green-700 hover:bg-green-800 text-white font-bold rounded-2xl shadow-lg transition-all active:scale-95">
-    Add Livestock
-  </button>
-</div>
-          <div>
+  <div>
             <label
               htmlFor="cowName"
               className="mb-2 block text-sm md:text-base font-semibold text-emerald-900"
@@ -736,7 +724,7 @@ async function toggleSaleStatus(cow: Livestock) {
               </button>
             )}
           </div>
-        </form>
+        </div>
 
         {/* Livestock Inventory */}
         <div className="mt-8 md:mt-12">
