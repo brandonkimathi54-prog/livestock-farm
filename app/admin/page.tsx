@@ -732,7 +732,7 @@ async function toggleSaleStatus(cow: Livestock) {
             <button
               type="submit"
               disabled={isSaving}
-              className="inline-flex flex-1 items-center justify-center h-12 rounded-lg bg-emerald-800 px-4 py-2 md:px-6 md:py-4 text-sm md:text-lg font-bold text-white shadow-md transition hover:bg-emerald-900 disabled:cursor-not-allowed disabled:opacity-70"
+              className="inline-flex flex-1 items-center justify-center h-12 rounded-lg bg-[#2E7D32] px-4 py-2 md:px-6 md:py-4 text-sm md:text-lg font-bold text-white shadow-md transition hover:bg-[#2E7D32]/80 disabled:cursor-not-allowed disabled:opacity-70"
             >
               {isSaving ? "Saving..." : editingCowId ? "Update Livestock" : "Add Livestock"}
             </button>
