@@ -10,6 +10,7 @@ interface Livestock {
   name: string;
   breed: string;
   age: number;
+  image_url?: string;
   farmer_username: string;
   created_at: string;
 }
@@ -25,6 +26,8 @@ export default function LivestockPage() {
   const [animalName, setAnimalName] = useState("");
   const [breed, setBreed] = useState("");
   const [age, setAge] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -60,10 +63,61 @@ export default function LivestockPage() {
     }
   };
 
-  const handleSave = async () => {
+  const uploadToPrivateFolder = async (file: File) => {
+  const currentFarmer = localStorage.getItem("currentSessionUser");
+
+  if (!currentFarmer) {
+    alert("Login required to save photos!");
+    return;
+  }
+
+  // This ensures the file goes into the 'yakuza/' or 'mash/' folder
+  const filePath = `${currentFarmer}/${Date.now()}_${file.name}`;
+
+  const { data, error } = await supabase.storage
+    .from('livestock-assets')
+    .upload(filePath, file, {
+      cacheControl: '3600',
+      upsert: false
+    });
+
+  if (error) {
+    console.error("Upload failed:", error.message);
+    throw error;
+  } else {
+    // Get the private URL to save in your livestock table
+    const { data: { publicUrl } } = supabase.storage
+      .from('livestock-assets')
+      .getPublicUrl(filePath);
+      
+    console.log("Success! File saved in your private workspace.");
+    return { data, publicUrl };
+  }
+};
+
+const handleSave = async () => {
     if (!animalName || !breed || !age) {
       alert("Please fill in all fields");
       return;
+    }
+
+    let imageUrl = null;
+    
+    // Upload file if selected
+    if (selectedFile) {
+      setIsUploading(true);
+      try {
+        const uploadResult = await uploadToPrivateFolder(selectedFile);
+        if (uploadResult) {
+          imageUrl = uploadResult.publicUrl;
+        }
+      } catch (error) {
+        console.error('Error uploading file:', error);
+        alert('Error uploading file');
+        setIsUploading(false);
+        return;
+      }
+      setIsUploading(false);
     }
 
     const currentFarmer = localStorage.getItem("currentSessionUser"); // Get logged-in name
@@ -74,6 +128,7 @@ export default function LivestockPage() {
         name: animalName, 
         breed: breed,
         age: parseInt(age),
+        image_url: imageUrl,
         farmer_username: currentFarmer // This "locks" the data to this farmer
       }]);
 
@@ -85,6 +140,7 @@ export default function LivestockPage() {
       setAnimalName("");
       setBreed("");
       setAge("");
+      setSelectedFile(null);
       setShowAddForm(false);
       
       // Refresh list
@@ -134,7 +190,7 @@ export default function LivestockPage() {
           {showAddForm && (
             <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100 mb-8">
               <h3 className="text-xl font-bold text-gray-800 mb-4">Add New Animal</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <input
                   type="text"
                   placeholder="Animal Name"
@@ -149,6 +205,8 @@ export default function LivestockPage() {
                   onChange={(e) => setBreed(e.target.value)}
                   className="w-full h-12 px-4 rounded-xl border border-gray-200 text-gray-900 outline-none focus:ring-2 focus:ring-green-500"
                 />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <input
                   type="number"
                   placeholder="Age"
@@ -156,13 +214,27 @@ export default function LivestockPage() {
                   onChange={(e) => setAge(e.target.value)}
                   className="w-full h-12 px-4 rounded-xl border border-gray-200 text-gray-900 outline-none focus:ring-2 focus:ring-green-500"
                 />
+                <div className="w-full h-12 px-4 rounded-xl border border-gray-200 bg-white flex items-center">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                    className="w-full h-full outline-none text-gray-900 file:mr-4 file:py-1 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
+                  />
+                </div>
               </div>
+              {selectedFile && (
+                <div className="mb-4 p-2 bg-green-50 rounded-lg border border-green-200">
+                  <p className="text-sm text-green-700">Selected: {selectedFile.name}</p>
+                </div>
+              )}
               <div className="flex gap-4">
                 <button
                   onClick={handleSave}
-                  className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-2xl font-bold transition-all"
+                  disabled={isUploading}
+                  className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-2xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Save Animal
+                  {isUploading ? 'Uploading...' : 'Save Animal'}
                 </button>
                 <button
                   onClick={() => setShowAddForm(false)}
@@ -187,8 +259,18 @@ export default function LivestockPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {livestock.map((animal) => (
                 <div key={animal.id} className="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100">
-                  <div className="w-full h-48 bg-gray-100 rounded-2xl mb-4 flex items-center justify-center">
-                    <Activity className="text-gray-400" size={48} />
+                  <div className="w-full h-48 bg-gray-100 rounded-2xl mb-4 overflow-hidden">
+                    {animal.image_url ? (
+                      <img 
+                        src={animal.image_url} 
+                        alt={animal.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <Activity className="text-gray-400" size={48} />
+                      </div>
+                    )}
                   </div>
                   <h3 className="text-xl font-bold text-gray-800 mb-2">{animal.name}</h3>
                   <p className="text-gray-600 mb-1">Breed: {animal.breed}</p>
