@@ -532,7 +532,7 @@ async function toggleSaleStatus(cow: Livestock) {
         <div className="bg-white/80 backdrop-blur-xl p-8 rounded-[2.5rem] shadow-2xl border border-white/40 mb-10">
   <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">Add New Livestock</h2>
   
-  <div className="space-y-4 max-w-2xl mx-auto">
+  <form onSubmit={handleSubmit} className="space-y-4 max-w-2xl mx-auto">
     {/* 1. Cow Name */}
     <div className="space-y-1">
       <label className="text-sm font-bold text-green-800 ml-1">Cow Name</label>
@@ -589,7 +589,20 @@ async function toggleSaleStatus(cow: Livestock) {
       </div>
       <div>
         <label className="text-sm font-bold text-green-800 block mb-1">Market Video</label>
-        <button className="w-full h-10 bg-white border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50">Upload Video</button>
+        <input 
+          type="file" 
+          accept="video/*" 
+          id="video-upload" 
+          className="hidden" 
+          onChange={(e) => setSelectedVideoFile(e.target.files?.[0] || null)} 
+        />
+        <button 
+          type="button" // This stops the page from refreshing
+          onClick={() => document.getElementById('video-upload')?.click()}
+          className="w-full h-12 bg-white border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50 transition-all"
+        >
+          {selectedVideoFile ? "Video Selected: " + selectedVideoFile.name : "Upload Video"}
+        </button>
       </div>
     </div>
 
@@ -600,7 +613,7 @@ async function toggleSaleStatus(cow: Livestock) {
     >
       {isSaving ? "Saving..." : "Add Livestock"}
     </button>
-  </div>
+  </form>
 </div>
 
         {/* Livestock Inventory */}
