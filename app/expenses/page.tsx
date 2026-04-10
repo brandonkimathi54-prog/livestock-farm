@@ -57,91 +57,51 @@ export default function ExpensesPage() {
   }, [milkPricePerKg, totalMilkKg, totalCosts]);
 
   async function fetchExpenses() {
-    if (!currentUserId) {
-      setError("No logged in user found. Please login again.");
-      return;
-    }
+    if (!currentUserId) return;
     setIsLoading(true);
-    const [expensesRes, productionRes, settingsRes] = await Promise.all([
-      supabase.from("expenses").select("*").eq("user_id", currentUserId).order("created_at", { ascending: false }),
-      supabase
-        .from("production_logs")
-        .select("milk_kg")
-        .eq("user_id", currentUserId)
-        .order("created_at", { ascending: false }),
-      supabase.from("farm_settings").select("milk_price_per_kg").eq("user_id", currentUserId).single(),
-    ]);
+    try {
+      const [expensesRes, productionRes, settingsRes] = await Promise.all([
+        supabase.from("expenses").select("*").eq("user_id", currentUserId).order("created_at", { ascending: false }),
+        supabase.from("production_logs").select("milk_kg").eq("user_id", currentUserId),
+        supabase.from("farm_settings").select("milk_price_per_kg").eq("user_id", currentUserId).single(),
+      ]);
 
-    if (expensesRes.error) {
-      console.error("Error fetching expenses:", expensesRes.error);
-      setError("Failed to load expenses");
-    } else {
-      setExpenses((expensesRes.data || []) as Expense[]);
-      const costs = (expensesRes.data || []).reduce((sum, exp) => sum + exp.amount, 0);
-      setTotalCosts(costs);
+      if (expensesRes.data) {
+        setExpenses(expensesRes.data as Expense[]);
+        setTotalCosts(expensesRes.data.reduce((sum, exp) => sum + exp.amount, 0));
+      }
+
+      if (productionRes.data) {
+        setTotalMilkKg(productionRes.data.reduce((sum, log) => sum + (log.milk_kg || 0), 0));
+      }
+
+      if (settingsRes.data) {
+        setMilkPricePerKg(settingsRes.data.milk_price_per_kg);
+      }
+    } catch (err) {
+      console.error(err);
+      setError("Failed to sync data.");
+    } finally {
+      setIsLoading(false);
     }
-
-    if (productionRes.error) {
-      console.error("Error fetching production logs:", productionRes.error);
-    } else {
-      const productions = productionRes.data || [];
-      const totalMilkKg = productions.reduce((sum, log) => sum + (log.milk_kg || 0), 0);
-      setTotalMilkKg(totalMilkKg);
-    }
-
-    if (settingsRes.error) {
-      console.error("Error fetching farm settings:", settingsRes.error);
-    } else {
-      const price = settingsRes.data?.milk_price_per_kg || 60;
-      setMilkPricePerKg(price);
-      setInputPrice(price);
-    }
-
-    setIsLoading(false);
   }
 
   async function updateMilkPrice(newPrice: number) {
     setIsSavingPrice(true);
-    try {
-      const { error } = await supabase
-        .from("farm_settings")
-        .update({ milk_price_per_kg: newPrice })
-        .eq("user_id", currentUserId);
+    const { error } = await supabase
+      .from("farm_settings")
+      .update({ milk_price_per_kg: newPrice })
+      .eq("user_id", currentUserId);
 
-      if (error) {
-        console.error("Error updating milk price:", error);
-        setError("Failed to save milk price");
-      } else {
-        setMilkPricePerKg(newPrice);
-        setError("");
-      }
-    } catch (err) {
-      console.error("Unexpected error updating milk price:", err);
-      setError("An unexpected error occurred while saving milk price");
-    } finally {
-      setIsSavingPrice(false);
-    }
+    if (error) setError("Failed to update price.");
+    else setMilkPricePerKg(newPrice);
+    setIsSavingPrice(false);
   }
 
   async function deleteExpense(id: number) {
-    if (!confirm("Are you sure you want to delete this expense?")) {
-      return;
-    }
-
-    try {
-      const { error } = await supabase.from("expenses").delete().eq("id", id).eq("user_id", currentUserId);
-
-      if (error) {
-        console.error("Error deleting expense:", error);
-        setError("Failed to delete expense");
-      } else {
-        setError("");
-        await fetchExpenses();
-      }
-    } catch (err) {
-      console.error("Unexpected error deleting expense:", err);
-      setError("An unexpected error occurred while deleting expense");
-    }
+    if (!confirm("Delete this record?")) return;
+    await supabase.from("expenses").delete().eq("id", id);
+    fetchExpenses();
   }
 
   function editExpense(expense: Expense) {
@@ -160,233 +120,140 @@ export default function ExpensesPage() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setError("");
     setIsSaving(true);
+    const payload = {
+      user_id: currentUserId,
+      category,
+      amount: Number(amount),
+      created_at: expenseDate,
+    };
 
-    if (!currentUserId) {
-      setError("No logged in user found. Please login again.");
-      setIsSaving(false);
-      return;
+    const request = editingExpenseId 
+      ? supabase.from("expenses").update(payload).eq("id", editingExpenseId)
+      : supabase.from("expenses").insert(payload);
+
+    const { error } = await request;
+    if (error) setError(error.message);
+    else {
+      cancelEdit();
+      fetchExpenses();
     }
-
-    const parsedAmount = Number(amount);
-    if (!Number.isFinite(parsedAmount) || parsedAmount < 0) {
-      setError("Please provide a valid amount.");
-      setIsSaving(false);
-      return;
-    }
-
-    let result;
-    if (editingExpenseId) {
-      result = await supabase
-        .from("expenses")
-        .update({
-          category,
-          amount: parsedAmount,
-          created_at: expenseDate,
-        })
-        .eq("id", editingExpenseId)
-        .eq("user_id", currentUserId);
-    } else {
-      result = await supabase.from("expenses").insert({
-        user_id: currentUserId,
-        category,
-        amount: parsedAmount,
-        created_at: expenseDate,
-      });
-    }
-
-    if (result.error) {
-      const details = [result.error.message, result.error.details, result.error.hint]
-        .filter(Boolean)
-        .join(" | ");
-      setError(`Failed to ${editingExpenseId ? "update" : "save"} expense: ${details}`);
-      setIsSaving(false);
-      return;
-    }
-
-    cancelEdit();
-    await fetchExpenses();
     setIsSaving(false);
   }
 
-  if (isLoading) {
-    return (
-      <>
-        <Navigation currentPage="/expenses" onLogout={() => {localStorage.clear(); window.location.href='/';}} />
-        <div className="relative min-h-screen">
-          <div 
-            className="fixed inset-0 bg-cover bg-center bg-no-repeat" 
-            style={{ backgroundImage: "url('https://images.unsplash.com/photo-1500595046743-cd271d694d30?q=80&w=2074&auto=format&fit=crop')" }} 
-          />
-          <div className="fixed inset-0 bg-white/40" aria-hidden="true" />
-          <main className="relative z-10 mx-auto w-full max-w-7xl px-4 md:px-6 py-12 pt-20">
-            <div className="max-w-4xl mx-auto lg:ml-64">
-              <div className="mb-8 p-6 bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-100">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Milk Price per Litre (KES)</label>
-                <div className="flex gap-4">
-                  <input
-                    type="number"
-                    value={inputPrice}
-                    onChange={(e) => setInputPrice(Number(e.target.value))}
-                    min="0"
-                    className="h-11 w-full bg-white/80 border border-gray-300 rounded-xl px-4 focus:ring-2 focus:ring-green-500 outline-none transition-all"
-                  />
-                  <button
-                    onClick={() => updateMilkPrice(inputPrice)}
-                    disabled={isSavingPrice || inputPrice === milkPricePerKg}
-                    className="px-6 py-2 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700 disabled:opacity-50 transition-colors"
-                  >
-                    {isSavingPrice ? 'Saving...' : 'Update'}
-                  </button>
-                </div>
+  const handleLogout = () => {
+    localStorage.clear();
+    window.location.href = "/";
+  };
+
+  return (
+    <>
+      <Navigation currentPage="/expenses" onLogout={handleLogout} />
+      
+      <div className="relative min-h-screen">
+        {/* Background Layer */}
+        <div 
+          className="fixed inset-0 bg-cover bg-center bg-no-repeat" 
+          style={{ backgroundImage: "url('https://images.unsplash.com/photo-1500595046743-cd271d694d30?q=80&w=2074&auto=format&fit=crop')" }} 
+        />
+        <div className="fixed inset-0 bg-white/40" aria-hidden="true" />
+
+        <main className="relative z-10 mx-auto w-full max-w-7xl px-4 md:px-6 py-12 pt-20">
+          <div className="max-w-4xl mx-auto lg:ml-64">
+            
+            {/* Loading State Overlay */}
+            {isLoading && (
+              <div className="absolute inset-0 bg-white/20 backdrop-blur-sm z-50 flex items-center justify-center rounded-3xl">
+                <p className="font-bold text-green-800">Updating Ledger...</p>
               </div>
-              {error && error.includes("milk price") && (
-                <p className="text-red-600 text-sm mt-2">{error}</p>
-              )}
+            )}
+
+            {/* Milk Price Section */}
+            <div className="mb-8 p-6 bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-100">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Milk Price per Litre (KES)</label>
+              <div className="flex gap-4">
+                <input
+                  type="number"
+                  value={inputPrice}
+                  onChange={(e) => setInputPrice(Number(e.target.value))}
+                  className="h-11 w-full bg-white/80 border border-gray-300 rounded-xl px-4 outline-none focus:ring-2 focus:ring-green-500"
+                />
+                <button
+                  onClick={() => updateMilkPrice(inputPrice)}
+                  disabled={isSavingPrice}
+                  className="px-6 py-2 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700 transition-colors"
+                >
+                  {isSavingPrice ? 'Saving...' : 'Update'}
+                </button>
+              </div>
             </div>
 
-            {/* Financial Summary Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
-              <div className="bg-white/60 backdrop-blur-lg border border-white/40 rounded-3xl p-4 md:p-6 shadow-lg">
+            {/* Financial Summary */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+              <div className="bg-white/60 backdrop-blur-lg border border-white/40 rounded-3xl p-6 shadow-lg">
                 <h3 className="text-sm font-semibold text-gray-700 mb-2">Total Revenue</h3>
-                <p className="text-2xl md:text-3xl lg:text-4xl font-bold text-blue-600">
-                  KSh {totalRevenue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </p>
-                <p className="text-xs text-gray-600 mt-2">@ KSh {milkPricePerKg}/kg</p>
+                <p className="text-3xl font-bold text-blue-600">KSh {totalRevenue.toLocaleString()}</p>
               </div>
-
-              <div className="bg-white/60 backdrop-blur-lg border border-white/40 rounded-3xl p-4 md:p-6 shadow-lg">
+              <div className="bg-white/60 backdrop-blur-lg border border-white/40 rounded-3xl p-6 shadow-lg">
                 <h3 className="text-sm font-semibold text-gray-700 mb-2">Total Expenses</h3>
-                <p className="text-2xl md:text-3xl lg:text-4xl font-bold text-red-600">
-                  KSh {totalCosts.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </p>
-                <p className="text-xs text-gray-600 mt-2">All costs tracked</p>
+                <p className="text-3xl font-bold text-red-600">KSh {totalCosts.toLocaleString()}</p>
               </div>
-
-              <div className="bg-white/60 backdrop-blur-lg border border-white/40 rounded-3xl p-4 md:p-6 shadow-lg">
-                <h3 className="text-sm font-semibold mb-2 text-gray-700">Net Profit/Loss</h3>
-                <p className={`text-2xl md:text-3xl lg:text-4xl font-bold ${netProfit >= 0 ? "text-green-600" : "text-red-600"}`}>
-                  KSh {netProfit.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </p>
-                <p className="text-xs mt-2 text-gray-600">
-                  {netProfit >= 0 ? "Profitable" : "Operating at loss"}
+              <div className="bg-white/60 backdrop-blur-lg border border-white/40 rounded-3xl p-6 shadow-lg">
+                <h3 className="text-sm font-semibold text-gray-700 mb-2">Net Profit</h3>
+                <p className={`text-3xl font-bold ${netProfit >= 0 ? "text-green-600" : "text-red-600"}`}>
+                  KSh {netProfit.toLocaleString()}
                 </p>
               </div>
             </div>
 
-            {/* Expense Form */}
-            <div className="bg-white/60 backdrop-blur-lg border border-white/40 rounded-3xl p-4 md:p-6 shadow-lg mb-6 md:mb-8">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg md:text-xl font-semibold text-gray-700">
-                  {editingExpenseId ? "Update Expense" : "Record Expense"}
-                </h2>
-                {editingExpenseId && (
-                  <button onClick={cancelEdit} className="text-gray-600 hover:text-gray-800 transition-colors">
-                    Cancel
-                  </button>
-                )}
-              </div>
+            {/* Form */}
+            <div className="bg-white/60 backdrop-blur-lg border border-white/40 rounded-3xl p-6 shadow-lg mb-8">
+              <h2 className="text-xl font-semibold text-gray-700 mb-4">{editingExpenseId ? "Edit Expense" : "New Expense"}</h2>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-1 text-gray-600">Category</label>
-                    <select
-                      value={category}
-                      onChange={(e) => setCategory(e.target.value as typeof EXPENSE_CATEGORIES[number])}
-                      className="h-11 w-full bg-white/80 border border-gray-300 rounded-xl px-3 py-2 text-green-900 outline-none ring-green-600 transition focus:ring-2"
-                    >
-                      {EXPENSE_CATEGORIES.map((cat) => (
-                        <option key={cat} value={cat}>{cat}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1 text-gray-600">Amount (KSh)</label>
-                    <input
-                      type="number"
-                      value={amount}
-                      onChange={(e) => setAmount(e.target.value)}
-                      step="0.01"
-                      className="h-11 w-full bg-white/80 border border-gray-300 rounded-xl px-3 py-2 text-green-900 outline-none ring-green-600 transition focus:ring-2"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1 text-gray-600">Date</label>
-                    <input
-                      type="date"
-                      value={expenseDate}
-                      onChange={(e) => setExpenseDate(e.target.value)}
-                      className="h-11 w-full bg-white/80 border border-gray-300 rounded-xl px-3 py-2 text-green-900 outline-none ring-green-600 transition focus:ring-2"
-                      required
-                    />
-                  </div>
+                  <select value={category} onChange={(e) => setCategory(e.target.value as any)} className="h-11 rounded-xl border border-gray-300 px-3">
+                    {EXPENSE_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                  <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="Amount" className="h-11 rounded-xl border border-gray-300 px-3" required />
+                  <input type="date" value={expenseDate} onChange={(e) => setExpenseDate(e.target.value)} className="h-11 rounded-xl border border-gray-300 px-3" required />
                 </div>
-                <button
-                  type="submit"
-                  disabled={isSaving}
-                  className="h-11 w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-semibold py-2 px-4 rounded-xl transition-colors"
-                >
-                  {isSaving ? "Saving..." : editingExpenseId ? "Update Expense" : "Record Expense"}
+                <button type="submit" className="w-full bg-green-600 text-white h-11 rounded-xl font-bold hover:bg-green-700">
+                  {isSaving ? "Processing..." : "Save Record"}
                 </button>
               </form>
             </div>
 
-            {/* History Table */}
-            <div className="bg-white/60 backdrop-blur-lg border border-white/40 rounded-3xl p-4 md:p-6 shadow-lg">
-              <h2 className="text-lg md:text-xl font-semibold text-gray-700 mb-4">Expense History</h2>
-              {expenses.length === 0 ? (
-                <p className="text-gray-600">No expenses recorded yet.</p>
-              ) : (
-                <div className="space-y-3">
-                  {expenses.map((expense) => (
-                    <div key={expense.id} className="border border-white/40 rounded-xl p-3 md:p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white/60 backdrop-blur-lg shadow-sm">
-                      <div className="flex items-center gap-3 md:gap-4 flex-grow">
-                        <div className="font-semibold text-lg rounded-full w-10 h-10 md:w-12 md:h-12 flex items-center justify-center bg-green-600/10 text-green-600">
-                          {expense.category[0]}
-                        </div>
-                        <div>
-                          <p className="font-semibold text-sm md:text-base text-gray-700">{expense.category}</p>
-                          <p className="text-xs md:text-sm text-gray-500">{new Date(expense.created_at).toLocaleDateString()}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-between sm:justify-end gap-3 md:gap-4 w-full sm:w-auto">
-                        <p className="font-bold text-base md:text-xl text-gray-700">
-                          KSh {expense.amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </p>
-                        <div className="flex gap-2">
-                          <button onClick={() => editExpense(expense)} className="p-2 hover:bg-gray-100 rounded-lg text-gray-600">
-                            <Pencil className="w-4 h-4" />
-                          </button>
-                          <button onClick={() => deleteExpense(expense.id)} className="p-2 hover:bg-red-50 rounded-lg text-red-600">
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
+            {/* List */}
+            <div className="bg-white/60 backdrop-blur-lg border border-white/40 rounded-3xl p-6 shadow-lg">
+              <h2 className="text-xl font-semibold text-gray-700 mb-4">History</h2>
+              <div className="space-y-3">
+                {expenses.map((exp) => (
+                  <div key={exp.id} className="flex justify-between items-center p-4 bg-white/50 rounded-2xl border border-white/20">
+                    <div>
+                      <p className="font-bold text-gray-800">{exp.category}</p>
+                      <p className="text-xs text-gray-500">{new Date(exp.created_at).toLocaleDateString()}</p>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <p className="font-bold text-gray-700">KSh {exp.amount.toLocaleString()}</p>
+                      <div className="flex gap-2">
+                        <button onClick={() => editExpense(exp)} className="text-blue-600 p-1"><Pencil size={16} /></button>
+                        <button onClick={() => deleteExpense(exp.id)} className="text-red-600 p-1"><Trash2 size={16} /></button>
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
+                  </div>
+                ))}
+              </div>
             </div>
 
-            {/* Signature with Rotating LED Effect */}
             <footer className="mt-12 text-center pb-8">
-              <p className="text-gray-700 font-medium">
-                Created by{" "}
-                <span className="inline-block font-extrabold animate-led-rotate bg-[length:200%_auto] bg-clip-text text-transparent bg-gradient-to-r from-green-900 via-emerald-400 via-white to-green-900">
-                  Brandon
-                </span>
-              </p>
+              <p className="text-gray-700 font-medium">Created by Brandon</p>
             </footer>
           </div>
         </main>
       </div>
 
       <style jsx global>{`
-        .led-glow {
-          text-shadow: 0 0 10px rgba(34, 197, 94, 0.5);
-        }
+        .led-glow { text-shadow: 0 0 10px rgba(34, 197, 94, 0.5); }
       `}</style>
     </>
   );
