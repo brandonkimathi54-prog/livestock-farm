@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 import { supabase } from "@/src/lib/supabase";
 import { MessageCircle, ArrowRight } from "lucide-react";
 import Navigation from "@/app/components/Navigation";
@@ -51,31 +52,23 @@ function MediaComponent({ animal }: MediaComponentProps) {
 }
 
 export default function MarketplacePage() {
+  const params = useParams();
+  const farmerName = params.username as string;
   const [livestock, setLivestock] = useState<LivestockItem[]>([]);
-  const [farmFilterName, setFarmFilterName] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    fetchForSaleLivestock();
-  }, []);
+    fetchFarmerLivestock();
+  }, [farmerName]);
 
-  async function fetchForSaleLivestock() {
+  async function fetchFarmerLivestock() {
     setIsLoading(true);
     try {
-      const savedFarmName = localStorage.getItem("marketplaceFarmName")?.trim() ?? "";
-      const targetFarm = localStorage.getItem("targetFarm")?.trim() ?? "";
-
-      // If client entered a specific farmer's username, use that as filter
-      if (targetFarm) {
-        setFarmFilterName(targetFarm);
-      } else {
-        setFarmFilterName(savedFarmName);
-      }
-
       const { data: marketplaceCows, error: fetchError } = await supabase
         .from("livestock")
         .select('*')
+        .eq('farmer_username', farmerName)
         .eq('is_for_sale', true);
 
       if (fetchError) {
@@ -121,7 +114,7 @@ export default function MarketplacePage() {
   if (isLoading) {
     return (
       <>
-        <Navigation currentPage="/shop" />
+        <Navigation currentPage="/shop" onLogout={() => {localStorage.clear(); window.location.href='/';}} />
         <div className="relative min-h-screen">
           <div 
             className="fixed inset-0 bg-cover bg-center bg-no-repeat" 
@@ -154,10 +147,10 @@ export default function MarketplacePage() {
           {/* Header */}
           <div className="text-center mb-12">
             <h1 className="text-4xl md:text-5xl font-bold text-green-900 mb-4">
-              Livestock Marketplace
+              Welcome to {farmerName}'s Marketplace
             </h1>
             <p className="text-lg md:text-xl text-gray-600">
-              Browse healthy livestock from local farmers
+              Browse healthy livestock from {farmerName}'s farm
             </p>
             <div className="mt-6">
               <Link
@@ -180,8 +173,8 @@ export default function MarketplacePage() {
             <div className="bg-white/60 backdrop-blur-lg border border-white/40 rounded-3xl p-8 shadow-lg text-center">
               <p className="text-lg text-gray-700 mb-4">No livestock currently available for sale.</p>
               <p className="text-sm text-gray-600">
-                {farmFilterName
-                  ? `No listings found for farm "${farmFilterName}".`
+                {farmerName
+                  ? `No listings found for ${farmerName}'s farm.`
                   : "Please check back later or contact us for inquiries."}
               </p>
             </div>
