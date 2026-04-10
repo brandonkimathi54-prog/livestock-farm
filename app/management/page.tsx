@@ -17,8 +17,15 @@ export default function FarmerDashboard() {
   const [farmerName, setFarmerName] = useState("Farmer");
 
   useEffect(() => {
-    const user = localStorage.getItem("currentUserId");
-    if (user) setFarmerName(user);
+    if (typeof window !== "undefined") {
+      // We now pull the specific username saved during login
+      const user = localStorage.getItem("currentSessionUser"); 
+      if (user) {
+        setFarmerName(user);
+      } else {
+        setFarmerName("Farmer");
+      }
+    }
   }, []);
 
   const cards = [

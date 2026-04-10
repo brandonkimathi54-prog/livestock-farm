@@ -9,12 +9,13 @@ export default function WorkersPage() {
   const [displayName, setDisplayName] = useState("Farmer");
 
   useEffect(() => {
-    // Check if we are in the browser before accessing localStorage
     if (typeof window !== "undefined") {
-      const userEmail = localStorage.getItem("userEmail"); 
-      if (userEmail) {
-        // Takes the part before @ in the email for a clean welcome
-        setDisplayName(userEmail.split('@')[0]);
+      // We now pull the specific username saved during login
+      const user = localStorage.getItem("currentSessionUser"); 
+      if (user) {
+        setDisplayName(user);
+      } else {
+        setDisplayName("Farmer");
       }
     }
   }, []);
