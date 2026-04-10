@@ -7,6 +7,7 @@ export default function EntryPage() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [searchUsername, setSearchUsername] = useState("");
   const router = useRouter();
 
   const handleAuth = () => {
@@ -42,10 +43,14 @@ export default function EntryPage() {
             <input
               type="text"
               placeholder="Enter Farmer Username"
-              /* text-gray-900 makes the typing font dark and readable */
-              className="w-full h-14 px-5 rounded-2xl border border-gray-300 bg-white/70 text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+              value={searchUsername}
+              onChange={(e) => setSearchUsername(e.target.value)}
+              className="w-full h-14 px-5 rounded-2xl border border-gray-300 bg-white/70 text-gray-900 placeholder-gray-500 outline-none"
             />
-            <button className="w-full h-14 bg-[#0085FF] hover:bg-blue-600 text-white font-bold rounded-2xl shadow-lg transition-all">
+            <button 
+              onClick={() => router.push(`/shop/${searchUsername}`)}
+              className="w-full h-14 bg-[#0085FF] hover:bg-blue-600 text-white font-bold rounded-2xl shadow-lg transition-all"
+            >
               Browse Shop
             </button>
           </div>

@@ -10,6 +10,7 @@ type Expense = {
   id: number;
   category: "Feed" | "Vet" | "Worker" | "AI";
   amount: number;
+  farmer_username: string;
   created_at: string;
 };
 
@@ -31,20 +32,19 @@ export default function ExpensesPage() {
   const [isSavingPrice, setIsSavingPrice] = useState(false);
   const [inputPrice, setInputPrice] = useState(60);
   const [editingExpenseId, setEditingExpenseId] = useState<number | null>(null);
-  const [currentUserId, setCurrentUserId] = useState("");
+  const [currentFarmer, setCurrentFarmer] = useState("");
 
   useEffect(() => {
-    const storedUserId = localStorage.getItem("currentUserId") ?? "";
-    setCurrentUserId(storedUserId);
-  }, []);
-
-  useEffect(() => {
-    if (currentUserId) {
-      fetchExpenses();
-    } else {
-      setIsLoading(false);
+    if (typeof window !== "undefined") {
+      const user = localStorage.getItem("currentSessionUser") ?? "";
+      setCurrentFarmer(user);
+      if (user) {
+        fetchExpenses();
+      } else {
+        setIsLoading(false);
+      }
     }
-  }, [currentUserId]);
+  }, []);
 
   useEffect(() => {
     setInputPrice(milkPricePerKg);
@@ -57,13 +57,13 @@ export default function ExpensesPage() {
   }, [milkPricePerKg, totalMilkKg, totalCosts]);
 
   async function fetchExpenses() {
-    if (!currentUserId) return;
+    if (!currentFarmer) return;
     setIsLoading(true);
     try {
       const [expensesRes, productionRes, settingsRes] = await Promise.all([
-        supabase.from("expenses").select("*").eq("user_id", currentUserId).order("created_at", { ascending: false }),
-        supabase.from("production_logs").select("milk_kg").eq("user_id", currentUserId),
-        supabase.from("farm_settings").select("milk_price_per_kg").eq("user_id", currentUserId).single(),
+        supabase.from("expenses").select("*").eq("farmer_username", currentFarmer).order("created_at", { ascending: false }),
+        supabase.from("production_logs").select("milk_kg").eq("farmer_username", currentFarmer),
+        supabase.from("farm_settings").select("milk_price_per_kg").eq("farmer_username", currentFarmer).single(),
       ]);
 
       if (expensesRes.data) {
@@ -91,7 +91,7 @@ export default function ExpensesPage() {
     const { error } = await supabase
       .from("farm_settings")
       .update({ milk_price_per_kg: newPrice })
-      .eq("user_id", currentUserId);
+      .eq("farmer_username", currentFarmer);
 
     if (error) setError("Failed to update price.");
     else setMilkPricePerKg(newPrice);
@@ -121,8 +121,9 @@ export default function ExpensesPage() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsSaving(true);
+    const currentFarmer = localStorage.getItem("currentSessionUser");
     const payload = {
-      user_id: currentUserId,
+      farmer_username: currentFarmer,
       category,
       amount: Number(amount),
       created_at: expenseDate,
