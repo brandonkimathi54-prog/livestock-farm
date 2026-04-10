@@ -22,17 +22,17 @@ export default function FarmerDashboard() {
   }, []);
 
   const cards = [
-    { title: "Manage Livestock", desc: "View and add your animals", icon: <PlusCircle />, link: "/animals", color: "bg-green-500" },
-    { title: "Milk Production", desc: "Log daily milk yields", icon: <Milk />, link: "/production", color: "bg-blue-500" },
+    { title: "Manage Livestock", desc: "View and add your animals", icon: <PlusCircle />, link: "/admin", color: "bg-green-500" },
+    { title: "Milk Production", desc: "Log daily milk yields", icon: <Milk />, link: "/productivity", color: "bg-blue-500" },
     { title: "Health Records", desc: "Track vaccinations & meds", icon: <Stethoscope />, link: "/health", color: "bg-red-500" },
     { title: "Expenses & Profit", desc: "Financial overview", icon: <Receipt />, link: "/expenses", color: "bg-orange-500" },
-    { title: "Marketplace", desc: "Sell your livestock", icon: <ShoppingBag />, link: "/marketplace", color: "bg-purple-500" },
-    { title: "Farm Workers", desc: "Manage your team", icon: <Users />, link: "/workers", color: "bg-teal-500" },
+    { title: "Marketplace", desc: "Sell your livestock", icon: <ShoppingBag />, link: "/shop", color: "bg-purple-500" },
+    { title: "Farm Workers", desc: "Manage your team", icon: <Users />, link: "/tracking", color: "bg-teal-500" },
   ];
 
   return (
     <div className="min-h-screen bg-gray-100">
-      <Navigation currentPage="/dashboard" />
+      <Navigation currentPage="/dashboard" onLogout={() => {localStorage.clear(); window.location.href='/';}} />
       
       {/* Sidebar Navigation - Desktop */}
       <aside className="fixed left-0 top-0 h-full w-64 bg-white shadow-xl hidden lg:block z-20">
