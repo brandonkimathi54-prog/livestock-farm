@@ -179,6 +179,7 @@ export default function AdminPage() {
     .from('livestock')
     .update({ is_for_sale: true })
     .eq('id', cowId) // Use .eq for precise matching
+    .eq('user_id', currentUserId) // Add user_id filter for RLS
     .select(); // Returns data to confirm success
 
   if (error) {
@@ -196,7 +197,8 @@ async function toggleSaleStatus(cow: Livestock) {
     const { error: updateError } = await supabase
       .from("livestock")
       .update({ is_for_sale: false })
-      .eq("id", cow.id);
+      .eq("id", cow.id)
+      .eq("user_id", currentUserId); // Add user_id filter for RLS
 
     if (updateError) {
       console.error("Error toggling sale status:", updateError);
