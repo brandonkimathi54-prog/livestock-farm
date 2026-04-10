@@ -112,7 +112,7 @@ export default function HomePage() {
         setError("Invalid Farmer Password");
       }
     } else {
-      // Clients can enter without a password or with a simple guest check
+      // Clients go directly to marketplace without login
       localStorage.setItem('userRole', 'client');
       router.push('/shop');
     }
@@ -252,21 +252,7 @@ export default function HomePage() {
                         <div className="text-xs mt-1">Manage farm</div>
                       </div>
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => setRole('client')}
-                      className={`p-3 rounded-xl border-2 transition-all ${
-                        role === 'client' 
-                          ? 'border-blue-600 bg-blue-50 text-blue-700' 
-                          : 'border-gray-300 bg-white/80 text-gray-600 hover:border-gray-400'
-                      }`}
-                    >
-                      <div className="text-center">
-                        <div className="font-semibold">Client</div>
-                        <div className="text-xs mt-1">Browse shop</div>
-                      </div>
-                    </button>
-                  </div>
+                                      </div>
                 </div>
               )}
 
@@ -341,7 +327,7 @@ export default function HomePage() {
                 </div>
               )}
 
-            {error && (
+              {error && (
                 <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
                   {error}
                 </div>
@@ -359,10 +345,7 @@ export default function HomePage() {
                       Access Dashboard
                     </>
                   ) : (
-                    <>
-                      <ArrowRight className="h-4 w-4" />
-                      Visit Marketplace
-                    </>
+                    <></>
                   )
                 ) : (
                   <>

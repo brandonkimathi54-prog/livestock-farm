@@ -171,15 +171,23 @@ export default function AdminPage() {
     }
   }
 
-  const sellLivestock = (id: number) => {
-  setLivestock(prev => prev.map(item => {
-    if (item.id === id) {
-      // Mark as for sale and set a timestamp
-      return { ...item, status: "For Sale", listedAt: new Date().toISOString() };
-    }
-    return item;
-  }));
-  alert("Livestock listed in Marketplace!");
+  const listInMarketplace = async (cowId: number) => {
+  const { data, error } = await supabase
+    .from('livestock')
+    .update({ 
+      status: "For Sale",
+      listed_at: new Date().toISOString()
+    }) // This makes it appear in Marketplace
+    .eq('id', cowId);
+
+  if (!error) {
+    alert("Listed in Marketplace!");
+    // Refresh the livestock data to show updated status
+    await fetchLivestock();
+  } else {
+    console.error("Error listing in marketplace:", error);
+    alert("Failed to list in marketplace. Please try again.");
+  }
 };
 
 async function toggleSaleStatus(cow: Livestock) {
@@ -195,14 +203,13 @@ async function toggleSaleStatus(cow: Livestock) {
       setError("Failed to update sale status");
       return;
     }
-  } else {
-    // List for sale using the new sellLivestock function
-    sellLivestock(cow.id);
-    return;
-  }
 
-  setError("");
-  await fetchLivestock();
+    setError("");
+    await fetchLivestock();
+  } else {
+    // List for sale using the new listInMarketplace function
+    await listInMarketplace(cow.id);
+  }
 }
 
   function editCow(cow: Livestock) {
