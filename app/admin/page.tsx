@@ -39,7 +39,7 @@ export default function AdminPage() {
   const [livestock, setLivestock] = useState<Livestock[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [editingCowId, setEditingCowId] = useState<number | null>(null);
-  const [currentUserId, setCurrentUserId] = useState<string>("");
+  const [currentUser, setCurrentUser] = useState<string | null>(null);
   const [whatsappNumber, setWhatsappNumber] = useState<string>("");
   const [isSavingWhatsApp, setIsSavingWhatsApp] = useState(false);
   const [whatsappSaveSuccess, setWhatsappSaveSuccess] = useState(false);
@@ -49,22 +49,25 @@ export default function AdminPage() {
   const [newCow, setNewCow] = useState({ name: '', breed: '', age: '', price: '' });
 
   useEffect(() => {
-    const storedUserId = localStorage.getItem("currentUserId") ?? "";
-    setCurrentUserId(storedUserId);
+    // Check for the user we saved in Entry Page
+    const savedUser = localStorage.getItem("currentSessionUser");
+    if (savedUser) {
+      setCurrentUser(savedUser);
+    }
   }, []);
 
   useEffect(() => {
-    if (currentUserId) {
+    if (currentUser) {
       fetchWhatsAppNumber();
     }
-  }, [currentUserId]);
+  }, [currentUser]);
 
   async function fetchWhatsAppNumber() {
     try {
       const { data, error } = await supabase
         .from("profiles")
         .select("whatsapp_number")
-        .eq("id", currentUserId)
+        .eq("id", currentUser)
         .single();
       
       if (error && error.code !== "PGRST116") {
@@ -86,7 +89,7 @@ export default function AdminPage() {
       const { error } = await supabase
         .from("profiles")
         .update({ whatsapp_number: whatsappNumber.trim() })
-        .eq("id", currentUserId);
+        .eq("id", currentUser);
         
       if (error) {
         setError("Failed to save WhatsApp number: " + error.message);
@@ -120,7 +123,7 @@ export default function AdminPage() {
   };
 
   async function fetchLivestock() {
-    if (!currentUserId) {
+    if (!currentUser) {
       setError("No logged in user found. Please login again.");
       setIsLoading(false);
       return;
@@ -129,7 +132,7 @@ export default function AdminPage() {
     const { data, error } = await supabase
       .from("livestock")
       .select("*")
-      .eq("user_id", currentUserId)
+      .eq("farmer_username", currentUser)
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -142,10 +145,10 @@ export default function AdminPage() {
   }
 
   useEffect(() => {
-    if (currentUserId) {
+    if (currentUser) {
       fetchLivestock();
     }
-  }, [currentUserId]);
+  }, [currentUser]);
 
   async function deleteCow(id: number) {
     if (!confirm("Are you sure you want to delete this cow?")) {
@@ -157,7 +160,7 @@ export default function AdminPage() {
         .from("livestock")
         .delete()
         .eq("id", id)
-        .eq("user_id", currentUserId);
+        .eq("farmer_username", currentUser);
 
       if (error) {
         console.error("Error deleting cow:", error);
@@ -197,7 +200,7 @@ async function toggleSaleStatus(cow: Livestock) {
       .from("livestock")
       .update({ is_for_sale: false })
       .eq("id", cow.id)
-      .eq("user_id", currentUserId); // Add user_id filter for RLS
+      .eq("farmer_username", currentUser); // Add user_id filter for RLS
 
     if (updateError) {
       console.error("Error toggling sale status:", updateError);
@@ -246,7 +249,7 @@ async function toggleSaleStatus(cow: Livestock) {
     setError("");
     setIsSaving(true);
 
-    if (!currentUserId) {
+    if (!currentUser) {
       setError("No logged in user found. Please login again.");
       setIsSaving(false);
       return;
@@ -342,11 +345,11 @@ async function toggleSaleStatus(cow: Livestock) {
           video_url: videoUrl,
         })
         .eq("id", editingCowId)
-        .eq("user_id", currentUserId);
+        .eq("farmer_username", currentUser);
     } else {
       // Insert new cow
       result = await supabase.from("livestock").insert({
-        user_id: currentUserId,
+        farmer_username: currentUser,
         name: cowName.trim(),
         breed: breed.trim(),
         price_ksh: parsedPrice,
@@ -389,10 +392,10 @@ async function toggleSaleStatus(cow: Livestock) {
         supabase
           .from("livestock")
           .select("name, breed, weight, price_ksh")
-          .eq("user_id", currentUserId)
+          .eq("farmer_username", currentUser)
           .order("name", { ascending: true }),
-        supabase.from("production_logs").select("*").eq("user_id", currentUserId).order("date", { ascending: false }),
-        supabase.from("expenses").select("*").eq("user_id", currentUserId).order("date", { ascending: false }),
+        supabase.from("production_logs").select("*").eq("farmer_username", currentUser).order("date", { ascending: false }),
+        supabase.from("expenses").select("*").eq("farmer_username", currentUser).order("date", { ascending: false }),
       ]);
 
       if (livestockResponse.error) throw livestockResponse.error;
@@ -526,7 +529,26 @@ async function toggleSaleStatus(cow: Livestock) {
           {editingCowId ? "Update cow profile with pricing and health details." : "Add a new cow profile with pricing and health details for your clients."}
         </p>
 
-        <form onSubmit={handleSubmit} className="mt-6 md:mt-8 space-y-4 md:space-y-5">
+        <div className="bg-white/80 backdrop-blur-xl p-8 rounded-[2.5rem] shadow-2xl border border-white/40 mb-10">
+  <h2 className="text-2xl font-bold text-gray-900 mb-6">Add New Livestock</h2>
+  
+  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div className="space-y-2">
+      <label className="text-sm font-bold text-gray-700 ml-1">Name</label>
+      <input 
+        type="text" 
+        /* text-gray-900 makes it readable, bg-white/50 keeps it light */
+        className="w-full h-12 px-4 rounded-xl bg-white/50 border border-gray-200 text-gray-900 placeholder-gray-400 outline-none focus:ring-2 focus:ring-green-500" 
+        placeholder="e.g. Kairo" 
+      />
+    </div>
+    {/* Repeat for Breed and Status */}
+  </div>
+
+  <button className="w-full mt-8 h-14 bg-green-700 hover:bg-green-800 text-white font-bold rounded-2xl shadow-lg transition-all active:scale-95">
+    Add Livestock
+  </button>
+</div>
           <div>
             <label
               htmlFor="cowName"
