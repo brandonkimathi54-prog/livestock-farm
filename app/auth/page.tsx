@@ -45,9 +45,13 @@ export default function AuthPage() {
     }
 
     if (mode === 'login') {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
         setErrorMessage(error.message);
+      } else {
+        const session = data.session;
+        console.log('Session detected:', session);
+        window.location.replace('/dashboard');
       }
     } else {
       const { error } = await supabase.auth.signUp({ email, password });
