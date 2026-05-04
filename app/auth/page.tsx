@@ -12,6 +12,7 @@ export default function AuthPage() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isSubmitted, setIsSubmitted] = useState(false);
 
   useEffect(() => {
     const init = async () => {
@@ -32,7 +33,7 @@ export default function AuthPage() {
     return () => listener.subscription?.unsubscribe();
   }, [router]);
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setLoading(true);
     setErrorMessage(null);
@@ -52,6 +53,8 @@ export default function AuthPage() {
       const { error } = await supabase.auth.signUp({ email, password });
       if (error) {
         setErrorMessage(error.message);
+      } else {
+        setIsSubmitted(true);
       }
     }
 
@@ -70,50 +73,63 @@ export default function AuthPage() {
         </p>
       </div>
 
-      <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
-        <label className="block text-sm font-medium text-slate-700">
-          Email
-          <input
-            type="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            required
-            className="mt-2 w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-slate-400"
-          />
-        </label>
+      {isSubmitted ? (
+        <div className="mt-8 rounded-3xl bg-green-50 border border-green-200 p-6 text-green-800">
+          <p className="text-lg font-semibold">Check your Inbox!</p>
+          <p className="mt-2">We sent a confirmation link to your email. Please click it to activate your Smart Farmer account.</p>
+        </div>
+      ) : (
+        <>
+          <form className="mt-8 space-y-5" onSubmit={(e) => handleLogin(e)}>
+            <label htmlFor="email" className="block text-sm font-medium text-slate-700">
+              Email
+            </label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              required
+              className="mt-2 w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-slate-400"
+            />
 
-        <label className="block text-sm font-medium text-slate-700">
-          Password
-          <input
-            type="password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            required
-            className="mt-2 w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-slate-400"
-          />
-        </label>
+            <label htmlFor="password" className="block text-sm font-medium text-slate-700">
+              Password
+            </label>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              required
+              className="mt-2 w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-slate-400"
+            />
 
-        {errorMessage ? <p className="text-sm text-red-600">{errorMessage}</p> : null}
+            {errorMessage ? <p className="text-sm text-red-600">{errorMessage}</p> : null}
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="inline-flex w-full justify-center rounded-full bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-400"
-        >
-          {loading ? 'Working…' : mode === 'login' ? 'Login' : 'Sign Up'}
-        </button>
-      </form>
+            <button
+              type="submit"
+              disabled={loading}
+              className="inline-flex w-full justify-center rounded-full bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-400"
+            >
+              {loading ? (mode === 'login' ? 'Logging in...' : 'Signing up...') : mode === 'login' ? 'Login' : 'Sign Up'}
+            </button>
+          </form>
 
-      <div className="mt-6 flex items-center justify-between rounded-3xl bg-slate-50 p-4 text-sm text-slate-700">
-        <span>{mode === 'login' ? "Don't have an account?" : 'Already have an account?'}</span>
-        <button
-          type="button"
-          className="font-semibold text-slate-900 underline-offset-4 transition hover:text-slate-700"
-          onClick={() => setMode(mode === 'login' ? 'signup' : 'login')}
-        >
-          {mode === 'login' ? 'Sign up' : 'Login'}
-        </button>
-      </div>
+          <div className="mt-6 flex items-center justify-between rounded-3xl bg-slate-50 p-4 text-sm text-slate-700">
+            <span>{mode === 'login' ? "Don't have an account?" : 'Already have an account?'}</span>
+            <button
+              type="button"
+              className="font-semibold text-slate-900 underline-offset-4 transition hover:text-slate-700"
+              onClick={() => setMode(mode === 'login' ? 'signup' : 'login')}
+            >
+              {mode === 'login' ? 'Sign up' : 'Login'}
+            </button>
+          </div>
+        </>
+      )}
     </section>
   );
 }

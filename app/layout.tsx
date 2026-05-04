@@ -5,7 +5,12 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'Smart Farmer',
-  description: 'Smart Farmer marketplace and dashboard for livestock business.',
+  description: 'Universal Livestock Marketplace and Management System',
+  icons: {
+    icon: '/favicon.ico',
+    apple: '/apple-touch-icon.png',
+  },
+  manifest: '/site.webmanifest',
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
