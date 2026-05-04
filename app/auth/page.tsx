@@ -84,7 +84,7 @@ export default function AuthPage() {
         </div>
       ) : (
         <>
-          <form className="mt-8 space-y-5" onSubmit={(e) => handleLogin(e)}>
+          <form className="mt-8 space-y-5" onSubmit={handleLogin}>
             <label htmlFor="email" className="block text-sm font-medium text-slate-700">
               Email
             </label>
