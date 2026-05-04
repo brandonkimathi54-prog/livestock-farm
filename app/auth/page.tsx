@@ -33,8 +33,8 @@ export default function AuthPage() {
     return () => listener.subscription?.unsubscribe();
   }, [router]);
 
-  const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const handleLogin = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
     setLoading(true);
     setErrorMessage(null);
 
@@ -45,13 +45,19 @@ export default function AuthPage() {
     }
 
     if (mode === 'login') {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) {
-        setErrorMessage(error.message);
-      } else {
-        const session = data.session;
-        console.log('Session detected:', session);
-        window.location.replace('/dashboard');
+      try {
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) {
+          setErrorMessage(error.message);
+        } else {
+          const session = data.session;
+          console.log('Session detected:', session);
+          window.location.replace('/dashboard');
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        alert('Login Error: ' + message);
+        setErrorMessage(message);
       }
     } else {
       const { error } = await supabase.auth.signUp({ email, password });
@@ -84,7 +90,7 @@ export default function AuthPage() {
         </div>
       ) : (
         <>
-          <form className="mt-8 space-y-5" onSubmit={handleLogin}>
+          <form className="mt-8 space-y-5" onSubmit={(e) => handleLogin(e)}>
             <label htmlFor="email" className="block text-sm font-medium text-slate-700">
               Email
             </label>
