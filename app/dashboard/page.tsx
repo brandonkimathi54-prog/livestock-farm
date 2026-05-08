@@ -29,8 +29,6 @@ interface HealthRecord {
 
 const chartColors = ['#22c55e', '#2563eb'];
 
-const chartColors = ['#22c55e', '#2563eb'];
-
 export default function DashboardPage() {
   const router = useRouter();
   const [session, setSession] = useState<Session | null>(null);
