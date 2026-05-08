@@ -1,11 +1,4 @@
-'use client';
-
-import { FormEvent, useEffect, useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Pie, PieChart, ResponsiveContainer, Tooltip, Cell, Legend } from 'recharts';
-import { supabase } from '@/lib/supabase';
-import type { Livestock } from '@/types';
-import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
+import LivestockDetails from '@/components/LivestockDetails';
 
 const chartColors = ['#22c55e', '#2563eb'];
 
@@ -16,6 +9,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [selectedLivestock, setSelectedLivestock] = useState<Livestock | null>(null);
   const [formState, setFormState] = useState({
     name: '',
     type: '',
@@ -61,7 +55,7 @@ export default function DashboardPage() {
       const { data, error } = await supabase
         .from('livestock')
         .select('*')
-        .eq('owner_id', session.user.id)
+        .eq('user_id', session.user.id)
         .order('updated_at', { ascending: false });
 
       if (error) {
@@ -82,10 +76,12 @@ export default function DashboardPage() {
     const soldValue = livestock
       .filter((item) => item.status === 'Sold')
       .reduce((sum, item) => sum + Number(item.price ?? 0), 0);
+    const totalValue = livestock.reduce((sum, item) => sum + Number(item.price ?? 0), 0);
 
     return [
       { name: 'Available', value: availableValue },
       { name: 'Sold', value: soldValue },
+      { name: 'Total', value: totalValue },
     ];
   }, [livestock]);
 
@@ -152,7 +148,7 @@ export default function DashboardPage() {
 
   return (
     <section className="space-y-8 py-8">
-      <div className="rounded-3xl bg-white p-8 shadow-sm shadow-slate-200">
+      <div className="rounded-3xl bg-white p-8 shadow-sm shadow-slate-200" style={{ background: 'rgba(255, 255, 255, 0.8)', backdropFilter: 'blur(5px)' }}>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm uppercase tracking-[0.3em] text-slate-500">Secure Dashboard</p>
@@ -170,7 +166,7 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[1.4fr_1fr]">
-        <div className="rounded-3xl bg-white p-8 shadow-sm shadow-slate-200">
+        <div className="rounded-3xl bg-white p-8 shadow-sm shadow-slate-200" style={{ background: 'rgba(255, 255, 255, 0.8)', backdropFilter: 'blur(5px)' }}>
           <h2 className="text-lg font-semibold text-slate-900">Herd value summary</h2>
           <div className="mt-6 h-72">
             <ResponsiveContainer width="100%" height="100%">
@@ -197,7 +193,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="rounded-3xl bg-white p-8 shadow-sm shadow-slate-200">
+        <div className="rounded-3xl bg-white p-8 shadow-sm shadow-slate-200" style={{ background: 'rgba(255, 255, 255, 0.8)', backdropFilter: 'blur(5px)' }}>
           <h2 className="text-lg font-semibold text-slate-900">Your livestock</h2>
           {loading ? (
             <p className="mt-4 text-slate-600">Loading your herd...</p>
@@ -206,7 +202,11 @@ export default function DashboardPage() {
           ) : (
             <div className="mt-6 space-y-4">
               {livestock.map((item) => (
-                <div key={item.id} className="rounded-3xl border border-slate-200 p-4">
+                <div
+                  key={item.id}
+                  className="rounded-3xl border border-slate-200 p-4 cursor-pointer hover:bg-slate-50"
+                  onClick={() => setSelectedLivestock(item)}
+                >
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
                       <h3 className="text-base font-semibold text-slate-900">{item.name}</h3>
@@ -227,7 +227,7 @@ export default function DashboardPage() {
 
       {showModal ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 px-4 py-6">
-          <div className="w-full max-w-2xl rounded-3xl bg-white p-8 shadow-2xl">
+          <div className="w-full max-w-2xl rounded-3xl bg-white p-8 shadow-2xl" style={{ background: 'rgba(255, 255, 255, 0.8)', backdropFilter: 'blur(5px)' }}>
             <div className="flex items-center justify-between gap-4">
               <div>
                 <h2 className="text-2xl font-semibold text-slate-900">Add Livestock</h2>
@@ -364,6 +364,13 @@ export default function DashboardPage() {
           </div>
         </div>
       ) : null}
+
+      {selectedLivestock && (
+        <LivestockDetails
+          livestock={selectedLivestock}
+          onClose={() => setSelectedLivestock(null)}
+        />
+      )}
     </section>
   );
 }

@@ -52,7 +52,7 @@ export default function AuthPage() {
   };
 
   return (
-    <section className="mx-auto max-w-xl rounded-3xl bg-white p-8 shadow-sm shadow-slate-200">
+    <section className="mx-auto max-w-xl rounded-3xl bg-white p-8 shadow-sm shadow-slate-200" style={{ background: 'rgba(255, 255, 255, 0.8)', backdropFilter: 'blur(5px)' }}>
       <div className="space-y-3">
         <p className="text-sm uppercase tracking-[0.3em] text-slate-500">Account access</p>
         <h1 className="text-3xl font-semibold text-slate-900">{mode === 'login' ? 'Login to Smart Farmer' : 'Create your account'}</h1>
@@ -64,7 +64,7 @@ export default function AuthPage() {
       </div>
 
       {isSubmitted ? (
-        <div className="mt-8 rounded-3xl bg-green-50 border border-green-200 p-6 text-green-800">
+        <div className="mt-8 rounded-3xl bg-green-50 border border-green-200 p-6 text-green-800" style={{ background: 'rgba(0, 128, 0, 0.1)', backdropFilter: 'blur(5px)' }}>
           <p className="text-lg font-semibold">Check your Inbox!</p>
           <p className="mt-2">We sent a confirmation link to your email. Please click it to activate your Smart Farmer account.</p>
         </div>
