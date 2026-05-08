@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Pie, PieChart, ResponsiveContainer, Tooltip, Cell, Legend } from 'recharts';
+import { MoreVertical } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import type { Livestock } from '@/types';
 import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
@@ -50,6 +51,9 @@ export default function DashboardPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [selectedLivestock, setSelectedLivestock] = useState<Livestock | null>(null);
   const [activeTab, setActiveTab] = useState<'inventory' | 'management'>('inventory');
+  const [managementTab, setManagementTab] = useState<'milk' | 'health' | 'expenses'>('milk');
+  const [openCardMenuId, setOpenCardMenuId] = useState<string | null>(null);
+  const [editingLivestock, setEditingLivestock] = useState<Livestock | null>(null);
   const [milkRecords, setMilkRecords] = useState<MilkRecord[]>([]);
   const [healthRecords, setHealthRecords] = useState<HealthRecord[]>([]);
   const [expenseRecords, setExpenseRecords] = useState<ExpenseRecord[]>([]);
@@ -139,6 +143,10 @@ export default function DashboardPage() {
   }, [activeTab, livestock, selectedLivestock]);
 
   useEffect(() => {
+    setManagementTab('milk');
+  }, [activeTab]);
+
+  useEffect(() => {
     if (!selectedLivestock?.id || activeTab !== 'management') {
       return;
     }
@@ -182,6 +190,70 @@ export default function DashboardPage() {
 
   const handleChange = (key: keyof typeof formState, value: string) => {
     setFormState((current) => ({ ...current, [key]: value }));
+  };
+
+  const resetLivestockForm = () => {
+    setFormState({
+      name: '',
+      type: '',
+      breed: '',
+      age: '0',
+      liters_per_day: '0',
+      price: '0',
+      status: 'Available',
+      location: '',
+      whatsapp_number: '',
+      description: '',
+    });
+    setPhotoFile(null);
+    setVideoFile(null);
+    setEditingLivestock(null);
+  };
+
+  const handleOpenCreateModal = () => {
+    resetLivestockForm();
+    setShowModal(true);
+  };
+
+  const handleEditLivestock = (item: Livestock) => {
+    setEditingLivestock(item);
+    setFormState({
+      name: item.name ?? '',
+      type: item.type ?? '',
+      breed: item.breed ?? '',
+      age: String(item.age ?? 0),
+      liters_per_day: String(item.liters_per_day ?? 0),
+      price: String(item.price_ksh ?? item.price ?? 0),
+      status: item.status ?? 'Available',
+      location: item.location ?? '',
+      whatsapp_number: item.whatsapp_number ?? '',
+      description: item.description ?? '',
+    });
+    setPhotoFile(null);
+    setVideoFile(null);
+    setOpenCardMenuId(null);
+    setShowModal(true);
+  };
+
+  const handleDeleteLivestock = async (item: Livestock) => {
+    const confirmed = window.confirm(`Are you sure you want to remove ${item.name}?`);
+    if (!confirmed) return;
+
+    const { error } = await supabase.from('livestock').delete().eq('id', item.id);
+    if (error) {
+      setErrorMessage(error.message);
+      return;
+    }
+
+    setLivestock((current) => current.filter((entry) => entry.id !== item.id));
+    if (selectedLivestock?.id === item.id) {
+      setSelectedLivestock(null);
+    }
+  };
+
+  const handleMainTabClick = (tab: 'inventory' | 'management') => {
+    setActiveTab(tab);
+    setManagementTab('milk');
   };
 
   const uploadToBucket = async (bucket: string, userId: string, animalName: string, file: File) => {
@@ -255,11 +327,12 @@ export default function DashboardPage() {
       location: formState.location,
       whatsapp_number: formState.whatsapp_number,
       description: formState.description,
-      image_url: image_url ?? null,
-      video_url: video_url ?? null,
+      image_url: image_url ?? editingLivestock?.image_url ?? null,
+      video_url: video_url ?? editingLivestock?.video_url ?? null,
     };
-
-    const { error } = await supabase.from('livestock').insert([livestockData]);
+    const { error } = editingLivestock
+      ? await supabase.from('livestock').update(livestockData).eq('id', editingLivestock.id).eq('user_id', user.id)
+      : await supabase.from('livestock').insert([livestockData]);
 
     if (error) {
       setErrorMessage(error.message);
@@ -267,20 +340,7 @@ export default function DashboardPage() {
     }
 
     setShowModal(false);
-    setFormState({
-      name: '',
-      type: '',
-      breed: '',
-      age: '0',
-      liters_per_day: '0',
-      price: '0',
-      status: 'Available',
-      location: '',
-      whatsapp_number: '',
-      description: '',
-    });
-    setPhotoFile(null);
-    setVideoFile(null);
+    resetLivestockForm();
     if (uploadWarnings.length > 0) {
       setErrorMessage(`${uploadWarnings.join(' ')} Livestock saved without blocked media.`);
     }
@@ -371,7 +431,7 @@ export default function DashboardPage() {
           <button
             type="button"
             className="inline-flex items-center justify-center rounded-full bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-700"
-            onClick={() => setShowModal(true)}
+            onClick={handleOpenCreateModal}
           >
             Add New Livestock
           </button>
@@ -390,7 +450,7 @@ export default function DashboardPage() {
                     ? 'border-white text-white'
                     : 'border-transparent text-white/75 hover:text-white'
                 }`}
-                onClick={() => setActiveTab(tab.key as any)}
+                onClick={() => handleMainTabClick(tab.key as 'inventory' | 'management')}
               >
                 {tab.label}
               </button>
@@ -439,9 +499,41 @@ export default function DashboardPage() {
                 {livestock.map((item) => (
                   <div
                     key={item.id}
-                    className="rounded-3xl border border-slate-200 p-4 cursor-pointer hover:bg-slate-50"
+                    className="relative rounded-3xl border border-slate-200 p-4 cursor-pointer hover:bg-slate-50"
                     onClick={() => setSelectedLivestock(item)}
                   >
+                    <button
+                      type="button"
+                      aria-label={`Open actions for ${item.name}`}
+                      className="absolute right-3 top-3 rounded-full p-1.5 text-slate-500 transition hover:bg-slate-200 hover:text-slate-800"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setOpenCardMenuId((current) => (current === item.id ? null : item.id));
+                      }}
+                    >
+                      <MoreVertical size={16} />
+                    </button>
+                    {openCardMenuId === item.id ? (
+                      <div
+                        className="absolute right-3 top-11 z-20 w-36 rounded-xl border border-slate-200 bg-white p-1 shadow-lg"
+                        onClick={(event) => event.stopPropagation()}
+                      >
+                        <button
+                          type="button"
+                          className="block w-full rounded-lg px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-slate-100"
+                          onClick={() => handleEditLivestock(item)}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          className="block w-full rounded-lg px-3 py-2 text-left text-sm text-red-600 transition hover:bg-red-50"
+                          onClick={() => handleDeleteLivestock(item)}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    ) : null}
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <div>
                         <h3 className="text-base font-semibold text-slate-900">{item.name}</h3>
@@ -491,8 +583,28 @@ export default function DashboardPage() {
             {!selectedLivestock ? (
               <p className="text-slate-600">Add livestock first, then select an animal to begin record-keeping.</p>
             ) : (
-              <div className="grid gap-6 xl:grid-cols-3">
-                <div className="rounded-2xl border border-slate-200 bg-white/70 p-5">
+              <div className="space-y-4">
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { key: 'milk', label: 'Milk' },
+                    { key: 'health', label: 'Health' },
+                    { key: 'expenses', label: 'Expenses' },
+                  ].map((tab) => (
+                    <button
+                      key={tab.key}
+                      type="button"
+                      className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                        managementTab === tab.key ? 'bg-slate-900 text-white' : 'bg-white/70 text-slate-700 hover:bg-white'
+                      }`}
+                      onClick={() => setManagementTab(tab.key as 'milk' | 'health' | 'expenses')}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+
+                {managementTab === 'milk' ? (
+                  <div className="rounded-2xl border border-slate-200 bg-white/70 p-5">
                   <h3 className="text-lg font-semibold text-slate-900">Milk Production</h3>
                   <form className="mt-4 space-y-3" onSubmit={handleMilkRecordSubmit}>
                     <input
@@ -534,9 +646,11 @@ export default function DashboardPage() {
                       </tbody>
                     </table>
                   </div>
-                </div>
+                  </div>
+                ) : null}
 
-                <div className="rounded-2xl border border-slate-200 bg-white/70 p-5">
+                {managementTab === 'health' ? (
+                  <div className="rounded-2xl border border-slate-200 bg-white/70 p-5">
                   <h3 className="text-lg font-semibold text-slate-900">Health Tracker</h3>
                   <form className="mt-4 space-y-3" onSubmit={handleHealthRecordSubmit}>
                     <input
@@ -587,9 +701,11 @@ export default function DashboardPage() {
                       </tbody>
                     </table>
                   </div>
-                </div>
+                  </div>
+                ) : null}
 
-                <div className="rounded-2xl border border-slate-200 bg-white/70 p-5">
+                {managementTab === 'expenses' ? (
+                  <div className="rounded-2xl border border-slate-200 bg-white/70 p-5">
                   <h3 className="text-lg font-semibold text-slate-900">Expense Log</h3>
                   <form className="mt-4 space-y-3" onSubmit={handleExpenseRecordSubmit}>
                     <select
@@ -649,7 +765,8 @@ export default function DashboardPage() {
                       </tbody>
                     </table>
                   </div>
-                </div>
+                  </div>
+                ) : null}
               </div>
             )}
             {recordsLoading ? <p className="text-sm text-slate-600">Loading management history...</p> : null}
@@ -672,7 +789,10 @@ export default function DashboardPage() {
               <button
                 type="button"
                 className="rounded-full bg-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-300"
-                onClick={() => setShowModal(false)}
+                onClick={() => {
+                  setShowModal(false);
+                  resetLivestockForm();
+                }}
               >
                 Close
               </button>
@@ -817,7 +937,10 @@ export default function DashboardPage() {
                 <button
                   type="button"
                   className="rounded-full border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
-                  onClick={() => setShowModal(false)}
+                  onClick={() => {
+                    setShowModal(false);
+                    resetLivestockForm();
+                  }}
                 >
                   Cancel
                 </button>
@@ -825,7 +948,7 @@ export default function DashboardPage() {
                   type="submit"
                   className="rounded-full bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-700"
                 >
-                  Save Livestock
+                  {editingLivestock ? 'Update Livestock' : 'Save Livestock'}
                 </button>
               </div>
             </form>
