@@ -29,10 +29,21 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
+  // Redirect authenticated users away from /auth to /dashboard
+  if (user && request.nextUrl.pathname === '/auth') {
+    const dashboardUrl = new URL('/dashboard', request.url);
+    if (request.nextUrl.pathname !== dashboardUrl.pathname) {
+      return NextResponse.redirect(dashboardUrl);
+    }
+  }
+
   // Protect /dashboard routes
   if (request.nextUrl.pathname.startsWith('/dashboard')) {
     if (!user) {
-      return NextResponse.redirect(new URL('/auth', request.url));
+      const authUrl = new URL('/auth', request.url);
+      if (request.nextUrl.pathname !== authUrl.pathname) {
+        return NextResponse.redirect(authUrl);
+      }
     }
   }
 
