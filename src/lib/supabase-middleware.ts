@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server';
-import { createMiddlewareClient } from '@supabase/ssr';
+import { createServerClient } from '@supabase/ssr';
 
 export async function updateSession(request: NextRequest) {
   const response = NextResponse.next({
@@ -8,7 +8,7 @@ export async function updateSession(request: NextRequest) {
     },
   });
 
-  const supabase = createMiddlewareClient(
+  const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL ?? '',
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '',
     {
@@ -24,9 +24,6 @@ export async function updateSession(request: NextRequest) {
       },
     }
   );
-
-  // Refresh the session on every request
-  await supabase.auth.refreshSession();
 
   const {
     data: { user },
