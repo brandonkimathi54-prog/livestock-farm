@@ -1005,12 +1005,12 @@ export default function DashboardPage() {
 
     </section>
 
-      {/* Signature */}
-      <div className="fixed bottom-4 right-4 z-50">
-        <p className="text-sm text-gray-400 font-light italic">
+      {/* Footer with signature */}
+      <footer className="w-full py-8 flex justify-center items-center">
+        <p className="text-gray-400 italic text-sm">
           Created by Brandon
         </p>
-      </div>
+      </footer>
     </>
   );
 }
