@@ -232,17 +232,30 @@ export default function DashboardPage() {
 
     let image_url: string | undefined;
     let video_url: string | undefined;
+    const uploadWarnings: string[] = [];
 
-    try {
-      if (photoFile) {
+    if (photoFile) {
+      try {
         image_url = await uploadToBucket('cow-photos', session.user.id, formState.name, photoFile);
+      } catch (uploadError) {
+        uploadWarnings.push(
+          uploadError instanceof Error
+            ? `Photo upload blocked: ${uploadError.message}`
+            : 'Photo upload blocked by storage policy.',
+        );
       }
-      if (videoFile) {
+    }
+
+    if (videoFile) {
+      try {
         video_url = await uploadToBucket('market-videos', session.user.id, formState.name, videoFile);
+      } catch (uploadError) {
+        uploadWarnings.push(
+          uploadError instanceof Error
+            ? `Video upload blocked: ${uploadError.message}`
+            : 'Video upload blocked by storage policy.',
+        );
       }
-    } catch (uploadError) {
-      setErrorMessage(uploadError instanceof Error ? uploadError.message : 'Failed to upload media files.');
-      return;
     }
 
     const { error } = await saveLivestock(session.user, { image_url, video_url });
@@ -267,6 +280,9 @@ export default function DashboardPage() {
     });
     setPhotoFile(null);
     setVideoFile(null);
+    if (uploadWarnings.length > 0) {
+      setErrorMessage(`${uploadWarnings.join(' ')} Livestock saved without blocked media.`);
+    }
     window.location.reload();
   };
 
