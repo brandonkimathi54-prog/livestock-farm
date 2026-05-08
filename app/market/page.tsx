@@ -3,6 +3,53 @@ import type { Livestock } from '@/types';
 
 const formatPrice = (value: number) => `KSH ${value.toLocaleString()}`;
 const getLivestockPrice = (item: Livestock) => Number(item.price_ksh ?? item.price ?? 0);
+const PLACEHOLDER_IMAGE =
+  'https://images.unsplash.com/photo-1516467508483-a7212febe31a?auto=format&fit=crop&w=1400&q=80';
+
+const getPublicMediaUrl = (bucket: string, pathOrUrl?: string | null) => {
+  if (!pathOrUrl) return '';
+  if (/^https?:\/\//i.test(pathOrUrl)) return pathOrUrl;
+  return supabase.storage.from(bucket).getPublicUrl(pathOrUrl).data.publicUrl;
+};
+
+function LivestockCard({ item }: { item: Livestock }) {
+  const whatsappLink = item.whatsapp_number
+    ? `https://wa.me/${item.whatsapp_number.replace(/\D/g, '')}`
+    : undefined;
+  const imageSrc = getPublicMediaUrl('cow photos', item.image_url) || PLACEHOLDER_IMAGE;
+  const videoSrc = getPublicMediaUrl('market-videos', item.video_url);
+
+  return (
+    <article className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+      <div className="relative aspect-[4/3] w-full bg-slate-100">
+        {videoSrc ? (
+          <video className="h-full w-full object-cover" src={videoSrc} controls preload="metadata" />
+        ) : (
+          <img className="h-full w-full object-cover" src={imageSrc} alt={`${item.name} livestock listing`} loading="lazy" />
+        )}
+      </div>
+      <div className="p-6">
+        <p className="text-sm font-semibold uppercase tracking-[0.25em] text-slate-500">{item.type}</p>
+        <h2 className="mt-3 text-2xl font-semibold text-slate-900">{item.name}</h2>
+        <p className="mt-3 text-sm text-slate-600">Breed: {item.breed}</p>
+        <p className="mt-1 text-sm text-slate-600">Location: {item.location ?? 'Unknown'}</p>
+        <p className="mt-3 text-xl font-semibold text-slate-900">{formatPrice(getLivestockPrice(item))}</p>
+        <div className="mt-6 flex flex-col gap-3">
+          <a
+            href={whatsappLink ?? '#'}
+            target="_blank"
+            rel="noreferrer"
+            className={`inline-flex items-center justify-center rounded-full px-4 py-3 text-sm font-semibold transition ${
+              whatsappLink ? 'bg-emerald-600 text-white hover:bg-emerald-500' : 'cursor-not-allowed bg-slate-200 text-slate-500'
+            }`}
+          >
+            {whatsappLink ? 'Contact Farmer' : 'Contact Info Unavailable'}
+          </a>
+        </div>
+      </div>
+    </article>
+  );
+}
 
 export default async function MarketPage() {
   const { data } = await supabase
@@ -31,35 +78,9 @@ export default async function MarketPage() {
         </div>
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-          {livestock.map((item: Livestock) => {
-            const whatsappLink = item.whatsapp_number
-              ? `https://wa.me/${item.whatsapp_number.replace(/\D/g, '')}`
-              : undefined;
-
-            return (
-              <article key={item.id} className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-                <div className="p-6">
-                  <p className="text-sm font-semibold uppercase tracking-[0.25em] text-slate-500">{item.type}</p>
-                  <h2 className="mt-3 text-2xl font-semibold text-slate-900">{item.name}</h2>
-                  <p className="mt-3 text-sm text-slate-600">Breed: {item.breed}</p>
-                  <p className="mt-1 text-sm text-slate-600">Location: {item.location ?? 'Unknown'}</p>
-                  <p className="mt-3 text-xl font-semibold text-slate-900">{formatPrice(getLivestockPrice(item))}</p>
-                  <div className="mt-6 flex flex-col gap-3">
-                    <a
-                      href={whatsappLink ?? '#'}
-                      target="_blank"
-                      rel="noreferrer"
-                      className={`inline-flex items-center justify-center rounded-full px-4 py-3 text-sm font-semibold transition ${
-                        whatsappLink ? 'bg-emerald-600 text-white hover:bg-emerald-500' : 'cursor-not-allowed bg-slate-200 text-slate-500'
-                      }`}
-                    >
-                      {whatsappLink ? 'Contact Farmer' : 'Contact Info Unavailable'}
-                    </a>
-                  </div>
-                </div>
-              </article>
-            );
-          })}
+          {livestock.map((item: Livestock) => (
+            <LivestockCard key={item.id} item={item} />
+          ))}
         </div>
       )}
     </section>

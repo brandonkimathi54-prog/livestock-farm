@@ -50,6 +50,7 @@ export default function DashboardPage() {
   const [showModal, setShowModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [selectedLivestock, setSelectedLivestock] = useState<Livestock | null>(null);
+  const [mainView, setMainView] = useState<'inventory' | 'management'>('inventory');
   const [activeTab, setActiveTab] = useState<'inventory' | 'management'>('inventory');
   const [managementTab, setManagementTab] = useState<'milk' | 'health' | 'expenses'>('milk');
   const [openCardMenuId, setOpenCardMenuId] = useState<string | null>(null);
@@ -136,18 +137,21 @@ export default function DashboardPage() {
   }, [session]);
 
   useEffect(() => {
-    if (activeTab !== 'management' || !livestock.length || selectedLivestock) {
+    if (mainView !== 'management' || !livestock.length || selectedLivestock) {
       return;
     }
     setSelectedLivestock(livestock[0]);
-  }, [activeTab, livestock, selectedLivestock]);
+  }, [mainView, livestock, selectedLivestock]);
 
   useEffect(() => {
+    if (mainView === 'inventory') {
+      setActiveTab('inventory');
+    }
     setManagementTab('milk');
-  }, [activeTab]);
+  }, [mainView]);
 
   useEffect(() => {
-    if (!selectedLivestock?.id || activeTab !== 'management') {
+    if (!selectedLivestock?.id || mainView !== 'management') {
       return;
     }
 
@@ -170,7 +174,7 @@ export default function DashboardPage() {
     };
 
     fetchManagementRecords();
-  }, [selectedLivestock, activeTab]);
+  }, [selectedLivestock, mainView]);
 
   const summaryData = useMemo(() => {
     const availableValue = livestock
@@ -235,7 +239,7 @@ export default function DashboardPage() {
     setShowModal(true);
   };
 
-  const handleDeleteLivestock = async (item: Livestock) => {
+  const deleteLivestock = async (item: Livestock) => {
     const confirmed = window.confirm(`Are you sure you want to remove ${item.name}?`);
     if (!confirmed) return;
 
@@ -252,7 +256,10 @@ export default function DashboardPage() {
   };
 
   const handleMainTabClick = (tab: 'inventory' | 'management') => {
-    setActiveTab(tab);
+    setMainView(tab);
+    if (tab === 'inventory') {
+      setActiveTab('inventory');
+    }
     setManagementTab('milk');
   };
 
@@ -446,7 +453,7 @@ export default function DashboardPage() {
               <button
                 key={tab.key}
                 className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === tab.key
+                  mainView === tab.key
                     ? 'border-white text-white'
                     : 'border-transparent text-white/75 hover:text-white'
                 }`}
@@ -459,7 +466,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {activeTab === 'inventory' && (
+      {mainView === 'inventory' && (
         <div className="relative grid gap-6 xl:grid-cols-[1.4fr_1fr]">
           <div className={glassCardClass}>
             <h2 className="text-lg font-semibold text-slate-900">Herd value summary</h2>
@@ -528,7 +535,7 @@ export default function DashboardPage() {
                         <button
                           type="button"
                           className="block w-full rounded-lg px-3 py-2 text-left text-sm text-red-600 transition hover:bg-red-50"
-                          onClick={() => handleDeleteLivestock(item)}
+                          onClick={() => deleteLivestock(item)}
                         >
                           Delete
                         </button>
@@ -553,7 +560,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {activeTab === 'management' && (
+      {mainView === 'management' && (
         <div className={glassCardClass}>
           <div className="space-y-6">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -774,7 +781,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {selectedLivestock && activeTab === 'inventory' && (
+      {selectedLivestock && mainView === 'inventory' && (
         <LivestockDetails livestock={selectedLivestock} onClose={() => setSelectedLivestock(null)} isModal={true} />
       )}
 
