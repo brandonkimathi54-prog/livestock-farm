@@ -9,29 +9,6 @@ export default function AuthPage() {
   const router = useRouter();
   const [mode, setMode] = useState<'login' | 'signup'>('login');
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [isSubmitted, setIsSubmitted] = useState(false);
-
-  useEffect(() => {
-    const init = async () => {
-      const { data } = await supabase.auth.getSession();
-      if (data.session) {
-        window.location.href = '/dashboard';
-      }
-    };
-
-    init();
-
-    const { data: listener } = supabase.auth.onAuthStateChange((event: AuthChangeEvent, session: Session | null) => {
-      if (session) {
-        window.location.href = '/dashboard';
-      }
-    });
-
-    return () => listener.subscription?.unsubscribe();
-  }, [router]);
 
   const handleLogin = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();

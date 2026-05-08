@@ -32,7 +32,7 @@ export default function DashboardPage() {
     const init = async () => {
       const { data } = await supabase.auth.getSession();
       if (!data.session) {
-        router.replace('/auth');
+        window.location.href = '/auth';
         return;
       }
       setSession(data.session);
@@ -42,7 +42,7 @@ export default function DashboardPage() {
 
     const { data: listener } = supabase.auth.onAuthStateChange((event: AuthChangeEvent, session: Session | null) => {
       if (!session) {
-        router.replace('/auth');
+        window.location.href = '/auth';
         return;
       }
       setSession(session);
