@@ -24,9 +24,10 @@ interface HealthRecord {
 interface LivestockDetailsProps {
   livestock: Livestock;
   onClose: () => void;
+  isModal?: boolean;
 }
 
-export default function LivestockDetails({ livestock, onClose }: LivestockDetailsProps) {
+export default function LivestockDetails({ livestock, onClose, isModal = true }: LivestockDetailsProps) {
   const [activeTab, setActiveTab] = useState<'overview' | 'milk' | 'health'>('overview');
   const [milkRecords, setMilkRecords] = useState<MilkRecord[]>([]);
   const [healthRecords, setHealthRecords] = useState<HealthRecord[]>([]);
@@ -106,186 +107,233 @@ export default function LivestockDetails({ livestock, onClose }: LivestockDetail
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 px-4 py-6">
-      <div className="w-full max-w-4xl rounded-3xl bg-white p-8 shadow-2xl" style={{ background: 'rgba(255, 255, 255, 0.8)', backdropFilter: 'blur(5px)' }}>
-        <div className="flex items-center justify-between gap-4 mb-6">
-          <h2 className="text-2xl font-semibold text-slate-900">{livestock.name} Details</h2>
-          <button
-            type="button"
-            className="rounded-full bg-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-300"
-            onClick={onClose}
-          >
-            Close
-          </button>
-        </div>
+  const content = (
+    <>
+      <div className="flex items-center justify-between gap-4 mb-6">
+        <h2 className="text-2xl font-semibold text-slate-900">{livestock.name} Details</h2>
+        <button
+          type="button"
+          className="rounded-full bg-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-300"
+          onClick={onClose}
+        >
+          Close
+        </button>
+      </div>
 
-        <div className="border-b border-slate-200 mb-6">
-          <nav className="flex space-x-8">
-            {[
-              { key: 'overview', label: 'Overview' },
-              { key: 'milk', label: 'Milk Records' },
-              { key: 'health', label: 'Health Logs' },
-            ].map((tab) => (
-              <button
-                key={tab.key}
-                className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === tab.key
-                    ? 'border-slate-900 text-slate-900'
-                    : 'border-transparent text-slate-500 hover:text-slate-700'
-                }`}
-                onClick={() => setActiveTab(tab.key as any)}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </nav>
-        </div>
+      <div className="mb-6 flex gap-4 border-b border-slate-200">
+        <button
+          type="button"
+          className={`pb-2 text-sm font-semibold transition ${
+            activeTab === 'overview' ? 'border-b-2 border-slate-900 text-slate-900' : 'text-slate-500 hover:text-slate-700'
+          }`}
+          onClick={() => setActiveTab('overview')}
+        >
+          Overview
+        </button>
+        <button
+          type="button"
+          className={`pb-2 text-sm font-semibold transition ${
+            activeTab === 'milk' ? 'border-b-2 border-slate-900 text-slate-900' : 'text-slate-500 hover:text-slate-700'
+          }`}
+          onClick={() => setActiveTab('milk')}
+        >
+          Milk Records
+        </button>
+        <button
+          type="button"
+          className={`pb-2 text-sm font-semibold transition ${
+            activeTab === 'health' ? 'border-b-2 border-slate-900 text-slate-900' : 'text-slate-500 hover:text-slate-700'
+          }`}
+          onClick={() => setActiveTab('health')}
+        >
+          Health Records
+        </button>
+      </div>
 
-        {activeTab === 'overview' && (
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium text-slate-700">Name</label>
-                <p className="text-slate-900">{livestock.name}</p>
+      {activeTab === 'overview' && (
+        <div className="grid gap-6 md:grid-cols-2">
+          <div>
+            <h3 className="text-lg font-semibold text-slate-900 mb-4">Animal Information</h3>
+            <div className="space-y-3">
+              <div className="flex justify-between">
+                <span className="text-slate-600">Name:</span>
+                <span className="font-semibold text-slate-900">{livestock.name}</span>
               </div>
-              <div>
-                <label className="text-sm font-medium text-slate-700">Breed</label>
-                <p className="text-slate-900">{livestock.breed}</p>
+              <div className="flex justify-between">
+                <span className="text-slate-600">Breed:</span>
+                <span className="font-semibold text-slate-900">{livestock.breed}</span>
               </div>
-              <div>
-                <label className="text-sm font-medium text-slate-700">Age</label>
-                <p className="text-slate-900">{livestock.age}</p>
+              <div className="flex justify-between">
+                <span className="text-slate-600">Age:</span>
+                <span className="font-semibold text-slate-900">{livestock.age}</span>
               </div>
-              <div>
-                <label className="text-sm font-medium text-slate-700">Price</label>
-                <p className="text-slate-900">KSH {livestock.price.toLocaleString()}</p>
+              <div className="flex justify-between">
+                <span className="text-slate-600">Status:</span>
+                <span className="font-semibold text-slate-900">{livestock.status}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-600">Location:</span>
+                <span className="font-semibold text-slate-900">{livestock.location ?? 'Unknown'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-600">Price:</span>
+                <span className="font-semibold text-slate-900">KSH {livestock.price.toLocaleString()}</span>
               </div>
             </div>
           </div>
-        )}
-
-        {activeTab === 'milk' && (
           <div>
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">Milk Records</h3>
+            <h3 className="text-lg font-semibold text-slate-900 mb-4">Quick Actions</h3>
+            <div className="space-y-3">
               <button
-                className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white"
+                type="button"
+                className="w-full rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
                 onClick={() => setShowMilkForm(true)}
               >
-                Log Milk
+                Log Milk Production
               </button>
-            </div>
-            {showMilkForm && (
-              <form onSubmit={handleMilkSubmit} className="mb-4 p-4 border rounded" style={{ background: 'rgba(255, 255, 255, 0.8)', backdropFilter: 'blur(5px)' }}>
-                <div className="grid grid-cols-3 gap-4">
-                  <input
-                    type="date"
-                    value={milkForm.date}
-                    onChange={(e) => setMilkForm({ ...milkForm, date: e.target.value })}
-                    required
-                    className="border p-2"
-                  />
-                  <input
-                    type="number"
-                    placeholder="Liters"
-                    value={milkForm.amount_liters}
-                    onChange={(e) => setMilkForm({ ...milkForm, amount_liters: e.target.value })}
-                    required
-                    className="border p-2"
-                  />
-                  <select
-                    value={milkForm.milking_session}
-                    onChange={(e) => setMilkForm({ ...milkForm, milking_session: e.target.value })}
-                    className="border p-2"
-                  >
-                    <option>Morning</option>
-                    <option>Evening</option>
-                  </select>
-                </div>
-                <button type="submit" className="mt-2 bg-blue-500 text-white px-4 py-2 rounded">Save</button>
-                <button type="button" onClick={() => setShowMilkForm(false)} className="ml-2">Cancel</button>
-              </form>
-            )}
-            {loading ? (
-              <p>Loading...</p>
-            ) : milkRecords.length === 0 ? (
-              <p>No milk records yet.</p>
-            ) : (
-              <ul className="space-y-2">
-                {milkRecords.map((record) => (
-                  <li key={record.id} className="border p-2 rounded">
-                    {record.date}: {record.amount_liters}L ({record.milking_session})
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        )}
-
-        {activeTab === 'health' && (
-          <div>
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">Health Logs</h3>
               <button
-                className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white"
+                type="button"
+                className="w-full rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
                 onClick={() => setShowHealthForm(true)}
               >
                 Log Health Event
               </button>
             </div>
-            {showHealthForm && (
-              <form onSubmit={handleHealthSubmit} className="mb-4 p-4 border rounded" style={{ background: 'rgba(255, 255, 255, 0.8)', backdropFilter: 'blur(5px)' }}>
-                <div className="grid grid-cols-2 gap-4">
-                  <input
-                    type="text"
-                    placeholder="Event Type"
-                    value={healthForm.event_type}
-                    onChange={(e) => setHealthForm({ ...healthForm, event_type: e.target.value })}
-                    required
-                    className="border p-2"
-                  />
-                  <input
-                    type="date"
-                    value={healthForm.date}
-                    onChange={(e) => setHealthForm({ ...healthForm, date: e.target.value })}
-                    required
-                    className="border p-2"
-                  />
-                </div>
-                <textarea
-                  placeholder="Description"
-                  value={healthForm.description}
-                  onChange={(e) => setHealthForm({ ...healthForm, description: e.target.value })}
-                  className="border p-2 w-full mt-2"
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'milk' && (
+        <div>
+          <div className="mb-4 flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-slate-900">Milk Production Records</h3>
+            <button
+              type="button"
+              className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
+              onClick={() => setShowMilkForm(!showMilkForm)}
+            >
+              {showMilkForm ? 'Cancel' : 'Add Record'}
+            </button>
+          </div>
+          {showMilkForm && (
+            <form onSubmit={handleMilkSubmit} className="mb-4 p-4 border rounded" style={{ background: 'rgba(255, 255, 255, 0.8)', backdropFilter: 'blur(5px)' }}>
+              <div className="grid grid-cols-3 gap-4">
+                <input
+                  type="date"
+                  value={milkForm.date}
+                  onChange={(e) => setMilkForm({ ...milkForm, date: e.target.value })}
+                  required
+                  className="border p-2"
                 />
                 <input
                   type="number"
-                  placeholder="Cost"
-                  value={healthForm.cost}
-                  onChange={(e) => setHealthForm({ ...healthForm, cost: e.target.value })}
-                  className="border p-2 mt-2"
+                  placeholder="Liters"
+                  value={milkForm.amount_liters}
+                  onChange={(e) => setMilkForm({ ...milkForm, amount_liters: e.target.value })}
+                  required
+                  className="border p-2"
                 />
-                <button type="submit" className="mt-2 bg-blue-500 text-white px-4 py-2 rounded">Save</button>
-                <button type="button" onClick={() => setShowHealthForm(false)} className="ml-2">Cancel</button>
-              </form>
-            )}
-            {loading ? (
-              <p>Loading...</p>
-            ) : healthRecords.length === 0 ? (
-              <p>No health logs yet.</p>
-            ) : (
-              <ul className="space-y-2">
-                {healthRecords.map((record) => (
-                  <li key={record.id} className="border p-2 rounded">
-                    {record.date}: {record.event_type} - {record.description} (Cost: KSH {record.cost})
-                  </li>
-                ))}
-              </ul>
-            )}
+                <select
+                  value={milkForm.milking_session}
+                  onChange={(e) => setMilkForm({ ...milkForm, milking_session: e.target.value })}
+                  className="border p-2"
+                >
+                  <option value="Morning">Morning</option>
+                  <option value="Evening">Evening</option>
+                </select>
+              </div>
+              <button type="submit" className="mt-2 rounded bg-slate-900 px-4 py-2 text-white">Submit</button>
+            </form>
+          )}
+          {loading ? (
+            <p>Loading milk records...</p>
+          ) : (
+            <ul className="space-y-2">
+              {milkRecords.map((record) => (
+                <li key={record.id} className="border p-2 rounded">
+                  {record.date}: {record.amount_liters} liters ({record.milking_session})
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
+      {activeTab === 'health' && (
+        <div>
+          <div className="mb-4 flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-slate-900">Health Records</h3>
+            <button
+              type="button"
+              className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
+              onClick={() => setShowHealthForm(!showHealthForm)}
+            >
+              {showHealthForm ? 'Cancel' : 'Add Record'}
+            </button>
           </div>
-        )}
-      </div>
-    </div>
+          {showHealthForm && (
+            <form onSubmit={handleHealthSubmit} className="mb-4 p-4 border rounded" style={{ background: 'rgba(255, 255, 255, 0.8)', backdropFilter: 'blur(5px)' }}>
+              <div className="grid grid-cols-2 gap-4">
+                <input
+                  type="text"
+                  placeholder="Event Type"
+                  value={healthForm.event_type}
+                  onChange={(e) => setHealthForm({ ...healthForm, event_type: e.target.value })}
+                  required
+                  className="border p-2"
+                />
+                <input
+                  type="date"
+                  value={healthForm.date}
+                  onChange={(e) => setHealthForm({ ...healthForm, date: e.target.value })}
+                  required
+                  className="border p-2"
+                />
+              </div>
+              <textarea
+                placeholder="Description"
+                value={healthForm.description}
+                onChange={(e) => setHealthForm({ ...healthForm, description: e.target.value })}
+                required
+                className="mt-2 w-full border p-2"
+              />
+              <input
+                type="number"
+                placeholder="Cost (KSH)"
+                value={healthForm.cost}
+                onChange={(e) => setHealthForm({ ...healthForm, cost: e.target.value })}
+                required
+                className="mt-2 border p-2"
+              />
+              <button type="submit" className="mt-2 rounded bg-slate-900 px-4 py-2 text-white">Submit</button>
+            </form>
+          )}
+          {loading ? (
+            <p>Loading health records...</p>
+          ) : (
+            <ul className="space-y-2">
+              {healthRecords.map((record) => (
+                <li key={record.id} className="border p-2 rounded">
+                  {record.date}: {record.event_type} - {record.description} (Cost: KSH {record.cost})
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+    </>
   );
+
+  if (isModal) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 px-4 py-6">
+        <div className="w-full max-w-4xl rounded-3xl bg-white p-8 shadow-2xl" style={{ background: 'rgba(255, 255, 255, 0.8)', backdropFilter: 'blur(5px)' }}>
+          {content}
+        </div>
+      </div>
+    );
+  }
+
+  return <div>{content}</div>;
 }
+

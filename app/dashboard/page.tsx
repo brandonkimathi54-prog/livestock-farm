@@ -8,6 +8,27 @@ import type { Livestock } from '@/types';
 import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
 import LivestockDetails from '@/components/LivestockDetails';
 
+interface MilkRecord {
+  id: string;
+  livestock_id: string;
+  date: string;
+  amount_liters: number;
+  milking_session: string;
+  livestock?: Livestock;
+}
+
+interface HealthRecord {
+  id: string;
+  livestock_id: string;
+  event_type: string;
+  description: string;
+  cost: number;
+  date: string;
+  livestock?: Livestock;
+}
+
+const chartColors = ['#22c55e', '#2563eb'];
+
 const chartColors = ['#22c55e', '#2563eb'];
 
 export default function DashboardPage() {
@@ -18,6 +39,12 @@ export default function DashboardPage() {
   const [showModal, setShowModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [selectedLivestock, setSelectedLivestock] = useState<Livestock | null>(null);
+  const [activeTab, setActiveTab] = useState<'inventory' | 'management'>('inventory');
+  const [recordsTab, setRecordsTab] = useState<'milk' | 'health' | 'expenses'>('milk');
+  const [milkRecords, setMilkRecords] = useState<MilkRecord[]>([]);
+  const [healthRecords, setHealthRecords] = useState<HealthRecord[]>([]);
+  const [showQuickLog, setShowQuickLog] = useState(false);
+  const [quickLogType, setQuickLogType] = useState<'milk' | 'health'>('milk');
   const [formState, setFormState] = useState({
     name: '',
     type: '',
@@ -28,6 +55,19 @@ export default function DashboardPage() {
     location: '',
     whatsapp_number: '',
     description: '',
+  });
+  const [quickMilkForm, setQuickMilkForm] = useState({
+    livestock_id: '',
+    date: '',
+    amount_liters: '',
+    milking_session: 'Morning',
+  });
+  const [quickHealthForm, setQuickHealthForm] = useState({
+    livestock_id: '',
+    event_type: '',
+    description: '',
+    cost: '',
+    date: '',
   });
 
   useEffect(() => {
@@ -171,67 +211,104 @@ export default function DashboardPage() {
             Add New Livestock
           </button>
         </div>
+
+        <div className="border-b border-slate-200 mt-6">
+          <nav className="flex space-x-8">
+            {[
+              { key: 'inventory', label: 'Inventory' },
+              { key: 'management', label: 'Management View' },
+            ].map((tab) => (
+              <button
+                key={tab.key}
+                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === tab.key
+                    ? 'border-slate-900 text-slate-900'
+                    : 'border-transparent text-slate-500 hover:text-slate-700'
+                }`}
+                onClick={() => setActiveTab(tab.key as any)}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </nav>
+        </div>
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[1.4fr_1fr]">
-        <div className="rounded-3xl bg-white p-8 shadow-sm shadow-slate-200" style={{ background: 'rgba(255, 255, 255, 0.8)', backdropFilter: 'blur(5px)' }}>
-          <h2 className="text-lg font-semibold text-slate-900">Herd value summary</h2>
-          <div className="mt-6 h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={summaryData}
-                  dataKey="value"
-                  nameKey="name"
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={65}
-                  outerRadius={100}
-                  paddingAngle={4}
-                  label
-                >
-                  {summaryData.map((entry, index) => (
-                    <Cell key={entry.name} fill={chartColors[index % chartColors.length]} />
-                  ))}
-                </Pie>
-                <Tooltip formatter={(value: unknown) => `KSH ${Number(value ?? 0).toLocaleString()}`} />
-                <Legend verticalAlign="bottom" height={36} />
-              </PieChart>
-            </ResponsiveContainer>
+      {activeTab === 'inventory' && (
+        <div className="grid gap-6 xl:grid-cols-[1.4fr_1fr]">
+          <div className="rounded-3xl bg-white p-8 shadow-sm shadow-slate-200" style={{ background: 'rgba(255, 255, 255, 0.8)', backdropFilter: 'blur(5px)' }}>
+            <h2 className="text-lg font-semibold text-slate-900">Herd value summary</h2>
+            <div className="mt-6 h-72">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={summaryData}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={65}
+                    outerRadius={100}
+                    paddingAngle={4}
+                    label
+                  >
+                    {summaryData.map((entry, index) => (
+                      <Cell key={entry.name} fill={chartColors[index % chartColors.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value: unknown) => `KSH ${Number(value ?? 0).toLocaleString()}`} />
+                  <Legend verticalAlign="bottom" height={36} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          <div className="rounded-3xl bg-white p-8 shadow-sm shadow-slate-200" style={{ background: 'rgba(255, 255, 255, 0.8)', backdropFilter: 'blur(5px)' }}>
+            <h2 className="text-lg font-semibold text-slate-900">Your livestock</h2>
+            {loading ? (
+              <p className="mt-4 text-slate-600">Loading your herd...</p>
+            ) : livestock.length === 0 ? (
+              <p className="mt-4 text-slate-600">No animals have been added yet.</p>
+            ) : (
+              <div className="mt-6 space-y-4">
+                {livestock.map((item) => (
+                  <div
+                    key={item.id}
+                    className="rounded-3xl border border-slate-200 p-4 cursor-pointer hover:bg-slate-50"
+                    onClick={() => setSelectedLivestock(item)}
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <h3 className="text-base font-semibold text-slate-900">{item.name}</h3>
+                        <p className="text-sm text-slate-500">{item.breed} · {item.status}</p>
+                      </div>
+                      <p className="text-sm font-semibold text-slate-900">KSH {item.price.toLocaleString()}</p>
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-3 text-sm text-slate-600">
+                      <span>Age: {item.age}</span>
+                      <span>Location: {item.location ?? 'Unknown'}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
+      )}
 
+      {activeTab === 'management' && (
         <div className="rounded-3xl bg-white p-8 shadow-sm shadow-slate-200" style={{ background: 'rgba(255, 255, 255, 0.8)', backdropFilter: 'blur(5px)' }}>
-          <h2 className="text-lg font-semibold text-slate-900">Your livestock</h2>
-          {loading ? (
-            <p className="mt-4 text-slate-600">Loading your herd...</p>
-          ) : livestock.length === 0 ? (
-            <p className="mt-4 text-slate-600">No animals have been added yet.</p>
+          {selectedLivestock ? (
+            <LivestockDetails livestock={selectedLivestock} onClose={() => setSelectedLivestock(null)} isModal={false} />
           ) : (
-            <div className="mt-6 space-y-4">
-              {livestock.map((item) => (
-                <div
-                  key={item.id}
-                  className="rounded-3xl border border-slate-200 p-4 cursor-pointer hover:bg-slate-50"
-                  onClick={() => setSelectedLivestock(item)}
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                      <h3 className="text-base font-semibold text-slate-900">{item.name}</h3>
-                      <p className="text-sm text-slate-500">{item.breed} · {item.status}</p>
-                    </div>
-                    <p className="text-sm font-semibold text-slate-900">KSH {item.price.toLocaleString()}</p>
-                  </div>
-                  <div className="mt-3 flex flex-wrap gap-3 text-sm text-slate-600">
-                    <span>Age: {item.age}</span>
-                    <span>Location: {item.location ?? 'Unknown'}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <p className="text-slate-600">Select an animal from the Inventory tab to view and manage its records.</p>
           )}
         </div>
-      </div>
+      )}
+
+      {selectedLivestock && activeTab === 'inventory' && (
+        <LivestockDetails livestock={selectedLivestock} onClose={() => setSelectedLivestock(null)} isModal={true} />
+      )}
 
       {showModal ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 px-4 py-6">
