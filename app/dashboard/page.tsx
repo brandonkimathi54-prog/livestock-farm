@@ -245,15 +245,42 @@ export default function DashboardPage() {
     const confirmed = window.confirm(`Are you sure you want to remove ${item.name}?`);
     if (!confirmed) return;
 
-    const { error } = await supabase.from('livestock').delete().eq('id', item.id);
-    if (error) {
-      setErrorMessage(error.message);
-      return;
-    }
+    try {
+      // Clean up image from storage if it exists
+      if (item.image_url) {
+        const imagePath = item.image_url;
+        const { error: imageError } = await supabase.storage
+          .from('cow photos')
+          .remove([imagePath]);
+        if (imageError) {
+          console.warn('Failed to delete image:', imageError.message);
+        }
+      }
 
-    setLivestock((current) => current.filter((entry) => entry.id !== item.id));
-    if (selectedLivestock?.id === item.id) {
-      setSelectedLivestock(null);
+      // Clean up video from storage if it exists
+      if (item.video_url) {
+        const videoPath = item.video_url;
+        const { error: videoError } = await supabase.storage
+          .from('market-videos')
+          .remove([videoPath]);
+        if (videoError) {
+          console.warn('Failed to delete video:', videoError.message);
+        }
+      }
+
+      // Delete the database record
+      const { error } = await supabase.from('livestock').delete().eq('id', item.id);
+      if (error) {
+        setErrorMessage(error.message);
+        return;
+      }
+
+      setLivestock((current) => current.filter((entry) => entry.id !== item.id));
+      if (selectedLivestock?.id === item.id) {
+        setSelectedLivestock(null);
+      }
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Failed to delete livestock');
     }
   };
 
