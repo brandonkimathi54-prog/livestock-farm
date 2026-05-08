@@ -184,11 +184,11 @@ export default function DashboardPage() {
     setFormState((current) => ({ ...current, [key]: value }));
   };
 
-  const uploadToBucket = async (bucket: string, animalName: string, file: File) => {
+  const uploadToBucket = async (bucket: string, userId: string, animalName: string, file: File) => {
     const safeAnimalName = animalName.trim().toLowerCase().replace(/[^a-z0-9-_]/g, '-');
     const extension = file.name.includes('.') ? file.name.split('.').pop() : '';
     const uniqueName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}${extension ? `.${extension}` : ''}`;
-    const filePath = `${safeAnimalName || 'livestock'}/${uniqueName}`;
+    const filePath = `${userId}/${safeAnimalName || 'livestock'}/${uniqueName}`;
 
     const { error: uploadError } = await supabase.storage.from(bucket).upload(filePath, file);
     if (uploadError) {
@@ -203,6 +203,7 @@ export default function DashboardPage() {
     const isBullOrHeifer = /bull|heifer/i.test(formState.type);
     const newRecord = {
       user_id: user.id,
+      owner_id: user.id,
       name: formState.name,
       type: formState.type,
       breed: formState.breed,
@@ -234,10 +235,10 @@ export default function DashboardPage() {
 
     try {
       if (photoFile) {
-        image_url = await uploadToBucket('cow-photos', formState.name, photoFile);
+        image_url = await uploadToBucket('cow-photos', session.user.id, formState.name, photoFile);
       }
       if (videoFile) {
-        video_url = await uploadToBucket('market-videos', formState.name, videoFile);
+        video_url = await uploadToBucket('market-videos', session.user.id, formState.name, videoFile);
       }
     } catch (uploadError) {
       setErrorMessage(uploadError instanceof Error ? uploadError.message : 'Failed to upload media files.');
