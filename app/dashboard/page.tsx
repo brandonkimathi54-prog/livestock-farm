@@ -645,7 +645,7 @@ export default function DashboardPage() {
 
       {showModal ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 px-4 py-6">
-          <div className={`w-full max-w-2xl ${glassCardClass}`}>
+          <div className={`w-full max-w-2xl max-h-[90vh] overflow-y-auto p-5 ${glassCardClass}`}>
             <div className="flex items-center justify-between gap-4">
               <div>
                 <h2 className="text-2xl font-semibold text-slate-900">Add Livestock</h2>
@@ -660,9 +660,9 @@ export default function DashboardPage() {
               </button>
             </div>
 
-            <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <label className="space-y-2 text-sm text-slate-700">
+            <form className="mt-5 space-y-3" onSubmit={handleSubmit}>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="space-y-1.5 text-sm text-slate-700">
                   <span>Name</span>
                   <input
                     type="text"
@@ -672,7 +672,7 @@ export default function DashboardPage() {
                     className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-slate-400"
                   />
                 </label>
-                <label className="space-y-2 text-sm text-slate-700">
+                <label className="space-y-1.5 text-sm text-slate-700">
                   <span>Breed</span>
                   <input
                     type="text"
@@ -684,8 +684,8 @@ export default function DashboardPage() {
                 </label>
               </div>
 
-              <div className="grid gap-4 sm:grid-cols-4">
-                <label className="space-y-2 text-sm text-slate-700">
+              <div className="grid gap-3 sm:grid-cols-4">
+                <label className="space-y-1.5 text-sm text-slate-700">
                   <span>Type</span>
                   <input
                     type="text"
@@ -695,7 +695,7 @@ export default function DashboardPage() {
                     className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-slate-400"
                   />
                 </label>
-                <label className="space-y-2 text-sm text-slate-700">
+                <label className="space-y-1.5 text-sm text-slate-700">
                   <span>Age</span>
                   <input
                     type="number"
@@ -706,7 +706,7 @@ export default function DashboardPage() {
                     className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-slate-400"
                   />
                 </label>
-                <label className="space-y-2 text-sm text-slate-700">
+                <label className="space-y-1.5 text-sm text-slate-700">
                   <span>Average Liters/Day</span>
                   <input
                     type="number"
@@ -717,7 +717,7 @@ export default function DashboardPage() {
                     className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-slate-400"
                   />
                 </label>
-                <label className="space-y-2 text-sm text-slate-700">
+                <label className="space-y-1.5 text-sm text-slate-700">
                   <span>Price (KSH)</span>
                   <input
                     type="number"
@@ -730,8 +730,8 @@ export default function DashboardPage() {
                 </label>
               </div>
 
-              <div className="grid gap-4 sm:grid-cols-2">
-                <label className="space-y-2 text-sm text-slate-700">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="space-y-1.5 text-sm text-slate-700">
                   <span>Status</span>
                   <select
                     value={formState.status}
@@ -742,7 +742,7 @@ export default function DashboardPage() {
                     <option value="Sold">Sold</option>
                   </select>
                 </label>
-                <label className="space-y-2 text-sm text-slate-700">
+                <label className="space-y-1.5 text-sm text-slate-700">
                   <span>Location</span>
                   <input
                     type="text"
@@ -753,7 +753,7 @@ export default function DashboardPage() {
                 </label>
               </div>
 
-              <label className="space-y-2 text-sm text-slate-700">
+              <label className="space-y-1.5 text-sm text-slate-700">
                 <span>WhatsApp Number</span>
                 <input
                   type="tel"
@@ -763,7 +763,7 @@ export default function DashboardPage() {
                 />
               </label>
 
-              <label className="space-y-2 text-sm text-slate-700">
+              <label className="space-y-1.5 text-sm text-slate-700">
                 <span>Description</span>
                 <textarea
                   value={formState.description}
@@ -773,8 +773,8 @@ export default function DashboardPage() {
                 />
               </label>
 
-              <div className="grid gap-4 sm:grid-cols-2">
-                <label className="space-y-2 text-sm text-slate-700">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="space-y-1.5 text-sm text-slate-700">
                   <span>Photos</span>
                   <input
                     type="file"
@@ -783,7 +783,7 @@ export default function DashboardPage() {
                     className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition file:mr-4 file:rounded-full file:border-0 file:bg-slate-900 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white focus:border-slate-400"
                   />
                 </label>
-                <label className="space-y-2 text-sm text-slate-700">
+                <label className="space-y-1.5 text-sm text-slate-700">
                   <span>Video</span>
                   <input
                     type="file"
