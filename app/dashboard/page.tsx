@@ -41,6 +41,8 @@ const chartColors = ['#22c55e', '#2563eb'];
 const glassCardClass =
   'rounded-3xl border border-white/35 bg-white/20 p-8 shadow-xl shadow-slate-900/10 backdrop-blur-xl';
 const getLivestockPrice = (item: Livestock) => Number(item.price_ksh ?? item.price ?? 0);
+const LIVESTOCK_PLACEHOLDER_IMAGE =
+  'https://images.unsplash.com/photo-1516467508483-a7212febe31a?auto=format&fit=crop&w=1400&q=80';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -509,6 +511,16 @@ export default function DashboardPage() {
                     className="relative rounded-3xl border border-slate-200 p-4 cursor-pointer hover:bg-slate-50"
                     onClick={() => setSelectedLivestock(item)}
                   >
+                    <img
+                      src={
+                        item.image_url
+                          ? supabase.storage.from('cow photos').getPublicUrl(item.image_url).data.publicUrl
+                          : LIVESTOCK_PLACEHOLDER_IMAGE
+                      }
+                      alt={`${item.name} photo`}
+                      className="mb-3 h-24 w-full rounded-2xl object-cover"
+                      loading="lazy"
+                    />
                     <button
                       type="button"
                       aria-label={`Open actions for ${item.name}`}

@@ -16,17 +16,18 @@ function LivestockCard({ item }: { item: Livestock }) {
   const whatsappLink = item.whatsapp_number
     ? `https://wa.me/${item.whatsapp_number.replace(/\D/g, '')}`
     : undefined;
-  const imageSrc = getPublicMediaUrl('cow photos', item.image_url) || PLACEHOLDER_IMAGE;
+  const imageSrc = item.image_url
+    ? supabase.storage.from('cow photos').getPublicUrl(item.image_url).data.publicUrl
+    : PLACEHOLDER_IMAGE;
   const videoSrc = getPublicMediaUrl('market-videos', item.video_url);
 
   return (
     <article className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-      <div className="relative aspect-[4/3] w-full bg-slate-100">
+      <div className="grid grid-cols-1 bg-slate-100 sm:grid-cols-2">
         {videoSrc ? (
-          <video className="h-full w-full object-cover" src={videoSrc} controls preload="metadata" />
-        ) : (
-          <img className="h-full w-full object-cover" src={imageSrc} alt={`${item.name} livestock listing`} loading="lazy" />
-        )}
+          <video className="aspect-[4/3] h-full w-full object-cover" src={videoSrc} controls preload="metadata" />
+        ) : null}
+        <img className="aspect-[4/3] h-full w-full object-cover" src={imageSrc} alt={`${item.name} livestock listing`} loading="lazy" />
       </div>
       <div className="p-6">
         <p className="text-sm font-semibold uppercase tracking-[0.25em] text-slate-500">{item.type}</p>
