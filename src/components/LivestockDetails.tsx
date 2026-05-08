@@ -28,6 +28,7 @@ interface LivestockDetailsProps {
 }
 
 export default function LivestockDetails({ livestock, onClose, isModal = true }: LivestockDetailsProps) {
+  const livestockPrice = Number(livestock.price_ksh ?? livestock.price ?? 0);
   const [activeTab, setActiveTab] = useState<'overview' | 'milk' | 'health'>('overview');
   const [milkRecords, setMilkRecords] = useState<MilkRecord[]>([]);
   const [healthRecords, setHealthRecords] = useState<HealthRecord[]>([]);
@@ -177,7 +178,7 @@ export default function LivestockDetails({ livestock, onClose, isModal = true }:
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-600">Price:</span>
-                <span className="font-semibold text-slate-900">KSH {livestock.price.toLocaleString()}</span>
+                <span className="font-semibold text-slate-900">KSH {livestockPrice.toLocaleString()}</span>
               </div>
             </div>
           </div>

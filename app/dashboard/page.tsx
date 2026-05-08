@@ -28,6 +28,9 @@ interface HealthRecord {
 }
 
 const chartColors = ['#22c55e', '#2563eb'];
+const glassCardClass =
+  'rounded-3xl border border-white/35 bg-white/20 p-8 shadow-xl shadow-slate-900/10 backdrop-blur-xl';
+const getLivestockPrice = (item: Livestock) => Number(item.price_ksh ?? item.price ?? 0);
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -118,11 +121,11 @@ export default function DashboardPage() {
   const summaryData = useMemo(() => {
     const availableValue = livestock
       .filter((item) => item.status === 'Available')
-      .reduce((sum, item) => sum + Number(item.price ?? 0), 0);
+      .reduce((sum, item) => sum + getLivestockPrice(item), 0);
     const soldValue = livestock
       .filter((item) => item.status === 'Sold')
-      .reduce((sum, item) => sum + Number(item.price ?? 0), 0);
-    const totalValue = livestock.reduce((sum, item) => sum + Number(item.price ?? 0), 0);
+      .reduce((sum, item) => sum + getLivestockPrice(item), 0);
+    const totalValue = livestock.reduce((sum, item) => sum + getLivestockPrice(item), 0);
 
     return [
       { name: 'Available', value: availableValue },
@@ -135,6 +138,23 @@ export default function DashboardPage() {
     setFormState((current) => ({ ...current, [key]: value }));
   };
 
+  const saveLivestock = async (user: Session['user']) => {
+    const newRecord = {
+      user_id: user.id,
+      name: formState.name,
+      type: formState.type,
+      breed: formState.breed,
+      age: Number(formState.age),
+      price_ksh: Number(formState.price),
+      status: formState.status,
+      location: formState.location,
+      whatsapp_number: formState.whatsapp_number,
+      description: formState.description,
+    };
+
+    return supabase.from('livestock').insert([newRecord]);
+  };
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setErrorMessage(null);
@@ -144,20 +164,7 @@ export default function DashboardPage() {
       return;
     }
 
-    const newRecord = {
-      owner_id: session.user.id,
-      name: formState.name,
-      type: formState.type,
-      breed: formState.breed,
-      age: Number(formState.age),
-      price: Number(formState.price),
-      status: formState.status,
-      location: formState.location,
-      whatsapp_number: formState.whatsapp_number,
-      description: formState.description,
-    };
-
-    const { error } = await supabase.from('livestock').insert([newRecord]);
+    const { error } = await saveLivestock(session.user);
 
     if (error) {
       setErrorMessage(error.message);
@@ -176,30 +183,26 @@ export default function DashboardPage() {
       whatsapp_number: '',
       description: '',
     });
-
-    const { data, error: refreshError } = await supabase
-      .from('livestock')
-      .select('*')
-      .eq('owner_id', session.user.id)
-      .order('updated_at', { ascending: false });
-
-    const refreshedLivestock = (data ?? []) as Livestock[];
-
-    if (refreshError) {
-      setErrorMessage(refreshError.message);
-    } else {
-      setLivestock(refreshedLivestock);
-    }
+    window.location.reload();
   };
 
   return (
-    <section className="space-y-8 py-8">
-      <div className="rounded-3xl bg-white p-8 shadow-sm shadow-slate-200" style={{ background: 'rgba(255, 255, 255, 0.8)', backdropFilter: 'blur(5px)' }}>
+    <section
+      className="relative space-y-8 overflow-hidden rounded-3xl px-4 py-8 sm:px-6"
+      style={{
+        backgroundImage:
+          "linear-gradient(rgba(15, 23, 42, 0.4), rgba(15, 23, 42, 0.28)), url('https://images.unsplash.com/photo-1500595046743-cd271d694d30?auto=format&fit=crop&w=1800&q=80')",
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+      }}
+    >
+      <div className="absolute inset-0 bg-emerald-950/20 backdrop-blur-[2px]" aria-hidden="true" />
+      <div className={`${glassCardClass} relative`}>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-sm uppercase tracking-[0.3em] text-slate-500">Secure Dashboard</p>
-            <h1 className="mt-4 text-3xl font-semibold text-slate-900">Your Farm Inventory</h1>
-            <p className="mt-3 max-w-2xl text-slate-600">Manage only the livestock you own and quickly add new stock.</p>
+            <p className="text-sm uppercase tracking-[0.3em] text-white/90">Secure Dashboard</p>
+            <h1 className="mt-4 text-3xl font-semibold text-white">Your Farm Inventory</h1>
+            <p className="mt-3 max-w-2xl text-white/90">Manage only the livestock you own and quickly add new stock.</p>
           </div>
           <button
             type="button"
@@ -210,7 +213,7 @@ export default function DashboardPage() {
           </button>
         </div>
 
-        <div className="border-b border-slate-200 mt-6">
+        <div className="mt-6 border-b border-white/30">
           <nav className="flex space-x-8">
             {[
               { key: 'inventory', label: 'Inventory' },
@@ -220,8 +223,8 @@ export default function DashboardPage() {
                 key={tab.key}
                 className={`py-2 px-1 border-b-2 font-medium text-sm ${
                   activeTab === tab.key
-                    ? 'border-slate-900 text-slate-900'
-                    : 'border-transparent text-slate-500 hover:text-slate-700'
+                    ? 'border-white text-white'
+                    : 'border-transparent text-white/75 hover:text-white'
                 }`}
                 onClick={() => setActiveTab(tab.key as any)}
               >
@@ -233,8 +236,8 @@ export default function DashboardPage() {
       </div>
 
       {activeTab === 'inventory' && (
-        <div className="grid gap-6 xl:grid-cols-[1.4fr_1fr]">
-          <div className="rounded-3xl bg-white p-8 shadow-sm shadow-slate-200" style={{ background: 'rgba(255, 255, 255, 0.8)', backdropFilter: 'blur(5px)' }}>
+        <div className="relative grid gap-6 xl:grid-cols-[1.4fr_1fr]">
+          <div className={glassCardClass}>
             <h2 className="text-lg font-semibold text-slate-900">Herd value summary</h2>
             <div className="mt-6 h-72">
               <ResponsiveContainer width="100%" height="100%">
@@ -261,7 +264,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="rounded-3xl bg-white p-8 shadow-sm shadow-slate-200" style={{ background: 'rgba(255, 255, 255, 0.8)', backdropFilter: 'blur(5px)' }}>
+          <div className={glassCardClass}>
             <h2 className="text-lg font-semibold text-slate-900">Your livestock</h2>
             {loading ? (
               <p className="mt-4 text-slate-600">Loading your herd...</p>
@@ -280,7 +283,7 @@ export default function DashboardPage() {
                         <h3 className="text-base font-semibold text-slate-900">{item.name}</h3>
                         <p className="text-sm text-slate-500">{item.breed} · {item.status}</p>
                       </div>
-                      <p className="text-sm font-semibold text-slate-900">KSH {item.price.toLocaleString()}</p>
+                      <p className="text-sm font-semibold text-slate-900">KSH {getLivestockPrice(item).toLocaleString()}</p>
                     </div>
                     <div className="mt-3 flex flex-wrap gap-3 text-sm text-slate-600">
                       <span>Age: {item.age}</span>
@@ -295,7 +298,7 @@ export default function DashboardPage() {
       )}
 
       {activeTab === 'management' && (
-        <div className="rounded-3xl bg-white p-8 shadow-sm shadow-slate-200" style={{ background: 'rgba(255, 255, 255, 0.8)', backdropFilter: 'blur(5px)' }}>
+        <div className={glassCardClass}>
           {selectedLivestock ? (
             <LivestockDetails livestock={selectedLivestock} onClose={() => setSelectedLivestock(null)} isModal={false} />
           ) : (
@@ -310,7 +313,7 @@ export default function DashboardPage() {
 
       {showModal ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 px-4 py-6">
-          <div className="w-full max-w-2xl rounded-3xl bg-white p-8 shadow-2xl" style={{ background: 'rgba(255, 255, 255, 0.8)', backdropFilter: 'blur(5px)' }}>
+          <div className={`w-full max-w-2xl ${glassCardClass}`}>
             <div className="flex items-center justify-between gap-4">
               <div>
                 <h2 className="text-2xl font-semibold text-slate-900">Add Livestock</h2>
