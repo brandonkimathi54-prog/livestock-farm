@@ -447,15 +447,16 @@ export default function DashboardPage() {
   };
 
   return (
-    <section
-      className="relative space-y-8 overflow-hidden rounded-3xl px-4 py-8 sm:px-6"
-      style={{
-        backgroundImage:
-          "linear-gradient(rgba(15, 23, 42, 0.4), rgba(15, 23, 42, 0.28)), url('https://images.unsplash.com/photo-1500595046743-cd271d694d30?auto=format&fit=crop&w=1800&q=80')",
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-      }}
-    >
+    <>
+      <section
+        className="relative space-y-8 overflow-hidden rounded-3xl px-4 py-8 sm:px-6"
+        style={{
+          backgroundImage:
+            "linear-gradient(rgba(15, 23, 42, 0.4), rgba(15, 23, 42, 0.28)), url('https://images.unsplash.com/photo-1500595046743-cd271d694d30?auto=format&fit=crop&w=1800&q=80')",
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }}
+      >
       <div className="absolute inset-0 bg-emerald-950/20 backdrop-blur-[2px]" aria-hidden="true" />
       <div className={`${glassCardClass} relative`}>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -1003,5 +1004,13 @@ export default function DashboardPage() {
       ) : null}
 
     </section>
+
+      {/* Signature */}
+      <div className="fixed bottom-4 right-4 z-50">
+        <p className="text-sm text-gray-400 font-light italic">
+          Created by Brandon
+        </p>
+      </div>
+    </>
   );
 }
