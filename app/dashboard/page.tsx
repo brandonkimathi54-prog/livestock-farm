@@ -199,28 +199,6 @@ export default function DashboardPage() {
     return data.publicUrl;
   };
 
-  const saveLivestock = async (user: Session['user'], mediaUrls?: { image_url?: string; video_url?: string }) => {
-    const isBullOrHeifer = /bull|heifer/i.test(formState.type);
-    const newRecord = {
-      user_id: user.id,
-      owner_id: user.id,
-      name: formState.name,
-      type: formState.type,
-      breed: formState.breed,
-      age: Number(formState.age),
-      liters_per_day: isBullOrHeifer ? 0 : Number(formState.liters_per_day || 0),
-      price_ksh: Number(formState.price),
-      status: formState.status || 'Available',
-      location: formState.location,
-      whatsapp_number: formState.whatsapp_number,
-      description: formState.description,
-      image_url: mediaUrls?.image_url ?? null,
-      video_url: mediaUrls?.video_url ?? null,
-    };
-
-    return supabase.from('livestock').insert([newRecord]);
-  };
-
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setErrorMessage(null);
@@ -263,7 +241,25 @@ export default function DashboardPage() {
       }
     }
 
-    const { error } = await saveLivestock(user, { image_url, video_url });
+    const isBullOrHeifer = /bull|heifer/i.test(formState.type);
+    const livestockData = {
+      user_id: user.id,
+      owner_id: user.id,
+      name: formState.name,
+      breed: formState.breed,
+      type: formState.type,
+      age: Number(formState.age),
+      liters_per_day: isBullOrHeifer ? 0 : Number(formState.liters_per_day || 0),
+      price_ksh: Number(formState.price),
+      status: formState.status || 'Available',
+      location: formState.location,
+      whatsapp_number: formState.whatsapp_number,
+      description: formState.description,
+      image_url: image_url ?? null,
+      video_url: video_url ?? null,
+    };
+
+    const { error } = await supabase.from('livestock').insert([livestockData]);
 
     if (error) {
       setErrorMessage(error.message);
@@ -837,12 +833,6 @@ export default function DashboardPage() {
         </div>
       ) : null}
 
-      {selectedLivestock && (
-        <LivestockDetails
-          livestock={selectedLivestock}
-          onClose={() => setSelectedLivestock(null)}
-        />
-      )}
     </section>
   );
 }
