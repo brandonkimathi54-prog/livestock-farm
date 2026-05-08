@@ -34,16 +34,10 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  // Redirect authenticated users away from /auth or /login to /dashboard
-  if (user && (request.nextUrl.pathname === '/auth' || request.nextUrl.pathname === '/login')) {
-    const dashboardUrl = new URL('/dashboard', request.url);
-    if (request.nextUrl.pathname !== dashboardUrl.pathname) {
-      return NextResponse.redirect(dashboardUrl);
-    }
-  }
+  console.log('Middleware Path:', request.nextUrl.pathname, 'User:', user?.id)
 
-  // Protect /dashboard and /inventory routes
-  if (request.nextUrl.pathname.startsWith('/dashboard') || request.nextUrl.pathname.startsWith('/inventory')) {
+  // Only redirect to /auth if accessing /dashboard and no user
+  if (request.nextUrl.pathname.startsWith('/dashboard')) {
     if (!user) {
       const authUrl = new URL('/auth', request.url);
       if (request.nextUrl.pathname !== authUrl.pathname) {
