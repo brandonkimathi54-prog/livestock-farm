@@ -29,11 +29,10 @@ export default function AuthPage() {
       try {
         const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) {
-          setErrorMessage(error.message);
-        } else {
-          const session = data.session;
-          console.log('Session detected:', session);
-          window.location.replace('/dashboard');
+          alert(error.message);
+        } else if (data.user) {
+          // Forces the browser to reload and send the new cookies to the Middleware
+          window.location.href = '/dashboard';
         }
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
