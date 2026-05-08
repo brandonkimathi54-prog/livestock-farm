@@ -27,6 +27,15 @@ interface HealthRecord {
   livestock?: Livestock;
 }
 
+interface ExpenseRecord {
+  id: string;
+  livestock_id: string;
+  category: string;
+  amount: number;
+  notes: string;
+  date: string;
+}
+
 const chartColors = ['#22c55e', '#2563eb'];
 const glassCardClass =
   'rounded-3xl border border-white/35 bg-white/20 p-8 shadow-xl shadow-slate-900/10 backdrop-blur-xl';
@@ -41,33 +50,37 @@ export default function DashboardPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [selectedLivestock, setSelectedLivestock] = useState<Livestock | null>(null);
   const [activeTab, setActiveTab] = useState<'inventory' | 'management'>('inventory');
-  const [recordsTab, setRecordsTab] = useState<'milk' | 'health' | 'expenses'>('milk');
   const [milkRecords, setMilkRecords] = useState<MilkRecord[]>([]);
   const [healthRecords, setHealthRecords] = useState<HealthRecord[]>([]);
-  const [showQuickLog, setShowQuickLog] = useState(false);
-  const [quickLogType, setQuickLogType] = useState<'milk' | 'health'>('milk');
+  const [expenseRecords, setExpenseRecords] = useState<ExpenseRecord[]>([]);
+  const [recordsLoading, setRecordsLoading] = useState(false);
   const [formState, setFormState] = useState({
     name: '',
     type: '',
     breed: '',
     age: '0',
+    liters_per_day: '0',
     price: '0',
     status: 'Available',
     location: '',
     whatsapp_number: '',
     description: '',
   });
-  const [quickMilkForm, setQuickMilkForm] = useState({
-    livestock_id: '',
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [milkForm, setMilkForm] = useState({
     date: '',
     amount_liters: '',
-    milking_session: 'Morning',
   });
-  const [quickHealthForm, setQuickHealthForm] = useState({
-    livestock_id: '',
-    event_type: '',
-    description: '',
+  const [healthForm, setHealthForm] = useState({
+    event: '',
     cost: '',
+    date: '',
+  });
+  const [expenseForm, setExpenseForm] = useState({
+    category: 'Feed',
+    amount: '',
+    notes: '',
     date: '',
   });
 
@@ -118,6 +131,39 @@ export default function DashboardPage() {
     fetchLivestock();
   }, [session]);
 
+  useEffect(() => {
+    if (activeTab !== 'management' || !livestock.length || selectedLivestock) {
+      return;
+    }
+    setSelectedLivestock(livestock[0]);
+  }, [activeTab, livestock, selectedLivestock]);
+
+  useEffect(() => {
+    if (!selectedLivestock?.id || activeTab !== 'management') {
+      return;
+    }
+
+    const fetchManagementRecords = async () => {
+      setRecordsLoading(true);
+      const [milkResponse, healthResponse, expenseResponse] = await Promise.all([
+        supabase.from('milk_records').select('*').eq('livestock_id', selectedLivestock.id).order('date', { ascending: false }),
+        supabase.from('health_records').select('*').eq('livestock_id', selectedLivestock.id).order('date', { ascending: false }),
+        supabase.from('expenses').select('*').eq('livestock_id', selectedLivestock.id).order('date', { ascending: false }),
+      ]);
+
+      if (milkResponse.error || healthResponse.error || expenseResponse.error) {
+        setErrorMessage(milkResponse.error?.message ?? healthResponse.error?.message ?? expenseResponse.error?.message ?? null);
+      } else {
+        setMilkRecords((milkResponse.data ?? []) as MilkRecord[]);
+        setHealthRecords((healthResponse.data ?? []) as HealthRecord[]);
+        setExpenseRecords((expenseResponse.data ?? []) as ExpenseRecord[]);
+      }
+      setRecordsLoading(false);
+    };
+
+    fetchManagementRecords();
+  }, [selectedLivestock, activeTab]);
+
   const summaryData = useMemo(() => {
     const availableValue = livestock
       .filter((item) => item.status === 'Available')
@@ -138,18 +184,37 @@ export default function DashboardPage() {
     setFormState((current) => ({ ...current, [key]: value }));
   };
 
-  const saveLivestock = async (user: Session['user']) => {
+  const uploadToBucket = async (bucket: string, animalName: string, file: File) => {
+    const safeAnimalName = animalName.trim().toLowerCase().replace(/[^a-z0-9-_]/g, '-');
+    const extension = file.name.includes('.') ? file.name.split('.').pop() : '';
+    const uniqueName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}${extension ? `.${extension}` : ''}`;
+    const filePath = `${safeAnimalName || 'livestock'}/${uniqueName}`;
+
+    const { error: uploadError } = await supabase.storage.from(bucket).upload(filePath, file);
+    if (uploadError) {
+      throw new Error(uploadError.message);
+    }
+
+    const { data } = supabase.storage.from(bucket).getPublicUrl(filePath);
+    return data.publicUrl;
+  };
+
+  const saveLivestock = async (user: Session['user'], mediaUrls?: { image_url?: string; video_url?: string }) => {
+    const isBullOrHeifer = /bull|heifer/i.test(formState.type);
     const newRecord = {
       user_id: user.id,
       name: formState.name,
       type: formState.type,
       breed: formState.breed,
       age: Number(formState.age),
+      liters_per_day: isBullOrHeifer ? 0 : Number(formState.liters_per_day || 0),
       price_ksh: Number(formState.price),
-      status: formState.status,
+      status: formState.status || 'Available',
       location: formState.location,
       whatsapp_number: formState.whatsapp_number,
       description: formState.description,
+      image_url: mediaUrls?.image_url ?? null,
+      video_url: mediaUrls?.video_url ?? null,
     };
 
     return supabase.from('livestock').insert([newRecord]);
@@ -164,7 +229,22 @@ export default function DashboardPage() {
       return;
     }
 
-    const { error } = await saveLivestock(session.user);
+    let image_url: string | undefined;
+    let video_url: string | undefined;
+
+    try {
+      if (photoFile) {
+        image_url = await uploadToBucket('cow-photos', formState.name, photoFile);
+      }
+      if (videoFile) {
+        video_url = await uploadToBucket('market-videos', formState.name, videoFile);
+      }
+    } catch (uploadError) {
+      setErrorMessage(uploadError instanceof Error ? uploadError.message : 'Failed to upload media files.');
+      return;
+    }
+
+    const { error } = await saveLivestock(session.user, { image_url, video_url });
 
     if (error) {
       setErrorMessage(error.message);
@@ -177,13 +257,79 @@ export default function DashboardPage() {
       type: '',
       breed: '',
       age: '0',
+      liters_per_day: '0',
       price: '0',
       status: 'Available',
       location: '',
       whatsapp_number: '',
       description: '',
     });
+    setPhotoFile(null);
+    setVideoFile(null);
     window.location.reload();
+  };
+
+  const handleMilkRecordSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!selectedLivestock?.id) return;
+
+    const { error } = await supabase.from('milk_records').insert({
+      livestock_id: selectedLivestock.id,
+      amount_liters: Number(milkForm.amount_liters),
+      date: milkForm.date,
+    });
+
+    if (error) {
+      setErrorMessage(error.message);
+      return;
+    }
+
+    setMilkForm({ date: '', amount_liters: '' });
+    const { data } = await supabase.from('milk_records').select('*').eq('livestock_id', selectedLivestock.id).order('date', { ascending: false });
+    setMilkRecords((data ?? []) as MilkRecord[]);
+  };
+
+  const handleHealthRecordSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!selectedLivestock?.id) return;
+
+    const { error } = await supabase.from('health_records').insert({
+      livestock_id: selectedLivestock.id,
+      event_type: healthForm.event,
+      cost: Number(healthForm.cost),
+      date: healthForm.date,
+    });
+
+    if (error) {
+      setErrorMessage(error.message);
+      return;
+    }
+
+    setHealthForm({ event: '', cost: '', date: '' });
+    const { data } = await supabase.from('health_records').select('*').eq('livestock_id', selectedLivestock.id).order('date', { ascending: false });
+    setHealthRecords((data ?? []) as HealthRecord[]);
+  };
+
+  const handleExpenseRecordSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!selectedLivestock?.id) return;
+
+    const { error } = await supabase.from('expenses').insert({
+      livestock_id: selectedLivestock.id,
+      category: expenseForm.category,
+      amount: Number(expenseForm.amount),
+      notes: expenseForm.notes,
+      date: expenseForm.date,
+    });
+
+    if (error) {
+      setErrorMessage(error.message);
+      return;
+    }
+
+    setExpenseForm({ category: 'Feed', amount: '', notes: '', date: '' });
+    const { data } = await supabase.from('expenses').select('*').eq('livestock_id', selectedLivestock.id).order('date', { ascending: false });
+    setExpenseRecords((data ?? []) as ExpenseRecord[]);
   };
 
   return (
@@ -299,11 +445,197 @@ export default function DashboardPage() {
 
       {activeTab === 'management' && (
         <div className={glassCardClass}>
-          {selectedLivestock ? (
-            <LivestockDetails livestock={selectedLivestock} onClose={() => setSelectedLivestock(null)} isModal={false} />
-          ) : (
-            <p className="text-slate-600">Select an animal from the Inventory tab to view and manage its records.</p>
-          )}
+          <div className="space-y-6">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <h2 className="text-xl font-semibold text-slate-900">Management records</h2>
+                <p className="text-sm text-slate-600">Track milk production, health treatments, and expenses for each animal.</p>
+              </div>
+              <label className="text-sm text-slate-700">
+                <span className="mb-2 block font-medium">Selected animal</span>
+                <select
+                  value={selectedLivestock?.id ?? ''}
+                  onChange={(event) => {
+                    const picked = livestock.find((item) => item.id === event.target.value) ?? null;
+                    setSelectedLivestock(picked);
+                  }}
+                  className="w-full min-w-64 rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 outline-none transition focus:border-slate-400"
+                >
+                  {livestock.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.name} ({item.breed})
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
+            {!selectedLivestock ? (
+              <p className="text-slate-600">Add livestock first, then select an animal to begin record-keeping.</p>
+            ) : (
+              <div className="grid gap-6 xl:grid-cols-3">
+                <div className="rounded-2xl border border-slate-200 bg-white/70 p-5">
+                  <h3 className="text-lg font-semibold text-slate-900">Milk Production</h3>
+                  <form className="mt-4 space-y-3" onSubmit={handleMilkRecordSubmit}>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.1"
+                      required
+                      placeholder="Liters"
+                      value={milkForm.amount_liters}
+                      onChange={(event) => setMilkForm((prev) => ({ ...prev, amount_liters: event.target.value }))}
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-slate-400"
+                    />
+                    <input
+                      type="date"
+                      required
+                      value={milkForm.date}
+                      onChange={(event) => setMilkForm((prev) => ({ ...prev, date: event.target.value }))}
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-slate-400"
+                    />
+                    <button type="submit" className="w-full rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700">
+                      Save milk record
+                    </button>
+                  </form>
+                  <div className="mt-4 overflow-x-auto">
+                    <table className="min-w-full text-left text-xs text-slate-700">
+                      <thead>
+                        <tr className="border-b border-slate-200">
+                          <th className="py-2 pr-2">Date</th>
+                          <th className="py-2">Liters</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {milkRecords.map((record) => (
+                          <tr key={record.id} className="border-b border-slate-100">
+                            <td className="py-2 pr-2">{record.date}</td>
+                            <td className="py-2">{record.amount_liters}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 bg-white/70 p-5">
+                  <h3 className="text-lg font-semibold text-slate-900">Health Tracker</h3>
+                  <form className="mt-4 space-y-3" onSubmit={handleHealthRecordSubmit}>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Event"
+                      value={healthForm.event}
+                      onChange={(event) => setHealthForm((prev) => ({ ...prev, event: event.target.value }))}
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-slate-400"
+                    />
+                    <input
+                      type="number"
+                      min="0"
+                      required
+                      placeholder="Cost (KSH)"
+                      value={healthForm.cost}
+                      onChange={(event) => setHealthForm((prev) => ({ ...prev, cost: event.target.value }))}
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-slate-400"
+                    />
+                    <input
+                      type="date"
+                      required
+                      value={healthForm.date}
+                      onChange={(event) => setHealthForm((prev) => ({ ...prev, date: event.target.value }))}
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-slate-400"
+                    />
+                    <button type="submit" className="w-full rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700">
+                      Save health record
+                    </button>
+                  </form>
+                  <div className="mt-4 overflow-x-auto">
+                    <table className="min-w-full text-left text-xs text-slate-700">
+                      <thead>
+                        <tr className="border-b border-slate-200">
+                          <th className="py-2 pr-2">Date</th>
+                          <th className="py-2 pr-2">Event</th>
+                          <th className="py-2">Cost</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {healthRecords.map((record) => (
+                          <tr key={record.id} className="border-b border-slate-100">
+                            <td className="py-2 pr-2">{record.date}</td>
+                            <td className="py-2 pr-2">{record.event_type}</td>
+                            <td className="py-2">KSH {Number(record.cost ?? 0).toLocaleString()}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 bg-white/70 p-5">
+                  <h3 className="text-lg font-semibold text-slate-900">Expense Log</h3>
+                  <form className="mt-4 space-y-3" onSubmit={handleExpenseRecordSubmit}>
+                    <select
+                      value={expenseForm.category}
+                      onChange={(event) => setExpenseForm((prev) => ({ ...prev, category: event.target.value }))}
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-slate-400"
+                    >
+                      <option value="Feed">Feed</option>
+                      <option value="Maintenance">Maintenance</option>
+                    </select>
+                    <input
+                      type="number"
+                      min="0"
+                      required
+                      placeholder="Amount (KSH)"
+                      value={expenseForm.amount}
+                      onChange={(event) => setExpenseForm((prev) => ({ ...prev, amount: event.target.value }))}
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-slate-400"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Notes"
+                      value={expenseForm.notes}
+                      onChange={(event) => setExpenseForm((prev) => ({ ...prev, notes: event.target.value }))}
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-slate-400"
+                    />
+                    <input
+                      type="date"
+                      required
+                      value={expenseForm.date}
+                      onChange={(event) => setExpenseForm((prev) => ({ ...prev, date: event.target.value }))}
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-slate-400"
+                    />
+                    <button type="submit" className="w-full rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700">
+                      Save expense
+                    </button>
+                  </form>
+                  <div className="mt-4 overflow-x-auto">
+                    <table className="min-w-full text-left text-xs text-slate-700">
+                      <thead>
+                        <tr className="border-b border-slate-200">
+                          <th className="py-2 pr-2">Date</th>
+                          <th className="py-2 pr-2">Category</th>
+                          <th className="py-2 pr-2">Amount</th>
+                          <th className="py-2">Notes</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {expenseRecords.map((record) => (
+                          <tr key={record.id} className="border-b border-slate-100">
+                            <td className="py-2 pr-2">{record.date}</td>
+                            <td className="py-2 pr-2">{record.category}</td>
+                            <td className="py-2 pr-2">KSH {record.amount.toLocaleString()}</td>
+                            <td className="py-2">{record.notes}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            )}
+            {recordsLoading ? <p className="text-sm text-slate-600">Loading management history...</p> : null}
+          </div>
         </div>
       )}
 
@@ -352,7 +684,7 @@ export default function DashboardPage() {
                 </label>
               </div>
 
-              <div className="grid gap-4 sm:grid-cols-3">
+              <div className="grid gap-4 sm:grid-cols-4">
                 <label className="space-y-2 text-sm text-slate-700">
                   <span>Type</span>
                   <input
@@ -371,6 +703,17 @@ export default function DashboardPage() {
                     value={formState.age}
                     onChange={(event) => handleChange('age', event.target.value)}
                     required
+                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-slate-400"
+                  />
+                </label>
+                <label className="space-y-2 text-sm text-slate-700">
+                  <span>Average Liters/Day</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.1"
+                    value={formState.liters_per_day}
+                    onChange={(event) => handleChange('liters_per_day', event.target.value)}
                     className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-slate-400"
                   />
                 </label>
@@ -429,6 +772,27 @@ export default function DashboardPage() {
                   className="w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-slate-400"
                 />
               </label>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="space-y-2 text-sm text-slate-700">
+                  <span>Photos</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(event) => setPhotoFile(event.target.files?.[0] ?? null)}
+                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition file:mr-4 file:rounded-full file:border-0 file:bg-slate-900 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white focus:border-slate-400"
+                  />
+                </label>
+                <label className="space-y-2 text-sm text-slate-700">
+                  <span>Video</span>
+                  <input
+                    type="file"
+                    accept="video/*"
+                    onChange={(event) => setVideoFile(event.target.files?.[0] ?? null)}
+                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition file:mr-4 file:rounded-full file:border-0 file:bg-slate-900 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white focus:border-slate-400"
+                  />
+                </label>
+              </div>
 
               {errorMessage ? <p className="text-sm text-red-600">{errorMessage}</p> : null}
               <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">

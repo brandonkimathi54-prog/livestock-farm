@@ -2,6 +2,7 @@ import { supabase } from '@/lib/supabase';
 import type { Livestock } from '@/types';
 
 const formatPrice = (value: number) => `KSH ${value.toLocaleString()}`;
+const getLivestockPrice = (item: Livestock) => Number(item.price_ksh ?? item.price ?? 0);
 
 export default async function MarketPage() {
   const { data } = await supabase
@@ -42,7 +43,7 @@ export default async function MarketPage() {
                   <h2 className="mt-3 text-2xl font-semibold text-slate-900">{item.name}</h2>
                   <p className="mt-3 text-sm text-slate-600">Breed: {item.breed}</p>
                   <p className="mt-1 text-sm text-slate-600">Location: {item.location ?? 'Unknown'}</p>
-                  <p className="mt-3 text-xl font-semibold text-slate-900">{formatPrice(item.price)}</p>
+                  <p className="mt-3 text-xl font-semibold text-slate-900">{formatPrice(getLivestockPrice(item))}</p>
                   <div className="mt-6 flex flex-col gap-3">
                     <a
                       href={whatsappLink ?? '#'}
