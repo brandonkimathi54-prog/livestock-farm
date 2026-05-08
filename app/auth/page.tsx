@@ -18,7 +18,7 @@ export default function AuthPage() {
     const init = async () => {
       const { data } = await supabase.auth.getSession();
       if (data.session) {
-        router.replace('/dashboard');
+        window.location.href = '/dashboard';
       }
     };
 
@@ -26,7 +26,7 @@ export default function AuthPage() {
 
     const { data: listener } = supabase.auth.onAuthStateChange((event: AuthChangeEvent, session: Session | null) => {
       if (session) {
-        router.replace('/dashboard');
+        window.location.href = '/dashboard';
       }
     });
 
