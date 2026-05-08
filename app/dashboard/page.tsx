@@ -225,7 +225,12 @@ export default function DashboardPage() {
     event.preventDefault();
     setErrorMessage(null);
 
-    if (!session?.user?.id) {
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user?.id) {
       router.replace('/auth');
       return;
     }
@@ -236,7 +241,7 @@ export default function DashboardPage() {
 
     if (photoFile) {
       try {
-        image_url = await uploadToBucket('cow-photos', session.user.id, formState.name, photoFile);
+        image_url = await uploadToBucket('cow-photos', user.id, formState.name, photoFile);
       } catch (uploadError) {
         uploadWarnings.push(
           uploadError instanceof Error
@@ -248,7 +253,7 @@ export default function DashboardPage() {
 
     if (videoFile) {
       try {
-        video_url = await uploadToBucket('market-videos', session.user.id, formState.name, videoFile);
+        video_url = await uploadToBucket('market-videos', user.id, formState.name, videoFile);
       } catch (uploadError) {
         uploadWarnings.push(
           uploadError instanceof Error
@@ -258,7 +263,7 @@ export default function DashboardPage() {
       }
     }
 
-    const { error } = await saveLivestock(session.user, { image_url, video_url });
+    const { error } = await saveLivestock(user, { image_url, video_url });
 
     if (error) {
       setErrorMessage(error.message);
@@ -662,7 +667,7 @@ export default function DashboardPage() {
 
       {showModal ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 px-4 py-6">
-          <div className={`w-full max-w-2xl max-h-[85vh] overflow-y-auto p-5 ${glassCardClass}`}>
+          <div className={`w-full max-w-2xl max-h-[80vh] overflow-y-auto p-5 ${glassCardClass}`}>
             <div className="flex items-center justify-between gap-4">
               <div>
                 <h2 className="text-2xl font-semibold text-slate-900">Add Livestock</h2>
