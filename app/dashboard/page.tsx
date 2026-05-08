@@ -1,3 +1,11 @@
+'use client';
+
+import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Pie, PieChart, ResponsiveContainer, Tooltip, Cell, Legend } from 'recharts';
+import { supabase } from '@/lib/supabase';
+import type { Livestock } from '@/types';
+import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
 import LivestockDetails from '@/components/LivestockDetails';
 
 const chartColors = ['#22c55e', '#2563eb'];
