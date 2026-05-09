@@ -1,7 +1,22 @@
 /** @type {import('next').NextConfig} */
+const withPWA = require('next-pwa')({
+  dest: 'public',
+  register: true,
+  skipWaiting: true,
+  disable: process.env.NODE_ENV === 'development'
+});
+
 const nextConfig = {
   reactStrictMode: true,
-  // We will add PWA back once we confirm the basic build works
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**',
+      },
+    ],
+  },
+  turbopack: {},
 };
 
-module.exports = nextConfig;
+module.exports = withPWA(nextConfig);

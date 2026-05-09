@@ -25,8 +25,8 @@ export default function NavBar() {
   return (
     <header className="bg-green-700 text-white flex items-center justify-between p-4 shadow-md">
       <div className="flex items-center gap-3">
-        {/* Option B: Use the simplified white-line version */}
-        <img src="/icons/epaphroditus-icon-white.svg" alt="Epaphroditus Farm Icon" className="h-8 w-8" />
+        {/* Use the Epaphroditus Farm logo */}
+        <img src="/android-chrome-192x192.png" alt="Epaphroditus Farm Logo" className="h-8 w-8" />
         
         <span className="text-2xl font-semibold tracking-tight">Epaphroditus Farm</span>
       </div>
