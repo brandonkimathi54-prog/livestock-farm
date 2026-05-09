@@ -4,7 +4,7 @@ export default function HomePage() {
   return (
     <section className="space-y-8 py-12 text-slate-900">
       <div className="rounded-3xl bg-white p-10 shadow-sm shadow-slate-200">
-        <p className="text-sm uppercase tracking-[0.3em] text-slate-500">Smart Farmer</p>
+        <p className="text-sm uppercase tracking-[0.3em] text-slate-500">Epaphroditus Farm</p>
         <h1 className="mt-4 text-4xl font-semibold tracking-tight text-slate-900 sm:text-5xl">
           Grow your livestock business with a modern marketplace and farm dashboard.
         </h1>

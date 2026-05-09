@@ -202,7 +202,7 @@ export default function ChatInterface() {
       {/* Header */}
       <header className="p-4 bg-emerald-700 text-white flex items-center gap-3 shadow-md">
         <Sprout className="w-6 h-6" />
-        <h1 className="font-bold text-lg">Smart Farmer Advisor</h1>
+        <h1 className="font-bold text-lg">Epaphroditus AI</h1>
         <div className="ml-auto flex items-center gap-2">
           <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
           <span className="text-xs">Online</span>
@@ -217,7 +217,7 @@ export default function ChatInterface() {
             <div className="inline-flex items-center justify-center w-16 h-16 bg-emerald-100 rounded-full mb-4">
               <Leaf className="w-8 h-8 text-emerald-600" />
             </div>
-            <h2 className="text-xl font-semibold text-stone-800 mb-2">Welcome to Smart Farmer Advisor</h2>
+            <h2 className="text-xl font-semibold text-stone-800 mb-2">Welcome to Epaphroditus AI</h2>
             <p className="text-stone-600 text-sm max-w-md mx-auto">
               Ask me anything about livestock management, crop cultivation, or farm business in Kenya. I'm here to help!
             </p>

@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
@@ -22,27 +23,23 @@ export default function NavBar() {
   }, []);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/95 backdrop-blur">
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
-        <Link href="/" className="flex items-center">
-          <Image src="/logo.png" alt="Smart Farmer Logo" width={120} height={40} className="h-10 w-auto object-contain" />
-        </Link>
-        <nav className="flex items-center gap-3 text-sm font-medium text-slate-700">
-          <Link href="/market" className="rounded-full px-4 py-2 transition hover:bg-slate-100">
-            Market
-          </Link>
-          {session ? (
-            <>
-              <Link href="/dashboard" className="rounded-full bg-slate-900 px-4 py-2 text-white transition hover:bg-slate-700">
-                Dashboard
-              </Link>
-            </>
-          ) : (
-            <Link href="/auth" className="rounded-full bg-slate-900 px-4 py-2 text-white transition hover:bg-slate-700">
-              Login
-            </Link>
-          )}
-        </nav>
+    <header className="bg-green-700 text-white flex items-center justify-between p-4 shadow-md">
+      <div className="flex items-center gap-3">
+        {/* Option B: Use the simplified white-line version */}
+        <img src="/icons/epaphroditus-icon-white.svg" alt="Epaphroditus Farm Icon" className="h-8 w-8" />
+        
+        <span className="text-2xl font-semibold tracking-tight">Epaphroditus Farm</span>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <div className="bg-white/10 px-3 py-1 rounded-full text-sm font-medium">Market</div>
+        {session ? (
+          <div className="bg-white/10 px-3 py-1 rounded-full text-sm font-medium">Dashboard</div>
+        ) : (
+          <div className="bg-white/10 px-3 py-1 rounded-full text-sm font-medium">Login</div>
+        )}
+        <div className="w-3 h-3 bg-emerald-500 rounded-full ml-1" title="Connected"></div>
+        <span className="text-sm font-light text-emerald-100">Online</span>
       </div>
     </header>
   );

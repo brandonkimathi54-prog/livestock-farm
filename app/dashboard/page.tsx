@@ -926,7 +926,7 @@ export default function DashboardPage() {
 
             <p className="text-sm uppercase tracking-[0.3em] text-white/90">Secure Dashboard</p>
 
-            <h1 className="mt-4 text-3xl font-semibold text-white">Your Farm Inventory</h1>
+            <h1 className="mt-4 text-3xl font-semibold text-white">Epaphroditus Farm Inventory</h1>
 
             <p className="mt-3 max-w-2xl text-white/90">Manage only the livestock you own and quickly add new stock.</p>
 

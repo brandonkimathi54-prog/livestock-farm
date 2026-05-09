@@ -55,7 +55,7 @@ export default function AuthPage() {
     <section className="mx-auto max-w-xl rounded-3xl bg-white p-8 shadow-sm shadow-slate-200" style={{ background: 'rgba(255, 255, 255, 0.8)', backdropFilter: 'blur(5px)' }}>
       <div className="space-y-3">
         <p className="text-sm uppercase tracking-[0.3em] text-slate-500">Account access</p>
-        <h1 className="text-3xl font-semibold text-slate-900">{mode === 'login' ? 'Login to Smart Farmer' : 'Create your account'}</h1>
+        <h1 className="text-3xl font-semibold text-slate-900">{mode === 'login' ? 'Login to Epaphroditus Farm' : 'Create your account'}</h1>
         <p className="text-sm leading-6 text-slate-600">
           {mode === 'login'
             ? 'Sign in with your email and password to manage your herd.'

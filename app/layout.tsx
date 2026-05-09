@@ -4,7 +4,7 @@ import NavBar from '@/components/NavBar';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Smart Farmer',
+  title: 'Epaphroditus Farm',
   description: 'Universal Livestock Marketplace and Management System',
   icons: {
     icon: '/favicon.ico',
