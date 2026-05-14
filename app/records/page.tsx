@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { supabase } from '@/lib/supabaseWrapper';
 import type { Livestock } from '@/types';
@@ -59,7 +60,9 @@ function inRange(d: Date, start: Date, end: Date): boolean {
 }
 
 export default function AllRecordsPage() {
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
+  const [unauthorized, setUnauthorized] = useState(false);
 
   const [livestock, setLivestock] = useState<Livestock[]>([]);
   const [milk, setMilk] = useState<MilkRow[]>([]);
@@ -82,9 +85,12 @@ export default function AllRecordsPage() {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user?.id) {
-      window.location.href = '/auth';
+      setUnauthorized(true);
+      setLoading(false);
+      router.replace('/login');
       return;
     }
+    setUnauthorized(false);
     const { data: herd, error: herdErr } = await supabase
       .from('livestock')
       .select('id,name,breed')
@@ -118,11 +124,27 @@ export default function AllRecordsPage() {
     setExpenses((eRes.data ?? []) as ExpenseRow[]);
     setFinance((fRes.data ?? []) as FinanceRow[]);
     setLoading(false);
-  }, []);
+  }, [router]);
 
   useEffect(() => {
-    void loadAll();
-  }, [loadAll]);
+    const reload = () => {
+      router.refresh();
+      void loadAll();
+    };
+
+    reload();
+
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') reload();
+    };
+
+    window.addEventListener('focus', reload);
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      window.removeEventListener('focus', reload);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, [loadAll, router]);
 
   const range = useMemo(() => monthStartEnd(monthFilter), [monthFilter]);
 
@@ -220,8 +242,22 @@ export default function AllRecordsPage() {
     );
   }
 
+  if (unauthorized) {
+    return (
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 text-slate-900 shadow-sm">
+        <h1 className="text-2xl font-semibold">Unauthorized</h1>
+        <p className="mt-2 text-sm text-slate-600">Please sign in to view your records.</p>
+        <div className="mt-5">
+          <Link href="/login" className="inline-flex rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700">
+            Go to login
+          </Link>
+        </div>
+      </section>
+    );
+  }
+
   return (
-    <section className="space-y-8">
+    <section className="space-y-6 sm:space-y-8">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <Link href="/dashboard" className="text-sm font-medium text-emerald-700 hover:underline">
@@ -243,7 +279,7 @@ export default function AllRecordsPage() {
         </button>
       </div>
 
-      <div className="grid gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:grid-cols-3">
+      <div className="grid gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:grid-cols-3 sm:p-6">
         <label className="text-sm text-slate-700">
           <span className="mb-1 block font-medium">Month</span>
           <input
@@ -278,9 +314,28 @@ export default function AllRecordsPage() {
         </div>
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
         <h2 className="text-lg font-semibold text-slate-900">Milk (filtered)</h2>
-        <div className="mt-4 overflow-x-auto">
+        <div className="mt-4 space-y-3 md:hidden">
+          {filtered.milkF.length === 0 ? (
+            <p className="text-sm text-slate-500">No milk rows for this filter.</p>
+          ) : (
+            filtered.milkF.map((r) => (
+              <div key={r.id} className="rounded-2xl border border-slate-200 bg-white p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900">{animalName(r.livestock_id)}</p>
+                    <p className="mt-1 text-xs text-slate-600">{r.date}</p>
+                  </div>
+                  <p className="text-sm font-semibold text-slate-900">{r.amount_liters} L</p>
+                </div>
+                <p className="mt-3 text-xs text-slate-600">Session: {r.milking_session ?? '—'}</p>
+              </div>
+            ))
+          )}
+        </div>
+
+        <div className="mt-4 hidden overflow-x-auto md:block">
           <table className="min-w-full text-left text-sm text-slate-700">
             <thead>
               <tr className="border-b border-slate-200">

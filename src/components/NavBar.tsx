@@ -16,9 +16,18 @@ export default function NavBar() {
   const [installReady, setInstallReady] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }: { data: { session: Session | null } }) => setSession(data.session));
+    const init = async () => {
+      const [{ data: sessionData }, { data: userData }] = await Promise.all([
+        supabase.auth.getSession(),
+        supabase.auth.getUser(),
+      ]);
 
-    const { data: authListener } = supabase.auth.onAuthStateChange((event: AuthChangeEvent, session: Session | null) => {
+      setSession(userData.user ? sessionData.session : null);
+    };
+
+    void init();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
       setSession(session);
     });
 
@@ -82,7 +91,7 @@ export default function NavBar() {
           </span>
         )}
         {session ? null : (
-          <Link href="/auth" className="rounded-full bg-white/10 px-3 py-1 text-sm font-medium transition hover:bg-white/20">
+          <Link href="/login" className="rounded-full bg-white/10 px-3 py-1 text-sm font-medium transition hover:bg-white/20">
             Login
           </Link>
         )}

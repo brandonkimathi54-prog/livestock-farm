@@ -18,6 +18,11 @@ import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
 
 import LivestockDetails from '@/components/LivestockDetails';
 
+type BeforeInstallPromptEvent = Event & {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+};
+
 
 
 interface MilkRecord {
@@ -96,7 +101,7 @@ const chartColors = ['#22c55e', '#2563eb'];
 
 const glassCardClass =
 
-  'rounded-3xl border border-white/35 bg-white/20 p-8 shadow-xl shadow-slate-900/10 backdrop-blur-xl';
+  'rounded-3xl border border-white/35 bg-white/20 p-5 shadow-xl shadow-slate-900/10 backdrop-blur-xl sm:p-8';
 
 const COW_PHOTOS_BUCKET = 'cow photos';
 const MARKET_VIDEOS_BUCKET = 'market-videos';
@@ -145,6 +150,9 @@ export default function DashboardPage() {
 
   const [session, setSession] = useState<Session | null>(null);
 
+  const [installEvent, setInstallEvent] = useState<BeforeInstallPromptEvent | null>(null);
+  const [installReady, setInstallReady] = useState(false);
+
   const [livestock, setLivestock] = useState<Livestock[]>([]);
 
   const [loading, setLoading] = useState(true);
@@ -156,8 +164,6 @@ export default function DashboardPage() {
   const [selectedLivestock, setSelectedLivestock] = useState<Livestock | null>(null);
 
   const [mainView, setMainView] = useState<'inventory' | 'management' | 'settings'>('inventory');
-
-  const [activeTab, setActiveTab] = useState<'inventory' | 'management'>('inventory');
 
   const [managementTab, setManagementTab] = useState<'milk' | 'health' | 'expenses'>('milk');
 
@@ -211,6 +217,8 @@ export default function DashboardPage() {
 
   const [defaultMilkPriceKsh, setDefaultMilkPriceKsh] = useState('60');
 
+  const [savingSettings, setSavingSettings] = useState(false);
+
   const [healthForm, setHealthForm] = useState({
 
     event: '',
@@ -249,57 +257,72 @@ export default function DashboardPage() {
 
   useEffect(() => {
 
-    try {
+    const loadDefaultPrice = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (user?.id) {
+        const { data } = await supabase
+          .from('farm_settings')
+          .select('default_milk_price')
+          .eq('user_id', user.id)
+          .maybeSingle();
 
-      const raw = window.localStorage.getItem(DEFAULT_MILK_PRICE_STORAGE_KEY);
-
-      if (raw !== null && !Number.isNaN(Number(raw))) {
-
-        setDefaultMilkPriceKsh(String(Number(raw)));
-
+        if (data?.default_milk_price != null && !Number.isNaN(Number(data.default_milk_price))) {
+          setDefaultMilkPriceKsh(String(Number(data.default_milk_price)));
+          return;
+        }
       }
 
-    } catch {
+      try {
+        const raw = window.localStorage.getItem(DEFAULT_MILK_PRICE_STORAGE_KEY);
+        if (raw !== null && !Number.isNaN(Number(raw))) {
+          setDefaultMilkPriceKsh(String(Number(raw)));
+        }
+      } catch (e) {
+        void e;
+      }
+    };
 
-      /* ignore */
+    void loadDefaultPrice();
 
-    }
+  }, []);
 
+  useEffect(() => {
+    const onBip = (e: Event) => {
+      e.preventDefault();
+      setInstallEvent(e as BeforeInstallPromptEvent);
+      setInstallReady(true);
+    };
+
+    window.addEventListener('beforeinstallprompt', onBip);
+    return () => window.removeEventListener('beforeinstallprompt', onBip);
   }, []);
 
 
 
   useEffect(() => {
 
-    try {
-
-      window.localStorage.setItem(DEFAULT_MILK_PRICE_STORAGE_KEY, String(Number(defaultMilkPriceKsh) || 0));
-
-    } catch {
-
-      /* ignore */
-
-    }
-
-  }, [defaultMilkPriceKsh]);
-
-
-
-  useEffect(() => {
-
     const init = async () => {
-      const { data } = await supabase.auth.getSession();
-      if (!data.session) {
-        window.location.href = '/auth';
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user?.id) {
+        window.location.href = '/login';
         return;
       }
+
+      const { data } = await supabase.auth.getSession();
       setSession(data.session);
     };
     init();
 
-    const { data: listener } = supabase.auth.onAuthStateChange((event: AuthChangeEvent, session: Session | null) => {
-      if (!session) {
-        window.location.href = '/auth';
+    const { data: listener } = supabase.auth.onAuthStateChange(async (_event: AuthChangeEvent, session: Session | null) => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user?.id) {
+        window.location.href = '/login';
         return;
       }
       setSession(session);
@@ -313,22 +336,22 @@ export default function DashboardPage() {
 
   useEffect(() => {
 
-    if (!session?.user?.id) {
-
-      return;
-
-    }
-
-
-
     const fetchLivestock = async () => {
 
       setLoading(true);
 
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user?.id) {
+        window.location.href = '/login';
+        return;
+      }
+
       const { data, error } = await supabase
         .from('livestock')
         .select('*')
-        .eq('user_id', session.user.id)
+        .eq('user_id', user.id)
         .order('updated_at', { ascending: false });
 
       if (error) {
@@ -369,12 +392,6 @@ export default function DashboardPage() {
 
   useEffect(() => {
 
-    if (mainView === 'inventory') {
-
-      setActiveTab('inventory');
-
-    }
-
     setManagementTab('milk');
 
   }, [mainView]);
@@ -394,6 +411,14 @@ export default function DashboardPage() {
     const fetchManagementRecords = async () => {
 
       setRecordsLoading(true);
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user?.id) {
+        window.location.href = '/login';
+        return;
+      }
 
       const [milkResponse, healthResponse, expenseResponse, financeResponse] = await Promise.all([
 
@@ -676,7 +701,15 @@ export default function DashboardPage() {
 
       // Delete the database record
 
-      const { error } = await supabase.from('livestock').delete().eq('id', item.id);
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user?.id) {
+        window.location.href = '/login';
+        return;
+      }
+
+      const { error } = await supabase.from('livestock').delete().eq('id', item.id).eq('user_id', user.id);
 
       if (error) {
 
@@ -705,8 +738,11 @@ export default function DashboardPage() {
   };
 
   const markLivestockAvailable = async (item: Livestock) => {
-    if (!session?.user?.id) {
-      setErrorMessage('Unable to update availability. Please sign in again.');
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user?.id) {
+      window.location.href = '/login';
       return;
     }
 
@@ -714,7 +750,7 @@ export default function DashboardPage() {
       .from('livestock')
       .update({ status: 'Available' })
       .eq('id', item.id)
-      .eq('user_id', session.user.id);
+      .eq('user_id', user.id);
 
     if (error) {
       setErrorMessage(error.message);
@@ -736,12 +772,6 @@ export default function DashboardPage() {
   const handleMainTabClick = (tab: 'inventory' | 'management' | 'settings') => {
 
     setMainView(tab);
-
-    if (tab === 'inventory') {
-
-      setActiveTab('inventory');
-
-    }
 
     setManagementTab('milk');
 
@@ -795,7 +825,7 @@ export default function DashboardPage() {
 
     if (userError || !user?.id) {
 
-      router.replace('/auth');
+      router.replace('/login');
 
       return;
 
@@ -929,7 +959,15 @@ export default function DashboardPage() {
 
     event.preventDefault();
 
-    if (!selectedLivestock?.id || !session?.user?.id) return;
+    if (!selectedLivestock?.id) return;
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user?.id) {
+      window.location.href = '/login';
+      return;
+    }
 
     const morning = Number(milkForm.morning_liters || 0);
 
@@ -1023,7 +1061,7 @@ export default function DashboardPage() {
 
           livestock_id: selectedLivestock.id,
 
-          user_id: session.user.id,
+          user_id: user.id,
 
           type: 'revenue',
 
@@ -1072,6 +1110,7 @@ export default function DashboardPage() {
         .order('id', { ascending: false });
 
       setFinancialRows((financeData ?? []) as FinancialRow[]);
+      router.refresh();
 
     } catch (err) {
 
@@ -1092,6 +1131,14 @@ export default function DashboardPage() {
     event.preventDefault();
 
     if (!selectedLivestock?.id) return;
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user?.id) {
+      window.location.href = '/login';
+      return;
+    }
 
     setSavingHealth(true);
 
@@ -1166,6 +1213,7 @@ export default function DashboardPage() {
       const { data: expenseData } = await supabase.from('expenses').select('*').eq('livestock_id', selectedLivestock.id).order('id', { ascending: false });
 
       setExpenseRecords((expenseData ?? []) as ExpenseRecord[]);
+      router.refresh();
 
     } catch (err) {
 
@@ -1186,6 +1234,14 @@ export default function DashboardPage() {
     event.preventDefault();
 
     if (!selectedLivestock?.id) return;
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user?.id) {
+      window.location.href = '/login';
+      return;
+    }
 
     setSavingExpense(true);
 
@@ -1234,6 +1290,7 @@ export default function DashboardPage() {
       const { data } = await supabase.from('expenses').select('*').eq('livestock_id', selectedLivestock.id).order('id', { ascending: false });
 
       setExpenseRecords((data ?? []) as ExpenseRecord[]);
+      router.refresh();
 
     } catch (err) {
 
@@ -1248,6 +1305,44 @@ export default function DashboardPage() {
   };
 
 
+
+  const handleInstallClick = async () => {
+    if (!installEvent) return;
+    await installEvent.prompt();
+    await installEvent.userChoice;
+    setInstallEvent(null);
+    setInstallReady(false);
+  };
+
+  const handleSaveSettings = async () => {
+    setSavingSettings(true);
+    setErrorMessage(null);
+    setSuccessMessage(null);
+
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user?.id) {
+        window.location.href = '/login';
+        return;
+      }
+
+      const defaultMilkPrice = Number(defaultMilkPriceKsh || 0);
+      const { error } = await supabase
+        .from('farm_settings')
+        .upsert({ user_id: user.id, default_milk_price: defaultMilkPrice }, { onConflict: 'user_id' });
+
+      if (error) throw error;
+
+      setSuccessMessage('Settings saved');
+      setTimeout(() => setSuccessMessage(null), 3000);
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : 'Failed to save settings');
+    } finally {
+      setSavingSettings(false);
+    }
+  };
 
   return (
 
@@ -1273,7 +1368,7 @@ export default function DashboardPage() {
 
       <section
 
-        className="relative space-y-8 overflow-hidden rounded-3xl px-4 py-8 sm:px-6"
+        className="relative space-y-6 overflow-hidden rounded-3xl px-4 py-6 sm:space-y-8 sm:px-6 sm:py-8"
 
         style={{
 
@@ -1305,7 +1400,15 @@ export default function DashboardPage() {
 
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <button
+              type="button"
+              disabled={!installReady}
+              onClick={() => void handleInstallClick()}
+              className="inline-flex items-center justify-center rounded-full bg-amber-400 px-5 py-3 text-sm font-semibold text-emerald-950 transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              Install App
+            </button>
 
             <button
 
@@ -1642,7 +1745,15 @@ export default function DashboardPage() {
 
             </label>
 
-            <p className="text-xs text-slate-500">Saved automatically in this browser.</p>
+            <button
+              type="button"
+              disabled={savingSettings}
+              onClick={() => void handleSaveSettings()}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {savingSettings ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
+              {savingSettings ? 'Saving…' : 'Save settings'}
+            </button>
 
             <a
 
@@ -1696,7 +1807,7 @@ export default function DashboardPage() {
 
                   }}
 
-                  className="w-full min-w-64 rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 outline-none transition focus:border-slate-400"
+                  className="w-full rounded-2xl border border-slate-200 bg-white/80 px-3 py-2 outline-none transition focus:border-slate-400 sm:min-w-64 sm:px-4 sm:py-3"
 
                 >
 
@@ -1830,7 +1941,7 @@ export default function DashboardPage() {
 
                 {managementTab === 'milk' ? (
 
-                  <div className="rounded-2xl border border-slate-200 bg-white/70 p-5">
+                  <div className="rounded-2xl border border-slate-200 bg-white/70 p-4 sm:p-5">
 
                   <h3 className="text-lg font-semibold text-slate-900">Milk Production</h3>
 
@@ -1984,7 +2095,7 @@ export default function DashboardPage() {
 
                 {managementTab === 'health' ? (
 
-                  <div className="rounded-2xl border border-slate-200 bg-white/70 p-5">
+                  <div className="rounded-2xl border border-slate-200 bg-white/70 p-4 sm:p-5">
 
                   <h3 className="text-lg font-semibold text-slate-900">Health Tracker</h3>
 
@@ -2074,6 +2185,7 @@ export default function DashboardPage() {
 
                             <td className="py-2 pr-2">{formatRecordDateForDisplay(record.date)}</td>
 
+                            <td className="py-2 pr-2">{record.event_type}</td>
                             <td className="py-2">KSH {Number(record.cost ?? 0).toLocaleString()}</td>
 
                           </tr>
@@ -2094,7 +2206,7 @@ export default function DashboardPage() {
 
                 {managementTab === 'expenses' ? (
 
-                  <div className="rounded-2xl border border-slate-200 bg-white/70 p-5">
+                  <div className="rounded-2xl border border-slate-200 bg-white/70 p-4 sm:p-5">
 
                   <h3 className="text-lg font-semibold text-slate-900">Expense Log</h3>
 

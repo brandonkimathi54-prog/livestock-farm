@@ -87,8 +87,8 @@ export default async function MarketPage() {
   const livestock = (data ?? []) as Livestock[];
 
   return (
-    <section className="space-y-8 py-8">
-      <div className="rounded-3xl bg-white p-8 shadow-sm shadow-slate-200">
+    <section className="space-y-6 py-6 sm:space-y-8 sm:py-8">
+      <div className="rounded-3xl bg-white p-5 shadow-sm shadow-slate-200 sm:p-8">
         <p className="text-sm uppercase tracking-[0.3em] text-slate-500">Universal Market</p>
         <h1 className="mt-4 text-3xl font-semibold text-slate-900 sm:text-4xl">
           Public livestock listings
@@ -99,11 +99,11 @@ export default async function MarketPage() {
       </div>
 
       {livestock.length === 0 ? (
-        <div className="rounded-3xl bg-white p-8 shadow-sm shadow-slate-200">
+        <div className="rounded-3xl bg-white p-5 shadow-sm shadow-slate-200 sm:p-8">
           <p className="text-slate-600">No livestock is available right now. Check back later.</p>
         </div>
       ) : (
-        <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 lg:gap-6">
           {livestock.map((item: Livestock) => (
             <LivestockCard key={item.id} item={item} />
           ))}
