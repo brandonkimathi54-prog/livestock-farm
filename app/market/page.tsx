@@ -4,6 +4,9 @@ import type { Livestock } from '@/types';
 const formatPrice = (value: number) => `KSH ${value.toLocaleString()}`;
 const getLivestockPrice = (item: Livestock) => Number(item.price_ksh ?? item.price ?? 0);
 
+const COW_PHOTOS_BUCKET = 'cow photos';
+const MARKET_VIDEOS_BUCKET = 'market-videos';
+
 const getPublicMediaUrl = (bucket: string, pathOrUrl?: string | null) => {
   if (!pathOrUrl) return '';
   if (/^https?:\/\//i.test(pathOrUrl)) return pathOrUrl;
@@ -14,8 +17,12 @@ function LivestockCard({ item }: { item: Livestock }) {
   const whatsappLink = item.whatsapp_number
     ? `https://wa.me/${item.whatsapp_number.replace(/\D/g, '')}`
     : undefined;
-  const imageSrc = getPublicMediaUrl('cow photos', item.image_url);
-  const videoSrc = getPublicMediaUrl('market-videos', item.video_url);
+  const imageSrc = item.image_url
+    ? /^https?:\/\//i.test(item.image_url)
+      ? item.image_url
+      : supabase.storage.from(COW_PHOTOS_BUCKET).getPublicUrl(item.image_url).data.publicUrl
+    : '';
+  const videoSrc = getPublicMediaUrl(MARKET_VIDEOS_BUCKET, item.video_url);
 
   return (
     <article className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">

@@ -82,6 +82,9 @@ const glassCardClass =
 
   'rounded-3xl border border-white/35 bg-white/20 p-8 shadow-xl shadow-slate-900/10 backdrop-blur-xl';
 
+const COW_PHOTOS_BUCKET = 'cow photos';
+const MARKET_VIDEOS_BUCKET = 'market-videos';
+
 const getLivestockPrice = (item: Livestock) => Number(item.price_ksh ?? item.price ?? 0);
 
 const getPublicMediaUrl = (bucket: string, pathOrUrl?: string | null) => {
@@ -659,7 +662,7 @@ export default function DashboardPage() {
 
       try {
 
-        image_url = await uploadToBucket('cow photos', user.id, formState.name, photoFile);
+        image_url = await uploadToBucket(COW_PHOTOS_BUCKET, user.id, formState.name, photoFile);
 
       } catch (uploadError) {
 
@@ -683,7 +686,7 @@ export default function DashboardPage() {
 
       try {
 
-        video_url = await uploadToBucket('market-videos', user.id, formState.name, videoFile);
+        video_url = await uploadToBucket(MARKET_VIDEOS_BUCKET, user.id, formState.name, videoFile);
 
       } catch (uploadError) {
 
