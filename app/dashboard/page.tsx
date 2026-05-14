@@ -8,7 +8,7 @@ import { useRouter } from 'next/navigation';
 
 import { Pie, PieChart, ResponsiveContainer, Tooltip, Cell, Legend } from 'recharts';
 
-import { MoreVertical } from 'lucide-react';
+import { Loader2, MoreVertical } from 'lucide-react';
 
 import { supabase } from '@/lib/supabaseWrapper';
 
@@ -74,6 +74,22 @@ interface ExpenseRecord {
 
 }
 
+interface FinancialRow {
+
+  id: string;
+
+  livestock_id: string;
+
+  type: string;
+
+  amount: number;
+
+  description?: string | null;
+
+  date: string;
+
+}
+
 
 
 const chartColors = ['#22c55e', '#2563eb'];
@@ -125,6 +141,8 @@ export default function DashboardPage() {
 
   const [expenseRecords, setExpenseRecords] = useState<ExpenseRecord[]>([]);
 
+  const [financialRows, setFinancialRows] = useState<FinancialRow[]>([]);
+
   const [recordsLoading, setRecordsLoading] = useState(false);
 
   const [formState, setFormState] = useState({
@@ -155,8 +173,6 @@ export default function DashboardPage() {
 
   const [milkForm, setMilkForm] = useState({
 
-    date: '',
-
     amount_liters: '',
 
     price_per_litre: '',
@@ -169,8 +185,6 @@ export default function DashboardPage() {
 
     cost: '',
 
-    date: '',
-
   });
 
   const [expenseForm, setExpenseForm] = useState({
@@ -180,8 +194,6 @@ export default function DashboardPage() {
     amount: '',
 
     notes: '',
-
-    date: '',
 
   });
 
@@ -193,19 +205,13 @@ export default function DashboardPage() {
 
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
+  const [feedBagsRemaining, setFeedBagsRemaining] = useState(50);
+
 
 
   const getAutoFormattedDate = () => {
 
     return new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-
-  };
-
-  const getSimpleDate = () => {
-
-    const now = new Date();
-
-    return now.toISOString().split('T')[0];
 
   };
 
@@ -234,6 +240,44 @@ export default function DashboardPage() {
     return () => listener.subscription?.unsubscribe();
 
   }, [router]);
+
+
+
+  useEffect(() => {
+
+    try {
+
+      const raw = window.localStorage.getItem('farm_feed_bags_remaining');
+
+      if (raw !== null && !Number.isNaN(Number(raw))) {
+
+        setFeedBagsRemaining(Number(raw));
+
+      }
+
+    } catch {
+
+      /* ignore */
+
+    }
+
+  }, []);
+
+
+
+  useEffect(() => {
+
+    try {
+
+      window.localStorage.setItem('farm_feed_bags_remaining', String(feedBagsRemaining));
+
+    } catch {
+
+      /* ignore */
+
+    }
+
+  }, [feedBagsRemaining]);
 
 
 
@@ -321,7 +365,7 @@ export default function DashboardPage() {
 
       setRecordsLoading(true);
 
-      const [milkResponse, healthResponse, expenseResponse] = await Promise.all([
+      const [milkResponse, healthResponse, expenseResponse, financeResponse] = await Promise.all([
 
         supabase
           .from('milk_records')
@@ -341,6 +385,12 @@ export default function DashboardPage() {
           .eq('livestock_id', selectedLivestock.id)
           .order('date', { ascending: false }),
 
+        supabase
+          .from('financials')
+          .select('*')
+          .eq('livestock_id', selectedLivestock.id)
+          .order('date', { ascending: false }),
+
       ]);
 
 
@@ -356,6 +406,16 @@ export default function DashboardPage() {
         setHealthRecords((healthResponse.data ?? []) as HealthRecord[]);
 
         setExpenseRecords((expenseResponse.data ?? []) as ExpenseRecord[]);
+
+        if (!financeResponse.error) {
+
+          setFinancialRows((financeResponse.data ?? []) as FinancialRow[]);
+
+        } else {
+
+          setFinancialRows([]);
+
+        }
 
       }
 
@@ -400,6 +460,22 @@ export default function DashboardPage() {
     ];
 
   }, [livestock]);
+
+
+
+  const farmProfitLoss = useMemo(() => {
+
+    const revenue = financialRows
+
+      .filter((row) => (row.type ?? '').toLowerCase() === 'revenue')
+
+      .reduce((sum, row) => sum + Number(row.amount ?? 0), 0);
+
+    const expensesTotal = expenseRecords.reduce((sum, row) => sum + Number(row.amount ?? 0), 0);
+
+    return { revenue, expensesTotal, net: revenue - expensesTotal };
+
+  }, [financialRows, expenseRecords]);
 
 
 
@@ -814,7 +890,7 @@ export default function DashboardPage() {
 
     try {
 
-      const recordDate = milkForm.date || getSimpleDate();
+      const recordDate = getAutoFormattedDate();
 
       const liters = Number(milkForm.amount_liters);
 
@@ -840,7 +916,7 @@ export default function DashboardPage() {
 
 
 
-      if (pricePerLitre > 0) {
+      if (totalRevenue > 0) {
 
         const { error: financeError } = await supabase.from('financials').insert({
 
@@ -864,7 +940,7 @@ export default function DashboardPage() {
 
 
 
-      setMilkForm({ date: '', amount_liters: '', price_per_litre: '' });
+      setMilkForm({ amount_liters: '', price_per_litre: '' });
 
       setSuccessMessage('Record Saved Successfully');
 
@@ -875,6 +951,26 @@ export default function DashboardPage() {
       const { data } = await supabase.from('milk_records').select('*').eq('livestock_id', selectedLivestock.id).order('date', { ascending: false });
 
       setMilkRecords((data ?? []) as MilkRecord[]);
+
+      const { data: financeData } = await supabase
+
+        .from('financials')
+
+        .select('*')
+
+        .eq('livestock_id', selectedLivestock.id)
+
+        .order('date', { ascending: false });
+
+      if (!financeData) {
+
+        setFinancialRows([]);
+
+      } else {
+
+        setFinancialRows(financeData as FinancialRow[]);
+
+      }
 
     } catch (err) {
 
@@ -906,7 +1002,7 @@ export default function DashboardPage() {
 
     try {
 
-      const recordDate = healthForm.date || getSimpleDate();
+      const recordDate = getAutoFormattedDate();
 
       const cost = Number(healthForm.cost);
 
@@ -917,6 +1013,8 @@ export default function DashboardPage() {
         livestock_id: selectedLivestock.id,
 
         event_type: healthForm.event,
+
+        description: `Logged on ${recordDate}`,
 
         cost: cost,
 
@@ -936,11 +1034,11 @@ export default function DashboardPage() {
 
           livestock_id: selectedLivestock.id,
 
-          category: 'Medical',
+          category: 'Medical/Veterinary',
 
           amount: cost,
 
-          notes: `Veterinary/Medical: ${healthForm.event}`,
+          notes: `Auto from health: ${healthForm.event}`,
 
           date: recordDate,
 
@@ -952,7 +1050,7 @@ export default function DashboardPage() {
 
 
 
-      setHealthForm({ event: '', cost: '', date: '' });
+      setHealthForm({ event: '', cost: '' });
 
       setSuccessMessage('Record Saved Successfully');
 
@@ -988,39 +1086,71 @@ export default function DashboardPage() {
 
     if (!selectedLivestock?.id) return;
 
+    setSavingExpense(true);
 
+    setErrorMessage(null);
 
-    const { error } = await supabase.from('expenses').insert({
-
-      livestock_id: selectedLivestock.id,
-
-      category: expenseForm.category,
-
-      amount: Number(expenseForm.amount),
-
-      notes: expenseForm.notes,
-
-      date: expenseForm.date,
-
-    });
+    setSuccessMessage(null);
 
 
 
-    if (error) {
+    try {
 
-      setErrorMessage(error.message);
+      const recordDate = getAutoFormattedDate();
 
-      return;
+      const amount = Number(expenseForm.amount);
+
+
+
+      const { error } = await supabase.from('expenses').insert({
+
+        livestock_id: selectedLivestock.id,
+
+        category: expenseForm.category,
+
+        amount,
+
+        notes: expenseForm.notes,
+
+        date: recordDate,
+
+      });
+
+
+
+      if (error) throw error;
+
+
+
+      if (expenseForm.category === 'Feed') {
+
+        setFeedBagsRemaining((bags) => Math.max(0, bags - 1));
+
+      }
+
+
+
+      setExpenseForm({ category: 'Feed', amount: '', notes: '' });
+
+      setSuccessMessage('Record Saved Successfully');
+
+      setTimeout(() => setSuccessMessage(null), 3000);
+
+
+
+      const { data } = await supabase.from('expenses').select('*').eq('livestock_id', selectedLivestock.id).order('date', { ascending: false });
+
+      setExpenseRecords((data ?? []) as ExpenseRecord[]);
+
+    } catch (err) {
+
+      setErrorMessage(err instanceof Error ? err.message : 'Failed to save expense');
+
+    } finally {
+
+      setSavingExpense(false);
 
     }
-
-
-
-    setExpenseForm({ category: 'Feed', amount: '', notes: '', date: '' });
-
-    const { data } = await supabase.from('expenses').select('*').eq('livestock_id', selectedLivestock.id).order('date', { ascending: false });
-
-    setExpenseRecords((data ?? []) as ExpenseRecord[]);
 
   };
 
@@ -1029,6 +1159,24 @@ export default function DashboardPage() {
   return (
 
     <>
+
+      {successMessage ? (
+
+        <div
+
+          role="status"
+
+          className="fixed right-4 top-4 z-[100] max-w-sm rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-900 shadow-lg"
+
+        >
+
+          {successMessage}
+
+        </div>
+
+      ) : null}
+
+
 
       <section
 
@@ -1413,6 +1561,50 @@ export default function DashboardPage() {
 
               <div className="space-y-4">
 
+                <div className="grid gap-3 sm:grid-cols-2">
+
+                  <div className="rounded-2xl border border-amber-200 bg-amber-50/90 p-4">
+
+                    <p className="text-xs font-semibold uppercase tracking-wide text-amber-900">Feed inventory</p>
+
+                    <p className="mt-2 text-3xl font-bold text-amber-950">{feedBagsRemaining}</p>
+
+                    <p className="mt-1 text-xs text-amber-900/80">Bags remaining (minus 1 per Feed expense log)</p>
+
+                  </div>
+
+                  <div className="rounded-2xl border border-slate-200 bg-white/90 p-4">
+
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">Profit / loss (this animal)</p>
+
+                    <p className="mt-2 text-lg font-semibold text-slate-900">
+
+                      Revenue KSH {farmProfitLoss.revenue.toLocaleString()}
+
+                    </p>
+
+                    <p className="text-sm text-slate-600">
+
+                      Expenses KSH {farmProfitLoss.expensesTotal.toLocaleString()}
+
+                    </p>
+
+                    <p
+
+                      className={`mt-2 text-xl font-bold ${farmProfitLoss.net >= 0 ? 'text-emerald-700' : 'text-red-600'}`}
+
+                    >
+
+                      Net KSH {farmProfitLoss.net.toLocaleString()}
+
+                    </p>
+
+                  </div>
+
+                </div>
+
+
+
                 <div className="flex flex-wrap gap-2">
 
                   {[
@@ -1481,21 +1673,51 @@ export default function DashboardPage() {
 
                     <input
 
-                      type="date"
+                      type="number"
+
+                      min="0"
+
+                      step="0.01"
 
                       required
 
-                      value={milkForm.date}
+                      placeholder="Price per litre (KSH)"
 
-                      onChange={(event) => setMilkForm((prev) => ({ ...prev, date: event.target.value }))}
+                      value={milkForm.price_per_litre}
+
+                      onChange={(event) => setMilkForm((prev) => ({ ...prev, price_per_litre: event.target.value }))}
 
                       className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-slate-400"
 
                     />
 
-                    <button type="submit" className="w-full rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700">
+                    <p className="text-sm font-medium text-emerald-800">
 
-                      Save milk record
+                      Estimated revenue: KSH{' '}
+
+                      {(Number(milkForm.amount_liters || 0) * Number(milkForm.price_per_litre || 0)).toLocaleString()}
+
+                    </p>
+
+                    <p className="text-xs text-slate-500">
+
+                      Date is captured automatically when you save ({getAutoFormattedDate()}).
+
+                    </p>
+
+                    <button
+
+                      type="submit"
+
+                      disabled={savingMilk}
+
+                      className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+
+                    >
+
+                      {savingMilk ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
+
+                      {savingMilk ? 'Saving…' : 'Save milk record'}
 
                     </button>
 
@@ -1585,23 +1807,25 @@ export default function DashboardPage() {
 
                     />
 
-                    <input
+                    <p className="text-xs text-slate-500">
 
-                      type="date"
+                      Date is saved automatically when you save.
 
-                      required
+                    </p>
 
-                      value={healthForm.date}
+                    <button
 
-                      onChange={(event) => setHealthForm((prev) => ({ ...prev, date: event.target.value }))}
+                      type="submit"
 
-                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-slate-400"
+                      disabled={savingHealth}
 
-                    />
+                      className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
 
-                    <button type="submit" className="w-full rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700">
+                    >
 
-                      Save health record
+                      {savingHealth ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
+
+                      {savingHealth ? 'Saving…' : 'Save health record'}
 
                     </button>
 
@@ -1673,7 +1897,15 @@ export default function DashboardPage() {
 
                       <option value="Feed">Feed</option>
 
-                      <option value="Maintenance">Maintenance</option>
+                      <option value="Labor">Labor</option>
+
+                      <option value="Medical">Medical</option>
+
+                      <option value="Transport">Transport</option>
+
+                      <option value="Utilities">Utilities</option>
+
+                      <option value="Miscellaneous">Miscellaneous</option>
 
                     </select>
 
@@ -1709,23 +1941,25 @@ export default function DashboardPage() {
 
                     />
 
-                    <input
+                    <p className="text-xs text-slate-500">
 
-                      type="date"
+                      Feed expenses reduce your feed-bags counter by 1. Date is saved automatically.
 
-                      required
+                    </p>
 
-                      value={expenseForm.date}
+                    <button
 
-                      onChange={(event) => setExpenseForm((prev) => ({ ...prev, date: event.target.value }))}
+                      type="submit"
 
-                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-slate-400"
+                      disabled={savingExpense}
 
-                    />
+                      className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
 
-                    <button type="submit" className="w-full rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700">
+                    >
 
-                      Save expense
+                      {savingExpense ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
+
+                      {savingExpense ? 'Saving…' : 'Save expense'}
 
                     </button>
 
