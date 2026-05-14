@@ -1,10 +1,8 @@
 'use client';
 
-import React from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/supabaseWrapper';
 import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
 
 export default function NavBar() {
@@ -23,7 +21,7 @@ export default function NavBar() {
   }, []);
 
   return (
-    <header className="bg-green-700 text-white flex items-center justify-between p-4 shadow-md">
+    <header className="bg-green-700 text-white flex items-center justify-between p-4 shadow-md relative z-20">
       <div className="flex items-center gap-3">
         {/* Use the Epaphroditus Farm logo */}
         <img src="/android-chrome-192x192.png" alt="Epaphroditus Farm Logo" className="h-8 w-8" />
@@ -32,11 +30,17 @@ export default function NavBar() {
       </div>
 
       <div className="flex items-center gap-2">
-        <div className="bg-white/10 px-3 py-1 rounded-full text-sm font-medium">Market</div>
+        <Link href="/market" className="rounded-full bg-white/10 px-3 py-1 text-sm font-medium transition hover:bg-white/20">
+          Market
+        </Link>
         {session ? (
-          <div className="bg-white/10 px-3 py-1 rounded-full text-sm font-medium">Dashboard</div>
+          <Link href="/dashboard" className="rounded-full bg-white/10 px-3 py-1 text-sm font-medium transition hover:bg-white/20">
+            Dashboard
+          </Link>
         ) : (
-          <div className="bg-white/10 px-3 py-1 rounded-full text-sm font-medium">Login</div>
+          <Link href="/auth" className="rounded-full bg-white/10 px-3 py-1 text-sm font-medium transition hover:bg-white/20">
+            Login
+          </Link>
         )}
         <div className="w-3 h-3 bg-emerald-500 rounded-full ml-1" title="Connected"></div>
         <span className="text-sm font-light text-emerald-100">Online</span>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/supabaseWrapper';
 import type { Livestock } from '@/types';
 
 interface MilkRecord {
@@ -25,9 +25,10 @@ interface LivestockDetailsProps {
   livestock: Livestock;
   onClose: () => void;
   isModal?: boolean;
+  onStatusUpdate?: () => void;
 }
 
-export default function LivestockDetails({ livestock, onClose, isModal = true }: LivestockDetailsProps) {
+export default function LivestockDetails({ livestock, onClose, isModal = true, onStatusUpdate }: LivestockDetailsProps) {
   const livestockPrice = Number(livestock.price_ksh ?? livestock.price ?? 0);
   const [activeTab, setActiveTab] = useState<'overview' | 'milk' | 'health'>('overview');
   const [milkRecords, setMilkRecords] = useState<MilkRecord[]>([]);
@@ -105,6 +106,19 @@ export default function LivestockDetails({ livestock, onClose, isModal = true }:
       setShowHealthForm(false);
       setHealthForm({ event_type: '', description: '', cost: '', date: '' });
       fetchHealthRecords();
+    }
+  };
+
+  const handleSellToMarket = async () => {
+    if (livestock.status === 'Available') return;
+
+    const { error } = await supabase
+      .from('livestock')
+      .update({ status: 'Available' })
+      .eq('id', livestock.id);
+
+    if (!error) {
+      onStatusUpdate?.();
     }
   };
 
@@ -198,6 +212,18 @@ export default function LivestockDetails({ livestock, onClose, isModal = true }:
                 onClick={() => setShowHealthForm(true)}
               >
                 Log Health Event
+              </button>
+              <button
+                type="button"
+                disabled={livestock.status === 'Available'}
+                className={`w-full rounded-lg px-4 py-2 text-sm font-semibold transition ${
+                  livestock.status === 'Available'
+                    ? 'cursor-not-allowed border border-slate-200 bg-slate-100 text-slate-400'
+                    : 'bg-emerald-600 text-white hover:bg-emerald-500'
+                }`}
+                onClick={handleSellToMarket}
+              >
+                {livestock.status === 'Available' ? 'Available in Market' : 'Sell to Market'}
               </button>
             </div>
           </div>

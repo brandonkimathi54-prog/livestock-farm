@@ -2,7 +2,7 @@
 
 import { FormEvent, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/supabaseWrapper';
 import type { Session } from '@supabase/supabase-js';
 
 export default function AuthPage() {

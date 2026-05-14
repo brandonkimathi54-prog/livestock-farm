@@ -3,7 +3,6 @@ export interface Livestock {
   owner_id?: string;
   user_id?: string;
   name: string;
-  type: string;
   breed: string;
   age: number;
   liters_per_day?: number;

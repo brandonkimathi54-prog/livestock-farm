@@ -2,12 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { Sprout, Search, Send, User, Bot, Leaf, Loader2 } from 'lucide-react';
-import { createBrowserClient } from '@supabase/ssr';
-
-const supabase = createBrowserClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+import { supabase } from '@/lib/supabaseWrapper';
 
 interface Message {
   id: string;

@@ -7,16 +7,16 @@ const withPWA = require('next-pwa')({
 });
 
 const nextConfig = {
-  reactStrictMode: true,
+  // This empty object silences the Turbopack/Webpack error
+  turbopack: {}, 
   images: {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: '**',
+        hostname: '**.supabase.co',
       },
     ],
   },
-  turbopack: {},
 };
 
 module.exports = withPWA(nextConfig);

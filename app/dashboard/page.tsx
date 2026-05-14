@@ -10,7 +10,7 @@ import { Pie, PieChart, ResponsiveContainer, Tooltip, Cell, Legend } from 'recha
 
 import { MoreVertical } from 'lucide-react';
 
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/supabaseWrapper';
 
 import type { Livestock } from '@/types';
 
@@ -84,11 +84,11 @@ const glassCardClass =
 
 const getLivestockPrice = (item: Livestock) => Number(item.price_ksh ?? item.price ?? 0);
 
-const LIVESTOCK_PLACEHOLDER_IMAGE =
-
-  'https://images.unsplash.com/photo-1516467508483-a7212febe31a?auto=format&fit=crop&w=1400&q=80';
-
-
+const getPublicMediaUrl = (bucket: string, pathOrUrl?: string | null) => {
+  if (!pathOrUrl) return '';
+  if (/^https?:\/\//i.test(pathOrUrl)) return pathOrUrl;
+  return supabase.storage.from(bucket).getPublicUrl(pathOrUrl).data.publicUrl;
+};
 
 export default function DashboardPage() {
 
@@ -127,8 +127,6 @@ export default function DashboardPage() {
   const [formState, setFormState] = useState({
 
     name: '',
-
-    type: '',
 
     breed: '',
 
@@ -187,42 +185,22 @@ export default function DashboardPage() {
   useEffect(() => {
 
     const init = async () => {
-
       const { data } = await supabase.auth.getSession();
-
       if (!data.session) {
-
         window.location.href = '/auth';
-
         return;
-
       }
-
       setSession(data.session);
-
     };
-
-
-
     init();
 
-
-
     const { data: listener } = supabase.auth.onAuthStateChange((event: AuthChangeEvent, session: Session | null) => {
-
       if (!session) {
-
         window.location.href = '/auth';
-
         return;
-
       }
-
       setSession(session);
-
     });
-
-
 
     return () => listener.subscription?.unsubscribe();
 
@@ -245,16 +223,10 @@ export default function DashboardPage() {
       setLoading(true);
 
       const { data, error } = await supabase
-
         .from('livestock')
-
         .select('*')
-
         .eq('user_id', session.user.id)
-
         .order('updated_at', { ascending: false });
-
-
 
       if (error) {
 
@@ -322,11 +294,23 @@ export default function DashboardPage() {
 
       const [milkResponse, healthResponse, expenseResponse] = await Promise.all([
 
-        supabase.from('milk_records').select('*').eq('livestock_id', selectedLivestock.id).order('date', { ascending: false }),
+        supabase
+          .from('milk_records')
+          .select('*')
+          .eq('livestock_id', selectedLivestock.id)
+          .order('date', { ascending: false }),
 
-        supabase.from('health_records').select('*').eq('livestock_id', selectedLivestock.id).order('date', { ascending: false }),
+        supabase
+          .from('health_records')
+          .select('*')
+          .eq('livestock_id', selectedLivestock.id)
+          .order('date', { ascending: false }),
 
-        supabase.from('expenses').select('*').eq('livestock_id', selectedLivestock.id).order('date', { ascending: false }),
+        supabase
+          .from('expenses')
+          .select('*')
+          .eq('livestock_id', selectedLivestock.id)
+          .order('date', { ascending: false }),
 
       ]);
 
@@ -404,8 +388,6 @@ export default function DashboardPage() {
 
       name: '',
 
-      type: '',
-
       breed: '',
 
       age: '0',
@@ -451,8 +433,6 @@ export default function DashboardPage() {
     setFormState({
 
       name: item.name ?? '',
-
-      type: item.type ?? '',
 
       breed: item.breed ?? '',
 
@@ -568,6 +548,33 @@ export default function DashboardPage() {
 
   };
 
+  const markLivestockAvailable = async (item: Livestock) => {
+    if (!session?.user?.id) {
+      setErrorMessage('Unable to update availability. Please sign in again.');
+      return;
+    }
+
+    const { error } = await supabase
+      .from('livestock')
+      .update({ status: 'Available' })
+      .eq('id', item.id)
+      .eq('user_id', session.user.id);
+
+    if (error) {
+      setErrorMessage(error.message);
+      return;
+    }
+
+    setLivestock((current) =>
+      current.map((entry) => (entry.id === item.id ? { ...entry, status: 'Available' } : entry)),
+    );
+
+    if (selectedLivestock?.id === item.id) {
+      setSelectedLivestock((current) => (current ? { ...current, status: 'Available' } : current));
+    }
+
+    setOpenCardMenuId(null);
+  };
 
 
   const handleMainTabClick = (tab: 'inventory' | 'management') => {
@@ -606,11 +613,7 @@ export default function DashboardPage() {
 
     }
 
-
-
-    const { data } = supabase.storage.from(bucket).getPublicUrl(filePath);
-
-    return data.publicUrl;
+    return filePath;
 
   };
 
@@ -656,7 +659,7 @@ export default function DashboardPage() {
 
       try {
 
-        image_url = await uploadToBucket('cow-photos', user.id, formState.name, photoFile);
+        image_url = await uploadToBucket('cow photos', user.id, formState.name, photoFile);
 
       } catch (uploadError) {
 
@@ -700,7 +703,6 @@ export default function DashboardPage() {
 
 
 
-    const isBullOrHeifer = /bull|heifer/i.test(formState.type);
 
     const livestockData = {
 
@@ -712,11 +714,10 @@ export default function DashboardPage() {
 
       breed: formState.breed,
 
-      type: formState.type,
 
       age: Number(formState.age),
 
-      liters_per_day: isBullOrHeifer ? 0 : Number(formState.liters_per_day || 0),
+      liters_per_day: Number(formState.liters_per_day || 0),
 
       price_ksh: Number(formState.price),
 
@@ -1098,25 +1099,16 @@ export default function DashboardPage() {
 
                   >
 
-                    <img
-
-                      src={
-
-                        item.image_url
-
-                          ? supabase.storage.from('cow photos').getPublicUrl(item.image_url).data.publicUrl
-
-                          : LIVESTOCK_PLACEHOLDER_IMAGE
-
-                      }
-
-                      alt={`${item.name} photo`}
-
-                      className="mb-3 h-24 w-full rounded-2xl object-cover"
-
-                      loading="lazy"
-
-                    />
+                    {getPublicMediaUrl('cow photos', item.image_url) ? (
+                      <img
+                        src={getPublicMediaUrl('cow photos', item.image_url)}
+                        alt={`${item.name} photo`}
+                        className="mb-3 h-24 w-full rounded-2xl object-cover"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="mb-3 h-24 w-full rounded-2xl bg-slate-200" />
+                    )}
 
                     <button
 
@@ -1177,7 +1169,15 @@ export default function DashboardPage() {
                           Delete
 
                         </button>
-
+                        {item.status !== 'Available' ? (
+                          <button
+                            type="button"
+                            className="block w-full rounded-lg px-3 py-2 text-left text-sm text-emerald-600 transition hover:bg-emerald-50"
+                            onClick={() => markLivestockAvailable(item)}
+                          >
+                            Sell to Market
+                          </button>
+                        ) : null}
                       </div>
 
                     ) : null}
@@ -1664,7 +1664,19 @@ export default function DashboardPage() {
 
       {selectedLivestock && mainView === 'inventory' && (
 
-        <LivestockDetails livestock={selectedLivestock} onClose={() => setSelectedLivestock(null)} isModal={true} />
+        <LivestockDetails
+          livestock={selectedLivestock}
+          onClose={() => setSelectedLivestock(null)}
+          isModal={true}
+          onStatusUpdate={() => {
+            setSelectedLivestock((current) => (current ? { ...current, status: 'Available' } : current));
+            setLivestock((current) =>
+              current.map((entry) =>
+                entry.id === selectedLivestock.id ? { ...entry, status: 'Available' } : entry,
+              ),
+            );
+          }}
+        />
 
       )}
 
@@ -1758,27 +1770,7 @@ export default function DashboardPage() {
 
 
 
-              <div className="grid gap-3 sm:grid-cols-4">
-
-                <label className="space-y-1.5 text-sm text-slate-700">
-
-                  <span>Type</span>
-
-                  <input
-
-                    type="text"
-
-                    value={formState.type}
-
-                    onChange={(event) => handleChange('type', event.target.value)}
-
-                    required
-
-                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-slate-400"
-
-                  />
-
-                </label>
+              <div className="grid gap-3 sm:grid-cols-3">
 
                 <label className="space-y-1.5 text-sm text-slate-700">
 
@@ -2029,18 +2021,6 @@ export default function DashboardPage() {
     </section>
 
 
-
-      {/* Signature */}
-
-      <div className="fixed bottom-4 right-4 z-50">
-
-        <p className="text-sm text-gray-400 font-light italic">
-
-          Created by Brandon
-
-        </p>
-
-      </div>
 
     </>
 

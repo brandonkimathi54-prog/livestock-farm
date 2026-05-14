@@ -1,10 +1,8 @@
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/supabaseWrapper';
 import type { Livestock } from '@/types';
 
 const formatPrice = (value: number) => `KSH ${value.toLocaleString()}`;
 const getLivestockPrice = (item: Livestock) => Number(item.price_ksh ?? item.price ?? 0);
-const PLACEHOLDER_IMAGE =
-  'https://images.unsplash.com/photo-1516467508483-a7212febe31a?auto=format&fit=crop&w=1400&q=80';
 
 const getPublicMediaUrl = (bucket: string, pathOrUrl?: string | null) => {
   if (!pathOrUrl) return '';
@@ -16,9 +14,7 @@ function LivestockCard({ item }: { item: Livestock }) {
   const whatsappLink = item.whatsapp_number
     ? `https://wa.me/${item.whatsapp_number.replace(/\D/g, '')}`
     : undefined;
-  const imageSrc = item.image_url
-    ? supabase.storage.from('cow photos').getPublicUrl(item.image_url).data.publicUrl
-    : PLACEHOLDER_IMAGE;
+  const imageSrc = getPublicMediaUrl('cow photos', item.image_url);
   const videoSrc = getPublicMediaUrl('market-videos', item.video_url);
 
   return (
@@ -27,10 +23,18 @@ function LivestockCard({ item }: { item: Livestock }) {
         {videoSrc ? (
           <video className="aspect-[4/3] h-full w-full object-cover" src={videoSrc} controls preload="metadata" />
         ) : null}
-        <img className="aspect-[4/3] h-full w-full object-cover" src={imageSrc} alt={`${item.name} livestock listing`} loading="lazy" />
+        {imageSrc ? (
+          <img className="aspect-[4/3] h-full w-full object-cover" src={imageSrc} alt={`${item.name} livestock listing`} loading="lazy" />
+        ) : (
+          <div className="aspect-[4/3] flex items-center justify-center bg-slate-200 text-slate-500">
+            No image available
+          </div>
+        )}
       </div>
       <div className="p-6">
-        <p className="text-sm font-semibold uppercase tracking-[0.25em] text-slate-500">{item.type}</p>
+        {item.breed ? (
+          <p className="text-sm font-semibold uppercase tracking-[0.25em] text-slate-500">{item.breed}</p>
+        ) : null}
         <h2 className="mt-3 text-2xl font-semibold text-slate-900">{item.name}</h2>
         <p className="mt-3 text-sm text-slate-600">Breed: {item.breed}</p>
         <p className="mt-1 text-sm text-slate-600">Location: {item.location ?? 'Unknown'}</p>
