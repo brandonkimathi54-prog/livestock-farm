@@ -43,8 +43,22 @@ function LivestockCard({ item }: { item: Livestock }) {
           <p className="text-sm font-semibold uppercase tracking-[0.25em] text-slate-500">{item.breed}</p>
         ) : null}
         <h2 className="mt-3 text-2xl font-semibold text-slate-900">{item.name}</h2>
-        <p className="mt-3 text-sm text-slate-600">Breed: {item.breed}</p>
-        <p className="mt-1 text-sm text-slate-600">Location: {item.location ?? 'Unknown'}</p>
+        <p className="mt-3 text-sm text-slate-600">Age: {item.age} years</p>
+        <p className="mt-1 text-sm text-slate-600">
+          Weight: {item.weight_kg != null ? `${item.weight_kg} kg` : 'Not recorded'}
+        </p>
+        <p className="mt-1 text-sm text-slate-600">
+          Last vaccination:{' '}
+          {item.last_vaccination_date
+            ? /^\d{4}-\d{2}-\d{2}$/.test(item.last_vaccination_date)
+              ? new Date(`${item.last_vaccination_date}T12:00:00`).toLocaleDateString('en-GB', {
+                  day: 'numeric',
+                  month: 'short',
+                  year: 'numeric',
+                })
+              : item.last_vaccination_date
+            : 'Not recorded'}
+        </p>
         <p className="mt-3 text-xl font-semibold text-slate-900">{formatPrice(getLivestockPrice(item))}</p>
         <div className="mt-6 flex flex-col gap-3">
           <a

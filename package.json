@@ -14,6 +14,8 @@
     "@google/generative-ai": "^0.24.1",
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.105.3",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.7",
     "lucide-react": "^1.14.0",
     "next": "16.2.2",
     "next-pwa": "^5.6.0",

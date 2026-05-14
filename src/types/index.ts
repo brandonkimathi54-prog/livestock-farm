@@ -5,6 +5,10 @@ export interface Livestock {
   name: string;
   breed: string;
   age: number;
+  /** Optional live weight in kg (market / herd detail). */
+  weight_kg?: number | null;
+  /** Optional last vaccination date (ISO or display string from DB). */
+  last_vaccination_date?: string | null;
   liters_per_day?: number;
   price?: number;
   price_ksh?: number;

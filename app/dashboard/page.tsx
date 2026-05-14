@@ -30,7 +30,7 @@ interface MilkRecord {
 
   amount_liters: number;
 
-  milking_session: string;
+  milking_session?: string;
 
   livestock?: Livestock;
 
@@ -109,6 +109,36 @@ const getPublicMediaUrl = (bucket: string, pathOrUrl?: string | null) => {
   return supabase.storage.from(bucket).getPublicUrl(pathOrUrl).data.publicUrl;
 };
 
+const DEFAULT_MILK_PRICE_STORAGE_KEY = 'farm_default_milk_price_ksh';
+
+/** ISO date (YYYY-MM-DD) for reliable DB ordering and filters. */
+function getRecordDateIso(): string {
+  return new Date().toISOString().split('T')[0];
+}
+
+function formatRecordDateForDisplay(raw: string): string {
+  if (raw && /^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+    return new Date(`${raw}T12:00:00`).toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+  }
+  return raw;
+}
+
+function parseRecordDate(raw: string): Date | null {
+  if (raw && /^\d{4}-\d{2}-\d{2}$/.test(raw)) return new Date(`${raw}T12:00:00`);
+  const d = new Date(raw);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+function isDateInCurrentMonth(d: Date): boolean {
+  const now = new Date();
+  return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+}
+
 export default function DashboardPage() {
 
   const router = useRouter();
@@ -125,7 +155,7 @@ export default function DashboardPage() {
 
   const [selectedLivestock, setSelectedLivestock] = useState<Livestock | null>(null);
 
-  const [mainView, setMainView] = useState<'inventory' | 'management'>('inventory');
+  const [mainView, setMainView] = useState<'inventory' | 'management' | 'settings'>('inventory');
 
   const [activeTab, setActiveTab] = useState<'inventory' | 'management'>('inventory');
 
@@ -173,11 +203,13 @@ export default function DashboardPage() {
 
   const [milkForm, setMilkForm] = useState({
 
-    amount_liters: '',
+    morning_liters: '',
 
-    price_per_litre: '',
+    evening_liters: '',
 
   });
+
+  const [defaultMilkPriceKsh, setDefaultMilkPriceKsh] = useState('60');
 
   const [healthForm, setHealthForm] = useState({
 
@@ -205,8 +237,6 @@ export default function DashboardPage() {
 
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  const [feedBagsRemaining, setFeedBagsRemaining] = useState(50);
-
 
 
   const getAutoFormattedDate = () => {
@@ -214,6 +244,44 @@ export default function DashboardPage() {
     return new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
   };
+
+
+
+  useEffect(() => {
+
+    try {
+
+      const raw = window.localStorage.getItem(DEFAULT_MILK_PRICE_STORAGE_KEY);
+
+      if (raw !== null && !Number.isNaN(Number(raw))) {
+
+        setDefaultMilkPriceKsh(String(Number(raw)));
+
+      }
+
+    } catch {
+
+      /* ignore */
+
+    }
+
+  }, []);
+
+
+
+  useEffect(() => {
+
+    try {
+
+      window.localStorage.setItem(DEFAULT_MILK_PRICE_STORAGE_KEY, String(Number(defaultMilkPriceKsh) || 0));
+
+    } catch {
+
+      /* ignore */
+
+    }
+
+  }, [defaultMilkPriceKsh]);
 
 
 
@@ -240,44 +308,6 @@ export default function DashboardPage() {
     return () => listener.subscription?.unsubscribe();
 
   }, [router]);
-
-
-
-  useEffect(() => {
-
-    try {
-
-      const raw = window.localStorage.getItem('farm_feed_bags_remaining');
-
-      if (raw !== null && !Number.isNaN(Number(raw))) {
-
-        setFeedBagsRemaining(Number(raw));
-
-      }
-
-    } catch {
-
-      /* ignore */
-
-    }
-
-  }, []);
-
-
-
-  useEffect(() => {
-
-    try {
-
-      window.localStorage.setItem('farm_feed_bags_remaining', String(feedBagsRemaining));
-
-    } catch {
-
-      /* ignore */
-
-    }
-
-  }, [feedBagsRemaining]);
 
 
 
@@ -371,25 +401,25 @@ export default function DashboardPage() {
           .from('milk_records')
           .select('*')
           .eq('livestock_id', selectedLivestock.id)
-          .order('date', { ascending: false }),
+          .order('id', { ascending: false }),
 
         supabase
           .from('health_records')
           .select('*')
           .eq('livestock_id', selectedLivestock.id)
-          .order('date', { ascending: false }),
+          .order('id', { ascending: false }),
 
         supabase
           .from('expenses')
           .select('*')
           .eq('livestock_id', selectedLivestock.id)
-          .order('date', { ascending: false }),
+          .order('id', { ascending: false }),
 
         supabase
           .from('financials')
           .select('*')
           .eq('livestock_id', selectedLivestock.id)
-          .order('date', { ascending: false }),
+          .order('id', { ascending: false }),
 
       ]);
 
@@ -427,7 +457,7 @@ export default function DashboardPage() {
 
     fetchManagementRecords();
 
-  }, [selectedLivestock, mainView]);
+  }, [selectedLivestock?.id, mainView]);
 
 
 
@@ -475,6 +505,27 @@ export default function DashboardPage() {
 
     return { revenue, expensesTotal, net: revenue - expensesTotal };
 
+  }, [financialRows, expenseRecords]);
+
+
+
+  const monthlyFarmSummary = useMemo(() => {
+    const revenue = financialRows
+      .filter((row) => (row.type ?? '').toLowerCase() === 'revenue')
+      .filter((row) => {
+        const d = parseRecordDate(row.date);
+        return d ? isDateInCurrentMonth(d) : false;
+      })
+      .reduce((sum, row) => sum + Number(row.amount ?? 0), 0);
+
+    const expensesTotal = expenseRecords
+      .filter((row) => {
+        const d = parseRecordDate(row.date);
+        return d ? isDateInCurrentMonth(d) : false;
+      })
+      .reduce((sum, row) => sum + Number(row.amount ?? 0), 0);
+
+    return { revenue, expensesTotal, net: revenue - expensesTotal };
   }, [financialRows, expenseRecords]);
 
 
@@ -682,7 +733,7 @@ export default function DashboardPage() {
   };
 
 
-  const handleMainTabClick = (tab: 'inventory' | 'management') => {
+  const handleMainTabClick = (tab: 'inventory' | 'management' | 'settings') => {
 
     setMainView(tab);
 
@@ -880,6 +931,20 @@ export default function DashboardPage() {
 
     if (!selectedLivestock?.id || !session?.user?.id) return;
 
+    const morning = Number(milkForm.morning_liters || 0);
+
+    const evening = Number(milkForm.evening_liters || 0);
+
+    const totalLiters = morning + evening;
+
+    if (totalLiters <= 0) {
+
+      setErrorMessage('Enter morning and/or evening litres (total must be greater than zero).');
+
+      return;
+
+    }
+
     setSavingMilk(true);
 
     setErrorMessage(null);
@@ -890,27 +955,63 @@ export default function DashboardPage() {
 
     try {
 
-      const recordDate = getAutoFormattedDate();
+      const recordDate = getRecordDateIso();
 
-      const liters = Number(milkForm.amount_liters);
+      const pricePerLitre = Number(defaultMilkPriceKsh || 0);
 
-      const pricePerLitre = Number(milkForm.price_per_litre || 0);
-
-      const totalRevenue = liters * pricePerLitre;
+      const totalRevenue = totalLiters * pricePerLitre;
 
 
 
-      const { error: milkError } = await supabase.from('milk_records').insert({
+      const rows: { livestock_id: string; amount_liters: number; date: string; milking_session: string }[] = [];
+
+      if (morning > 0) {
+
+        rows.push({
+
+          livestock_id: selectedLivestock.id,
+
+          amount_liters: morning,
+
+          date: recordDate,
+
+          milking_session: 'Morning',
+
+        });
+
+      }
+
+      if (evening > 0) {
+
+        rows.push({
+
+          livestock_id: selectedLivestock.id,
+
+          amount_liters: evening,
+
+          date: recordDate,
+
+          milking_session: 'Evening',
+
+        });
+
+      }
+
+      rows.push({
 
         livestock_id: selectedLivestock.id,
 
-        amount_liters: liters,
+        amount_liters: totalLiters,
 
         date: recordDate,
+
+        milking_session: 'Day Total',
 
       });
 
 
+
+      const { error: milkError } = await supabase.from('milk_records').insert(rows);
 
       if (milkError) throw milkError;
 
@@ -928,7 +1029,7 @@ export default function DashboardPage() {
 
           amount: totalRevenue,
 
-          description: `Milk revenue: ${liters}L @ KSH ${pricePerLitre}/L`,
+          description: `Milk revenue: ${totalLiters}L (M ${morning} / E ${evening}) @ KSH ${pricePerLitre}/L`,
 
           date: recordDate,
 
@@ -940,7 +1041,7 @@ export default function DashboardPage() {
 
 
 
-      setMilkForm({ amount_liters: '', price_per_litre: '' });
+      setMilkForm({ morning_liters: '', evening_liters: '' });
 
       setSuccessMessage('Record Saved Successfully');
 
@@ -948,7 +1049,15 @@ export default function DashboardPage() {
 
 
 
-      const { data } = await supabase.from('milk_records').select('*').eq('livestock_id', selectedLivestock.id).order('date', { ascending: false });
+      const { data } = await supabase
+
+        .from('milk_records')
+
+        .select('*')
+
+        .eq('livestock_id', selectedLivestock.id)
+
+        .order('id', { ascending: false });
 
       setMilkRecords((data ?? []) as MilkRecord[]);
 
@@ -960,17 +1069,9 @@ export default function DashboardPage() {
 
         .eq('livestock_id', selectedLivestock.id)
 
-        .order('date', { ascending: false });
+        .order('id', { ascending: false });
 
-      if (!financeData) {
-
-        setFinancialRows([]);
-
-      } else {
-
-        setFinancialRows(financeData as FinancialRow[]);
-
-      }
+      setFinancialRows((financeData ?? []) as FinancialRow[]);
 
     } catch (err) {
 
@@ -1002,7 +1103,7 @@ export default function DashboardPage() {
 
     try {
 
-      const recordDate = getAutoFormattedDate();
+      const recordDate = getRecordDateIso();
 
       const cost = Number(healthForm.cost);
 
@@ -1014,7 +1115,7 @@ export default function DashboardPage() {
 
         event_type: healthForm.event,
 
-        description: `Logged on ${recordDate}`,
+        description: `Logged on ${formatRecordDateForDisplay(recordDate)}`,
 
         cost: cost,
 
@@ -1058,11 +1159,11 @@ export default function DashboardPage() {
 
 
 
-      const { data } = await supabase.from('health_records').select('*').eq('livestock_id', selectedLivestock.id).order('date', { ascending: false });
+      const { data } = await supabase.from('health_records').select('*').eq('livestock_id', selectedLivestock.id).order('id', { ascending: false });
 
       setHealthRecords((data ?? []) as HealthRecord[]);
 
-      const { data: expenseData } = await supabase.from('expenses').select('*').eq('livestock_id', selectedLivestock.id).order('date', { ascending: false });
+      const { data: expenseData } = await supabase.from('expenses').select('*').eq('livestock_id', selectedLivestock.id).order('id', { ascending: false });
 
       setExpenseRecords((expenseData ?? []) as ExpenseRecord[]);
 
@@ -1096,7 +1197,7 @@ export default function DashboardPage() {
 
     try {
 
-      const recordDate = getAutoFormattedDate();
+      const recordDate = getRecordDateIso();
 
       const amount = Number(expenseForm.amount);
 
@@ -1122,14 +1223,6 @@ export default function DashboardPage() {
 
 
 
-      if (expenseForm.category === 'Feed') {
-
-        setFeedBagsRemaining((bags) => Math.max(0, bags - 1));
-
-      }
-
-
-
       setExpenseForm({ category: 'Feed', amount: '', notes: '' });
 
       setSuccessMessage('Record Saved Successfully');
@@ -1138,7 +1231,7 @@ export default function DashboardPage() {
 
 
 
-      const { data } = await supabase.from('expenses').select('*').eq('livestock_id', selectedLivestock.id).order('date', { ascending: false });
+      const { data } = await supabase.from('expenses').select('*').eq('livestock_id', selectedLivestock.id).order('id', { ascending: false });
 
       setExpenseRecords((data ?? []) as ExpenseRecord[]);
 
@@ -1258,6 +1351,8 @@ export default function DashboardPage() {
 
               { key: 'management', label: 'Management View' },
 
+              { key: 'settings', label: 'Settings' },
+
             ].map((tab) => (
 
               <button
@@ -1274,7 +1369,7 @@ export default function DashboardPage() {
 
                 }`}
 
-                onClick={() => handleMainTabClick(tab.key as 'inventory' | 'management')}
+                onClick={() => handleMainTabClick(tab.key as 'inventory' | 'management' | 'settings')}
 
               >
 
@@ -1283,6 +1378,18 @@ export default function DashboardPage() {
               </button>
 
             ))}
+
+            <a
+
+              href="/records"
+
+              className="py-2 px-1 text-sm font-medium text-white/90 underline-offset-4 hover:text-white hover:underline"
+
+            >
+
+              All Records
+
+            </a>
 
           </nav>
 
@@ -1499,6 +1606,64 @@ export default function DashboardPage() {
 
 
 
+      {mainView === 'settings' && (
+
+        <div className={glassCardClass}>
+
+          <h2 className="text-xl font-semibold text-slate-900">Global configuration</h2>
+
+          <p className="mt-2 max-w-2xl text-sm text-slate-600">
+
+            Set your default milk price per litre once. All milk revenue in Management uses this value until you change it here.
+
+          </p>
+
+          <div className="mt-6 max-w-md space-y-3">
+
+            <label className="block text-sm font-medium text-slate-700">
+
+              Default milk price (KSH per litre)
+
+              <input
+
+                type="number"
+
+                min="0"
+
+                step="0.01"
+
+                value={defaultMilkPriceKsh}
+
+                onChange={(e) => setDefaultMilkPriceKsh(e.target.value)}
+
+                className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-500"
+
+              />
+
+            </label>
+
+            <p className="text-xs text-slate-500">Saved automatically in this browser.</p>
+
+            <a
+
+              href="/records"
+
+              className="inline-flex rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700"
+
+            >
+
+              Open All Records and reports
+
+            </a>
+
+          </div>
+
+        </div>
+
+      )}
+
+
+
       {mainView === 'management' && (
 
         <div className={glassCardClass}>
@@ -1563,13 +1728,33 @@ export default function DashboardPage() {
 
                 <div className="grid gap-3 sm:grid-cols-2">
 
-                  <div className="rounded-2xl border border-amber-200 bg-amber-50/90 p-4">
+                  <div className="rounded-2xl border border-emerald-200 bg-emerald-50/90 p-4">
 
-                    <p className="text-xs font-semibold uppercase tracking-wide text-amber-900">Feed inventory</p>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-emerald-900">This month (all sessions)</p>
 
-                    <p className="mt-2 text-3xl font-bold text-amber-950">{feedBagsRemaining}</p>
+                    <p className="mt-2 text-lg font-semibold text-emerald-950">
 
-                    <p className="mt-1 text-xs text-amber-900/80">Bags remaining (minus 1 per Feed expense log)</p>
+                      Revenue KSH {monthlyFarmSummary.revenue.toLocaleString()}
+
+                    </p>
+
+                    <p className="text-sm text-emerald-900/90">
+
+                      Expenses KSH {monthlyFarmSummary.expensesTotal.toLocaleString()}
+
+                    </p>
+
+                    <p
+
+                      className={`mt-2 text-2xl font-bold ${monthlyFarmSummary.net >= 0 ? 'text-emerald-800' : 'text-red-700'}`}
+
+                    >
+
+                      Net profit KSH {monthlyFarmSummary.net.toLocaleString()}
+
+                    </p>
+
+                    <p className="mt-1 text-xs text-emerald-900/80">Based on dated records for this animal this calendar month.</p>
 
                   </div>
 
@@ -1649,59 +1834,87 @@ export default function DashboardPage() {
 
                   <h3 className="text-lg font-semibold text-slate-900">Milk Production</h3>
 
+                  <p className="mt-1 text-xs text-slate-600">
+
+                    Default price KSH {Number(defaultMilkPriceKsh || 0).toLocaleString()}/L — change in{' '}
+
+                    <button type="button" className="font-semibold text-emerald-800 underline" onClick={() => handleMainTabClick('settings')}>
+
+                      Settings
+
+                    </button>
+
+                    .
+
+                  </p>
+
                   <form className="mt-4 space-y-3" onSubmit={handleMilkRecordSubmit}>
 
-                    <input
+                    <div className="grid gap-3 sm:grid-cols-2">
 
-                      type="number"
+                      <input
 
-                      min="0"
+                        type="number"
 
-                      step="0.1"
+                        min="0"
 
-                      required
+                        step="0.1"
 
-                      placeholder="Liters"
+                        placeholder="Morning litres"
 
-                      value={milkForm.amount_liters}
+                        value={milkForm.morning_liters}
 
-                      onChange={(event) => setMilkForm((prev) => ({ ...prev, amount_liters: event.target.value }))}
+                        onChange={(event) => setMilkForm((prev) => ({ ...prev, morning_liters: event.target.value }))}
 
-                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-slate-400"
+                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-slate-400"
 
-                    />
+                      />
 
-                    <input
+                      <input
 
-                      type="number"
+                        type="number"
 
-                      min="0"
+                        min="0"
 
-                      step="0.01"
+                        step="0.1"
 
-                      required
+                        placeholder="Evening litres"
 
-                      placeholder="Price per litre (KSH)"
+                        value={milkForm.evening_liters}
 
-                      value={milkForm.price_per_litre}
+                        onChange={(event) => setMilkForm((prev) => ({ ...prev, evening_liters: event.target.value }))}
 
-                      onChange={(event) => setMilkForm((prev) => ({ ...prev, price_per_litre: event.target.value }))}
+                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-slate-400"
 
-                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-slate-400"
+                      />
 
-                    />
+                    </div>
+
+                    <p className="text-sm font-semibold text-slate-800">
+
+                      Total day litres:{' '}
+
+                      {(Number(milkForm.morning_liters || 0) + Number(milkForm.evening_liters || 0)).toFixed(1)}
+
+                    </p>
 
                     <p className="text-sm font-medium text-emerald-800">
 
-                      Estimated revenue: KSH{' '}
+                      Estimated revenue (default price): KSH{' '}
 
-                      {(Number(milkForm.amount_liters || 0) * Number(milkForm.price_per_litre || 0)).toLocaleString()}
+                      {(
+
+                        (Number(milkForm.morning_liters || 0) + Number(milkForm.evening_liters || 0)) *
+
+                        Number(defaultMilkPriceKsh || 0)
+
+                      ).toLocaleString()}
 
                     </p>
 
                     <p className="text-xs text-slate-500">
 
-                      Date is captured automatically when you save ({getAutoFormattedDate()}).
+                      Saves today&apos;s date automatically ({formatRecordDateForDisplay(getRecordDateIso())}).
 
                     </p>
 
@@ -1733,7 +1946,9 @@ export default function DashboardPage() {
 
                           <th className="py-2 pr-2">Date</th>
 
-                          <th className="py-2">Liters</th>
+                          <th className="py-2 pr-2">Session</th>
+
+                          <th className="py-2">Litres</th>
 
                         </tr>
 
@@ -1745,7 +1960,9 @@ export default function DashboardPage() {
 
                           <tr key={record.id} className="border-b border-slate-100">
 
-                            <td className="py-2 pr-2">{record.date}</td>
+                            <td className="py-2 pr-2">{formatRecordDateForDisplay(record.date)}</td>
+
+                            <td className="py-2 pr-2">{record.milking_session ?? '—'}</td>
 
                             <td className="py-2">{record.amount_liters}</td>
 
@@ -1855,9 +2072,7 @@ export default function DashboardPage() {
 
                           <tr key={record.id} className="border-b border-slate-100">
 
-                            <td className="py-2 pr-2">{record.date}</td>
-
-                            <td className="py-2 pr-2">{record.event_type}</td>
+                            <td className="py-2 pr-2">{formatRecordDateForDisplay(record.date)}</td>
 
                             <td className="py-2">KSH {Number(record.cost ?? 0).toLocaleString()}</td>
 
@@ -1941,11 +2156,7 @@ export default function DashboardPage() {
 
                     />
 
-                    <p className="text-xs text-slate-500">
-
-                      Feed expenses reduce your feed-bags counter by 1. Date is saved automatically.
-
-                    </p>
+                    <p className="text-xs text-slate-500">Date is saved automatically when you save.</p>
 
                     <button
 
@@ -1991,7 +2202,7 @@ export default function DashboardPage() {
 
                           <tr key={record.id} className="border-b border-slate-100">
 
-                            <td className="py-2 pr-2">{record.date}</td>
+                            <td className="py-2 pr-2">{formatRecordDateForDisplay(record.date)}</td>
 
                             <td className="py-2 pr-2">{record.category}</td>
 
