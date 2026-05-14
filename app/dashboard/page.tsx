@@ -159,6 +159,8 @@ export default function DashboardPage() {
 
     amount_liters: '',
 
+    price_per_litre: '',
+
   });
 
   const [healthForm, setHealthForm] = useState({
@@ -182,6 +184,30 @@ export default function DashboardPage() {
     date: '',
 
   });
+
+  const [savingMilk, setSavingMilk] = useState(false);
+
+  const [savingHealth, setSavingHealth] = useState(false);
+
+  const [savingExpense, setSavingExpense] = useState(false);
+
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+
+
+  const getAutoFormattedDate = () => {
+
+    return new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+  };
+
+  const getSimpleDate = () => {
+
+    const now = new Date();
+
+    return now.toISOString().split('T')[0];
+
+  };
 
 
 
@@ -776,37 +802,89 @@ export default function DashboardPage() {
 
     event.preventDefault();
 
-    if (!selectedLivestock?.id) return;
+    if (!selectedLivestock?.id || !session?.user?.id) return;
+
+    setSavingMilk(true);
+
+    setErrorMessage(null);
+
+    setSuccessMessage(null);
 
 
 
-    const { error } = await supabase.from('milk_records').insert({
+    try {
 
-      livestock_id: selectedLivestock.id,
+      const recordDate = milkForm.date || getSimpleDate();
 
-      amount_liters: Number(milkForm.amount_liters),
+      const liters = Number(milkForm.amount_liters);
 
-      date: milkForm.date,
+      const pricePerLitre = Number(milkForm.price_per_litre || 0);
 
-    });
+      const totalRevenue = liters * pricePerLitre;
 
 
 
-    if (error) {
+      const { error: milkError } = await supabase.from('milk_records').insert({
 
-      setErrorMessage(error.message);
+        livestock_id: selectedLivestock.id,
 
-      return;
+        amount_liters: liters,
+
+        date: recordDate,
+
+      });
+
+
+
+      if (milkError) throw milkError;
+
+
+
+      if (pricePerLitre > 0) {
+
+        const { error: financeError } = await supabase.from('financials').insert({
+
+          livestock_id: selectedLivestock.id,
+
+          user_id: session.user.id,
+
+          type: 'revenue',
+
+          amount: totalRevenue,
+
+          description: `Milk revenue: ${liters}L @ KSH ${pricePerLitre}/L`,
+
+          date: recordDate,
+
+        });
+
+        if (financeError) throw financeError;
+
+      }
+
+
+
+      setMilkForm({ date: '', amount_liters: '', price_per_litre: '' });
+
+      setSuccessMessage('Record Saved Successfully');
+
+      setTimeout(() => setSuccessMessage(null), 3000);
+
+
+
+      const { data } = await supabase.from('milk_records').select('*').eq('livestock_id', selectedLivestock.id).order('date', { ascending: false });
+
+      setMilkRecords((data ?? []) as MilkRecord[]);
+
+    } catch (err) {
+
+      setErrorMessage(err instanceof Error ? err.message : 'Failed to save milk record');
+
+    } finally {
+
+      setSavingMilk(false);
 
     }
-
-
-
-    setMilkForm({ date: '', amount_liters: '' });
-
-    const { data } = await supabase.from('milk_records').select('*').eq('livestock_id', selectedLivestock.id).order('date', { ascending: false });
-
-    setMilkRecords((data ?? []) as MilkRecord[]);
 
   };
 
@@ -818,37 +896,87 @@ export default function DashboardPage() {
 
     if (!selectedLivestock?.id) return;
 
+    setSavingHealth(true);
 
+    setErrorMessage(null);
 
-    const { error } = await supabase.from('health_records').insert({
-
-      livestock_id: selectedLivestock.id,
-
-      event_type: healthForm.event,
-
-      cost: Number(healthForm.cost),
-
-      date: healthForm.date,
-
-    });
+    setSuccessMessage(null);
 
 
 
-    if (error) {
+    try {
 
-      setErrorMessage(error.message);
+      const recordDate = healthForm.date || getSimpleDate();
 
-      return;
+      const cost = Number(healthForm.cost);
+
+
+
+      const { error: healthError } = await supabase.from('health_records').insert({
+
+        livestock_id: selectedLivestock.id,
+
+        event_type: healthForm.event,
+
+        cost: cost,
+
+        date: recordDate,
+
+      });
+
+
+
+      if (healthError) throw healthError;
+
+
+
+      if (cost > 0) {
+
+        const { error: expenseError } = await supabase.from('expenses').insert({
+
+          livestock_id: selectedLivestock.id,
+
+          category: 'Medical',
+
+          amount: cost,
+
+          notes: `Veterinary/Medical: ${healthForm.event}`,
+
+          date: recordDate,
+
+        });
+
+        if (expenseError) throw expenseError;
+
+      }
+
+
+
+      setHealthForm({ event: '', cost: '', date: '' });
+
+      setSuccessMessage('Record Saved Successfully');
+
+      setTimeout(() => setSuccessMessage(null), 3000);
+
+
+
+      const { data } = await supabase.from('health_records').select('*').eq('livestock_id', selectedLivestock.id).order('date', { ascending: false });
+
+      setHealthRecords((data ?? []) as HealthRecord[]);
+
+      const { data: expenseData } = await supabase.from('expenses').select('*').eq('livestock_id', selectedLivestock.id).order('date', { ascending: false });
+
+      setExpenseRecords((expenseData ?? []) as ExpenseRecord[]);
+
+    } catch (err) {
+
+      setErrorMessage(err instanceof Error ? err.message : 'Failed to save health record');
+
+    } finally {
+
+      setSavingHealth(false);
 
     }
-
-
-
-    setHealthForm({ event: '', cost: '', date: '' });
-
-    const { data } = await supabase.from('health_records').select('*').eq('livestock_id', selectedLivestock.id).order('date', { ascending: false });
-
-    setHealthRecords((data ?? []) as HealthRecord[]);
 
   };
 
