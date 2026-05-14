@@ -1,14 +1,15 @@
+import withPWAInit from 'next-pwa';
+
 /** @type {import('next').NextConfig} */
-const withPWA = require('next-pwa')({
+const withPWA = withPWAInit({
   dest: 'public',
   register: true,
   skipWaiting: true,
-  disable: process.env.NODE_ENV === 'development'
+  disable: process.env.NODE_ENV === 'development',
 });
 
 const nextConfig = {
-  // This empty object silences the Turbopack/Webpack error
-  turbopack: {}, 
+  turbopack: {}, // Keeps Turbopack happy in Next.js 16
   images: {
     remotePatterns: [
       {
@@ -19,4 +20,4 @@ const nextConfig = {
   },
 };
 
-module.exports = withPWA(nextConfig);
+export default withPWA(nextConfig);
