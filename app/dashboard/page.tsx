@@ -339,37 +339,65 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const init = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      // defensive timeout: if auth doesn't resolve within 1.5s, bypass loading to avoid infinite splash
+      const timeoutMs = 1500;
+      let timedOut = false;
 
-      if (!user?.id) {
-        router.replace('/login');
-        return;
+      const timer = setTimeout(() => {
+        timedOut = true;
+        setLoading(false);
+        setAuthChecked(true);
+      }, timeoutMs);
+
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
+        if (timedOut) return;
+
+        if (!user?.id) {
+          // no user: redirect to login
+          clearTimeout(timer);
+          router.replace('/login');
+          return;
+        }
+
+        setUserId(user.id);
+        const { data } = await supabase.auth.getSession();
+        setSession(data.session);
+        setAuthChecked(true);
+      } catch (err) {
+        // on error, ensure we release the loading UI
+        setErrorMessage(err instanceof Error ? err.message : 'Auth check failed');
+        setAuthChecked(true);
+      } finally {
+        clearTimeout(timer);
+        setLoading(false);
       }
-
-      setUserId(user.id);
-      const { data } = await supabase.auth.getSession();
-      setSession(data.session);
-      setAuthChecked(true);
     };
 
     void init();
 
     const { data: listener } = supabase.auth.onAuthStateChange(
       async (_event: AuthChangeEvent, session: Session | null) => {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
+        try {
+          const {
+            data: { user },
+          } = await supabase.auth.getUser();
 
-        if (!user?.id) {
-          router.replace('/login');
-          return;
+          if (!user?.id) {
+            router.replace('/login');
+            return;
+          }
+
+          setUserId(user.id);
+          setSession(session);
+          setAuthChecked(true);
+        } catch (err) {
+          setAuthChecked(true);
+          setLoading(false);
         }
-
-        setUserId(user.id);
-        setSession(session);
-        setAuthChecked(true);
       },
     );
 
@@ -660,16 +688,13 @@ export default function DashboardPage() {
 
         const imagePath = item.image_url;
 
-        const { error: imageError } = await supabase.storage
-
-          .from('cow photos')
-
-          .remove([imagePath]);
-
-        if (imageError) {
-
-          console.warn('Failed to delete image:', imageError.message);
-
+        try {
+          const { error: imageError } = await supabase.storage.from('livestock-images').remove([imagePath]);
+          if (imageError) {
+            console.warn('Failed to delete image:', imageError.message);
+          }
+        } catch (e) {
+          console.warn('Failed to delete image:', e instanceof Error ? e.message : String(e));
         }
 
       }
@@ -682,16 +707,13 @@ export default function DashboardPage() {
 
         const videoPath = item.video_url;
 
-        const { error: videoError } = await supabase.storage
-
-          .from('market-videos')
-
-          .remove([videoPath]);
-
-        if (videoError) {
-
-          console.warn('Failed to delete video:', videoError.message);
-
+        try {
+          const { error: videoError } = await supabase.storage.from('livestock-videos').remove([videoPath]);
+          if (videoError) {
+            console.warn('Failed to delete video:', videoError.message);
+          }
+        } catch (e) {
+          console.warn('Failed to delete video:', e instanceof Error ? e.message : String(e));
         }
 
       }
@@ -708,14 +730,20 @@ export default function DashboardPage() {
         return;
       }
 
+      try {
+        const { error: marketError } = await supabase.from('market_listings').delete().eq('livestock_id', item.id);
+        if (marketError) {
+          console.warn('market_listings deletion warning:', marketError.message);
+        }
+      } catch (e) {
+        console.warn('market_listings deletion failed:', e instanceof Error ? e.message : String(e));
+      }
+
       const { error } = await supabase.from('livestock').delete().eq('id', item.id).eq('user_id', user.id);
 
       if (error) {
-
         setErrorMessage(error.message);
-
         return;
-
       }
 
 
