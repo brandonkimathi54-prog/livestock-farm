@@ -16,8 +16,8 @@ import type { Livestock } from '@/types';
 
 import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
 
-import AddLivestockModal from '@/components/AddLivestockModal';
-import DashboardLayout from '@/components/DashboardLayout';
+import AddLivestockModal from '../../components/AddLivestockModal';
+import DashboardLayout from '../../components/DashboardLayout';
 import LivestockDetails from '@/components/LivestockDetails';
 
 type BeforeInstallPromptEvent = Event & {
