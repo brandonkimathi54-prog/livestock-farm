@@ -16,6 +16,8 @@ import type { Livestock } from '@/types';
 
 import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
 
+import AddLivestockModal from '@/components/AddLivestockModal';
+import DashboardLayout from '@/components/DashboardLayout';
 import LivestockDetails from '@/components/LivestockDetails';
 
 type BeforeInstallPromptEvent = Event & {
@@ -216,6 +218,13 @@ export default function DashboardPage() {
   });
 
   const [defaultMilkPriceKsh, setDefaultMilkPriceKsh] = useState('60');
+
+  const morningMilkValue = parseFloat(milkForm.morning_liters);
+  const eveningMilkValue = parseFloat(milkForm.evening_liters);
+  const morningMilk = Number.isFinite(morningMilkValue) ? morningMilkValue : 0;
+  const eveningMilk = Number.isFinite(eveningMilkValue) ? eveningMilkValue : 0;
+  const totalMilkLitres = morningMilk + eveningMilk;
+  const totalMilkRevenue = totalMilkLitres * Number(defaultMilkPriceKsh || 0);
 
   const [savingSettings, setSavingSettings] = useState(false);
 
@@ -969,9 +978,13 @@ export default function DashboardPage() {
       return;
     }
 
-    const morning = Number(milkForm.morning_liters || 0);
+    const morningValue = parseFloat(milkForm.morning_liters);
 
-    const evening = Number(milkForm.evening_liters || 0);
+    const eveningValue = parseFloat(milkForm.evening_liters);
+
+    const morning = Number.isFinite(morningValue) ? morningValue : 0;
+
+    const evening = Number.isFinite(eveningValue) ? eveningValue : 0;
 
     const totalLiters = morning + evening;
 
@@ -1345,9 +1358,7 @@ export default function DashboardPage() {
   };
 
   return (
-
-    <>
-
+    <DashboardLayout>
       {successMessage ? (
 
         <div
@@ -2370,11 +2381,14 @@ export default function DashboardPage() {
 
 
 
-      {showModal ? (
-
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 px-4 py-6">
-
-          <div className={`w-full max-w-2xl max-h-[80vh] overflow-y-auto p-5 ${glassCardClass}`}>
+      <AddLivestockModal
+        isOpen={showModal}
+        onClose={() => {
+          setShowModal(false);
+          resetLivestockForm();
+        }}
+      >
+        <div className={`w-full max-w-2xl overflow-hidden p-5 ${glassCardClass}`}>
 
             <div className="flex items-center justify-between gap-4">
 
@@ -2702,7 +2716,7 @@ export default function DashboardPage() {
 
         </div>
 
-      ) : null}
+      </AddLivestockModal>
 
 
 
@@ -2710,7 +2724,7 @@ export default function DashboardPage() {
 
 
 
-    </>
+  </DashboardLayout>
 
   );
 
