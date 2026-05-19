@@ -3,6 +3,7 @@
 import { FormEvent, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseWrapper';
+import { Eye, EyeOff } from 'lucide-react';
 import type { Session } from '@supabase/supabase-js';
 
 export default function AuthPage() {
@@ -10,6 +11,7 @@ export default function AuthPage() {
   const [mode, setMode] = useState<'login' | 'signup'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -52,7 +54,7 @@ export default function AuthPage() {
   };
 
   return (
-    <section className="mx-auto max-w-xl rounded-3xl bg-white p-8 shadow-sm shadow-slate-200" style={{ background: 'rgba(255, 255, 255, 0.8)', backdropFilter: 'blur(5px)' }}>
+    <section className="mx-auto w-full max-w-md rounded-3xl bg-white p-6 shadow-sm shadow-slate-200" style={{ background: 'rgba(255, 255, 255, 0.92)', backdropFilter: 'blur(6px)' }}>
       <div className="space-y-3">
         <p className="text-sm uppercase tracking-[0.3em] text-slate-500">Account access</p>
         <h1 className="text-3xl font-semibold text-slate-900">{mode === 'login' ? 'Login to Epaphroditus Farm' : 'Create your account'}</h1>
@@ -81,21 +83,31 @@ export default function AuthPage() {
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               required
-              className="mt-2 w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-slate-400"
+              className="mt-2 w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-zinc-950 placeholder-zinc-500 outline-none transition focus:border-slate-400"
             />
 
             <label htmlFor="password" className="block text-sm font-medium text-slate-700">
               Password
             </label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              required
-              className="mt-2 w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-slate-400"
-            />
+            <div className="relative mt-2">
+              <input
+                id="password"
+                name="password"
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                required
+                className="w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 pr-12 text-sm font-medium text-zinc-950 placeholder-zinc-500 outline-none transition focus:border-slate-400"
+              />
+              <button
+                type="button"
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                onClick={() => setShowPassword((s) => !s)}
+                className="absolute inset-y-0 right-2 m-auto flex h-9 w-9 items-center justify-center rounded-full bg-white/0 text-slate-700 hover:bg-slate-100 active:scale-95"
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
 
             {errorMessage ? <p className="text-sm text-red-600">{errorMessage}</p> : null}
 

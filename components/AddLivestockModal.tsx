@@ -202,8 +202,9 @@ export default function AddLivestockModal({ isOpen, supabase, userId, onClose, o
             </button>
           </div>
 
-          <form className="mt-5 flex h-full flex-col space-y-4 overflow-y-auto pb-6" onSubmit={handleSubmit}>
-            <div className="grid gap-3 sm:grid-cols-2">
+          <form className="mt-5 flex h-full flex-col" onSubmit={handleSubmit}>
+            <div className="overflow-y-auto space-y-4 pr-2 pb-4">
+              <div className="grid gap-3 sm:grid-cols-2">
               <label className="space-y-1.5 text-sm text-slate-300">
                 <span>Name</span>
                 <input
@@ -329,23 +330,26 @@ export default function AddLivestockModal({ isOpen, supabase, userId, onClose, o
               </label>
             </div>
 
-            {errorMessage ? <p className="text-sm text-red-400">{errorMessage}</p> : null}
+              {errorMessage ? <p className="text-sm text-red-400">{errorMessage}</p> : null}
+            </div>
 
-            <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
-              <button
-                type="button"
-                className="rounded-full border border-slate-700 px-5 py-3 text-sm font-semibold text-slate-200 transition hover:bg-slate-800"
-                onClick={onClose}
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="rounded-full bg-emerald-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-500 disabled:opacity-50"
-                disabled={saving}
-              >
-                {saving ? 'Saving...' : editingLivestock ? 'Update Livestock' : 'Save Livestock'}
-              </button>
+            <div className="mt-auto border-t border-white/6 bg-transparent p-4">
+              <div className="flex flex-col gap-3">
+                <button
+                  type="submit"
+                  className="w-full rounded-xl bg-indigo-600 py-3 text-white font-bold transition hover:bg-indigo-500 disabled:opacity-50"
+                  disabled={saving}
+                >
+                  {saving ? 'Saving...' : editingLivestock ? 'Update Livestock' : 'Confirm & Save Asset'}
+                </button>
+                <button
+                  type="button"
+                  className="w-full rounded-xl border border-slate-700 bg-transparent py-3 text-sm font-semibold text-slate-200 transition hover:bg-slate-800"
+                  onClick={onClose}
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
           </form>
         </div>

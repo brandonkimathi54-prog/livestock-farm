@@ -1173,9 +1173,9 @@ export default function DashboardPage() {
 
   if (!authChecked) {
     return (
-      <div className="min-h-screen bg-[#0b131a] text-zinc-100">
-        <div className="mx-auto flex min-h-screen max-w-4xl items-center justify-center px-4 py-20 text-center">
-          <div className="rounded-3xl border border-white/10 bg-slate-950/90 px-6 py-8 text-white shadow-2xl shadow-slate-900/40">
+      <div className="fixed inset-0 w-screen h-screen bg-[#0b131a] flex items-center justify-center p-4 text-zinc-100">
+        <div className="w-full max-w-lg">
+          <div className="mx-auto w-full rounded-3xl border border-white/10 bg-slate-950/90 px-6 py-8 text-center text-white shadow-2xl shadow-slate-900/40">
             <p className="text-lg font-semibold">Checking your secure dashboard access...</p>
             <p className="mt-3 text-sm text-slate-400">Please wait while we verify your session.</p>
           </div>
