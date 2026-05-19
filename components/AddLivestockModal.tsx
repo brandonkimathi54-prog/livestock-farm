@@ -101,17 +101,13 @@ export default function AddLivestockModal({ isOpen, supabase, userId, onClose, o
 
     let image_url: string | null = null;
     let video_url: string | null = null;
-    const uploadWarnings: string[] = [];
 
     if (photoFile) {
       try {
         image_url = await uploadToBucket(LIVESTOCK_IMAGES_BUCKET, userId, formState.name, photoFile);
       } catch (uploadError) {
-        uploadWarnings.push(
-          uploadError instanceof Error
-            ? `Photo upload blocked: ${uploadError.message}`
-            : 'Photo upload blocked by storage policy.',
-        );
+        const message = uploadError instanceof Error ? uploadError.message : 'Photo upload blocked by storage policy.';
+        window.alert(`Photo upload failed: ${message}. Your livestock data will still be saved without the image.`);
       }
     }
 
@@ -119,11 +115,8 @@ export default function AddLivestockModal({ isOpen, supabase, userId, onClose, o
       try {
         video_url = await uploadToBucket(LIVESTOCK_VIDEOS_BUCKET, userId, formState.name, videoFile);
       } catch (uploadError) {
-        uploadWarnings.push(
-          uploadError instanceof Error
-            ? `Video upload blocked: ${uploadError.message}`
-            : 'Video upload blocked by storage policy.',
-        );
+        const message = uploadError instanceof Error ? uploadError.message : 'Video upload blocked by storage policy.';
+        window.alert(`Video upload failed: ${message}. Your livestock data will still be saved without the video.`);
       }
     }
 
@@ -152,10 +145,6 @@ export default function AddLivestockModal({ isOpen, supabase, userId, onClose, o
 
       if (error) {
         throw error;
-      }
-
-      if (uploadWarnings.length > 0) {
-        window.alert(`${uploadWarnings.join(' ')} Livestock saved without blocked media.`);
       }
 
       onSuccess();
@@ -202,8 +191,11 @@ export default function AddLivestockModal({ isOpen, supabase, userId, onClose, o
             </button>
           </div>
 
-          <form className="mt-5 flex min-h-0 flex-1 flex-col" onSubmit={handleSubmit}>
-            <div className="flex-1 overflow-y-auto space-y-4 pr-2 pb-6">
+          <form
+            className="mt-5 flex min-h-0 flex-1 flex-col max-h-[85vh] md:max-h-none overflow-y-auto pb-8"
+            onSubmit={handleSubmit}
+          >
+            <div className="space-y-4 pr-2">
               <div className="grid gap-3 sm:grid-cols-2">
               <label className="space-y-1.5 text-sm text-slate-300">
                 <span>Name</span>
