@@ -2,7 +2,7 @@
 
 
 
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 
 import { useRouter } from 'next/navigation';
 
@@ -159,6 +159,8 @@ export default function DashboardPage() {
 
   const [loading, setLoading] = useState(true);
 
+  const [authChecked, setAuthChecked] = useState(false);
+
   const [showModal, setShowModal] = useState(false);
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -310,78 +312,74 @@ export default function DashboardPage() {
 
 
 
-  useEffect(() => {
+  const fetchLivestock = useCallback(async () => {
+    setLoading(true);
 
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user?.id) {
+      router.replace('/login');
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from('livestock')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('updated_at', { ascending: false });
+
+    if (error) {
+      setErrorMessage(error.message);
+    } else {
+      setLivestock(data ?? []);
+    }
+
+    setLoading(false);
+  }, [router]);
+
+  useEffect(() => {
     const init = async () => {
       const {
         data: { user },
       } = await supabase.auth.getUser();
+
       if (!user?.id) {
-        window.location.href = '/login';
+        router.replace('/login');
         return;
       }
 
       const { data } = await supabase.auth.getSession();
       setSession(data.session);
+      setAuthChecked(true);
     };
-    init();
 
-    const { data: listener } = supabase.auth.onAuthStateChange(async (_event: AuthChangeEvent, session: Session | null) => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user?.id) {
-        window.location.href = '/login';
-        return;
-      }
-      setSession(session);
-    });
+    void init();
+
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      async (_event: AuthChangeEvent, session: Session | null) => {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
+        if (!user?.id) {
+          router.replace('/login');
+          return;
+        }
+
+        setSession(session);
+        setAuthChecked(true);
+      },
+    );
 
     return () => listener.subscription?.unsubscribe();
-
   }, [router]);
 
-
-
   useEffect(() => {
-
-    const fetchLivestock = async () => {
-
-      setLoading(true);
-
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user?.id) {
-        window.location.href = '/login';
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from('livestock')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('updated_at', { ascending: false });
-
-      if (error) {
-
-        setErrorMessage(error.message);
-
-      } else {
-
-        setLivestock(data ?? []);
-
-      }
-
-      setLoading(false);
-
-    };
-
-
-
-    fetchLivestock();
-
-  }, [session]);
+    if (!authChecked) return;
+    void fetchLivestock();
+  }, [authChecked, fetchLivestock]);
 
 
 
@@ -1356,6 +1354,19 @@ export default function DashboardPage() {
       setSavingSettings(false);
     }
   };
+
+  if (!authChecked) {
+    return (
+      <div className="min-h-screen bg-[#0b131a] text-zinc-100">
+        <div className="mx-auto flex min-h-screen max-w-4xl items-center justify-center px-4 py-20 text-center">
+          <div className="rounded-3xl border border-white/10 bg-slate-950/90 px-6 py-8 text-white shadow-2xl shadow-slate-900/40">
+            <p className="text-lg font-semibold">Checking your secure dashboard access...</p>
+            <p className="mt-3 text-sm text-slate-400">Please wait while we verify your session.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <DashboardLayout>
