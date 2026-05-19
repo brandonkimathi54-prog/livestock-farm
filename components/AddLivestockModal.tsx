@@ -1,16 +1,16 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import type { Livestock } from '@/types';
+import type { Livestock } from '../src/types';
 
 interface AddLivestockModalProps {
   isOpen: boolean;
   supabase: any;
+  userId: string | null;
   onClose: () => void;
   onSuccess: () => void;
   editingLivestock?: Livestock | null;
 }
 
-const COW_PHOTOS_BUCKET = 'cow photos';
-const MARKET_VIDEOS_BUCKET = 'market-videos';
+const LIVESTOCK_MEDIA_BUCKET = 'livestock-media';
 
 const initialFormState = {
   name: '',
@@ -81,19 +81,19 @@ export default function AddLivestockModal({ isOpen, supabase, onClose, onSuccess
       throw new Error(uploadError.message);
     }
 
-    return filePath;
+    const { data: publicUrlData, error: publicUrlError } = await supabase.storage.from(bucket).getPublicUrl(filePath);
+    if (publicUrlError || !publicUrlData?.publicUrl) {
+      throw new Error(publicUrlError?.message || 'Failed to resolve public URL for uploaded media.');
+    }
+
+    return publicUrlData.publicUrl;
   };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setErrorMessage(null);
 
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
-
-    if (userError || !user?.id) {
+    if (!userId) {
       window.location.href = '/login';
       return;
     }
@@ -104,7 +104,7 @@ export default function AddLivestockModal({ isOpen, supabase, onClose, onSuccess
 
     if (photoFile) {
       try {
-        image_url = await uploadToBucket(COW_PHOTOS_BUCKET, user.id, formState.name, photoFile);
+        image_url = await uploadToBucket(LIVESTOCK_MEDIA_BUCKET, userId, formState.name, photoFile);
       } catch (uploadError) {
         uploadWarnings.push(
           uploadError instanceof Error
@@ -116,7 +116,7 @@ export default function AddLivestockModal({ isOpen, supabase, onClose, onSuccess
 
     if (videoFile) {
       try {
-        video_url = await uploadToBucket(MARKET_VIDEOS_BUCKET, user.id, formState.name, videoFile);
+        video_url = await uploadToBucket(LIVESTOCK_MEDIA_BUCKET, userId, formState.name, videoFile);
       } catch (uploadError) {
         uploadWarnings.push(
           uploadError instanceof Error
@@ -127,8 +127,8 @@ export default function AddLivestockModal({ isOpen, supabase, onClose, onSuccess
     }
 
     const livestockData = {
-      user_id: user.id,
-      owner_id: user.id,
+      user_id: userId,
+      owner_id: userId,
       name: formState.name,
       breed: formState.breed,
       age: Number(formState.age),
@@ -146,7 +146,7 @@ export default function AddLivestockModal({ isOpen, supabase, onClose, onSuccess
 
     try {
       const { error } = editingLivestock
-        ? await supabase.from('livestock').update(livestockData).eq('id', editingLivestock.id).eq('user_id', user.id)
+        ? await supabase.from('livestock').update(livestockData).eq('id', editingLivestock.id).eq('user_id', userId)
         : await supabase.from('livestock').insert([livestockData]);
 
       if (error) {

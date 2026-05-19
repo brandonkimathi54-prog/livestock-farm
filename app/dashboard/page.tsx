@@ -105,9 +105,6 @@ const glassCardClass =
 
   'rounded-3xl border border-white/35 bg-white/20 p-5 shadow-xl shadow-slate-900/10 backdrop-blur-xl sm:p-8';
 
-const COW_PHOTOS_BUCKET = 'cow photos';
-const MARKET_VIDEOS_BUCKET = 'market-videos';
-
 const getLivestockPrice = (item: Livestock) => Number(item.price_ksh ?? item.price ?? 0);
 
 const getPublicMediaUrl = (bucket: string, pathOrUrl?: string | null) => {
@@ -151,6 +148,7 @@ export default function DashboardPage() {
   const router = useRouter();
 
   const [session, setSession] = useState<Session | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
 
   const [installEvent, setInstallEvent] = useState<BeforeInstallPromptEvent | null>(null);
   const [installReady, setInstallReady] = useState(false);
@@ -206,10 +204,6 @@ export default function DashboardPage() {
     description: '',
 
   });
-
-  const [photoFile, setPhotoFile] = useState<File | null>(null);
-
-  const [videoFile, setVideoFile] = useState<File | null>(null);
 
   const [milkForm, setMilkForm] = useState({
 
@@ -315,19 +309,23 @@ export default function DashboardPage() {
   const fetchLivestock = useCallback(async () => {
     setLoading(true);
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user?.id) {
-      router.replace('/login');
-      return;
+    let activeUserId = userId;
+    if (!activeUserId) {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      activeUserId = user?.id ?? null;
+      if (!activeUserId) {
+        router.replace('/login');
+        return;
+      }
+      setUserId(activeUserId);
     }
 
     const { data, error } = await supabase
       .from('livestock')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', activeUserId)
       .order('updated_at', { ascending: false });
 
     if (error) {
@@ -337,7 +335,7 @@ export default function DashboardPage() {
     }
 
     setLoading(false);
-  }, [router]);
+  }, [router, userId]);
 
   useEffect(() => {
     const init = async () => {
@@ -350,6 +348,7 @@ export default function DashboardPage() {
         return;
       }
 
+      setUserId(user.id);
       const { data } = await supabase.auth.getSession();
       setSession(data.session);
       setAuthChecked(true);
@@ -368,6 +367,7 @@ export default function DashboardPage() {
           return;
         }
 
+        setUserId(user.id);
         setSession(session);
         setAuthChecked(true);
       },
@@ -594,10 +594,6 @@ export default function DashboardPage() {
 
     });
 
-    setPhotoFile(null);
-
-    setVideoFile(null);
-
     setEditingLivestock(null);
 
   };
@@ -639,10 +635,6 @@ export default function DashboardPage() {
       description: item.description ?? '',
 
     });
-
-    setPhotoFile(null);
-
-    setVideoFile(null);
 
     setOpenCardMenuId(null);
 
@@ -781,182 +773,6 @@ export default function DashboardPage() {
     setMainView(tab);
 
     setManagementTab('milk');
-
-  };
-
-
-
-  const uploadToBucket = async (bucket: string, userId: string, animalName: string, file: File) => {
-
-    const safeAnimalName = animalName.trim().toLowerCase().replace(/[^a-z0-9-_]/g, '-');
-
-    const extension = file.name.includes('.') ? file.name.split('.').pop() : '';
-
-    const uniqueName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}${extension ? `.${extension}` : ''}`;
-
-    const filePath = `${userId}/${safeAnimalName || 'livestock'}/${uniqueName}`;
-
-
-
-    const { error: uploadError } = await supabase.storage.from(bucket).upload(filePath, file);
-
-    if (uploadError) {
-
-      throw new Error(uploadError.message);
-
-    }
-
-    return filePath;
-
-  };
-
-
-
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-
-    event.preventDefault();
-
-    setErrorMessage(null);
-
-
-
-    const {
-
-      data: { user },
-
-      error: userError,
-
-    } = await supabase.auth.getUser();
-
-
-
-    if (userError || !user?.id) {
-
-      router.replace('/login');
-
-      return;
-
-    }
-
-
-
-    let image_url: string | undefined;
-
-    let video_url: string | undefined;
-
-    const uploadWarnings: string[] = [];
-
-
-
-    if (photoFile) {
-
-      try {
-
-        image_url = await uploadToBucket(COW_PHOTOS_BUCKET, user.id, formState.name, photoFile);
-
-      } catch (uploadError) {
-
-        uploadWarnings.push(
-
-          uploadError instanceof Error
-
-            ? `Photo upload blocked: ${uploadError.message}`
-
-            : 'Photo upload blocked by storage policy.',
-
-        );
-
-      }
-
-    }
-
-
-
-    if (videoFile) {
-
-      try {
-
-        video_url = await uploadToBucket(MARKET_VIDEOS_BUCKET, user.id, formState.name, videoFile);
-
-      } catch (uploadError) {
-
-        uploadWarnings.push(
-
-          uploadError instanceof Error
-
-            ? `Video upload blocked: ${uploadError.message}`
-
-            : 'Video upload blocked by storage policy.',
-
-        );
-
-      }
-
-    }
-
-
-
-
-    const livestockData = {
-
-      user_id: user.id,
-
-      owner_id: user.id,
-
-      name: formState.name,
-
-      breed: formState.breed,
-
-
-      age: Number(formState.age),
-
-      liters_per_day: Number(formState.liters_per_day || 0),
-
-      price_ksh: Number(formState.price),
-
-      status: formState.status || 'Available',
-
-      location: formState.location,
-
-      whatsapp_number: formState.whatsapp_number,
-
-      description: formState.description,
-
-      image_url: image_url ?? editingLivestock?.image_url ?? null,
-
-      video_url: video_url ?? editingLivestock?.video_url ?? null,
-
-    };
-
-    const { error } = editingLivestock
-
-      ? await supabase.from('livestock').update(livestockData).eq('id', editingLivestock.id).eq('user_id', user.id)
-
-      : await supabase.from('livestock').insert([livestockData]);
-
-
-
-    if (error) {
-
-      setErrorMessage(error.message);
-
-      return;
-
-    }
-
-
-
-    setShowModal(false);
-
-    resetLivestockForm();
-
-    if (uploadWarnings.length > 0) {
-
-      setErrorMessage(`${uploadWarnings.join(' ')} Livestock saved without blocked media.`);
-
-    }
-
-    window.location.reload();
 
   };
 
@@ -2396,13 +2212,14 @@ export default function DashboardPage() {
         <AddLivestockModal
           isOpen={showModal}
           supabase={supabase}
+          userId={userId}
           editingLivestock={editingLivestock}
           onClose={() => {
             setShowModal(false);
             resetLivestockForm();
           }}
           onSuccess={() => {
-            fetchLivestock();
+            void fetchLivestock();
           }}
         />
       )}
