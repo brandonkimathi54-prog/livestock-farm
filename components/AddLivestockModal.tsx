@@ -73,9 +73,9 @@ export default function AddLivestockModal({ isOpen, supabase, userId, onClose, o
 
   const uploadToBucket = async (bucket: string, userId: string, animalName: string, file: File) => {
     const safeAnimalName = animalName.trim().toLowerCase().replace(/[^a-z0-9-_]/g, '-');
-    const extension = file.name.includes('.') ? file.name.split('.').pop() : '';
-    const uniqueName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}${extension ? `.${extension}` : ''}`;
-    const filePath = `${userId}/${safeAnimalName || 'livestock'}/${uniqueName}`;
+    const fileExt = file.name.split('.').pop() ?? 'bin';
+    const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+    const filePath = `${userId}/${safeAnimalName || 'livestock'}/${fileName}`;
 
     const { error: uploadError } = await supabase.storage.from(bucket).upload(filePath, file);
     if (uploadError) {
@@ -101,13 +101,14 @@ export default function AddLivestockModal({ isOpen, supabase, userId, onClose, o
 
     let image_url: string | null = null;
     let video_url: string | null = null;
+    const uploadWarnings: string[] = [];
 
     if (photoFile) {
       try {
         image_url = await uploadToBucket(LIVESTOCK_IMAGES_BUCKET, userId, formState.name, photoFile);
       } catch (uploadError) {
         const message = uploadError instanceof Error ? uploadError.message : 'Photo upload blocked by storage policy.';
-        window.alert(`Photo upload failed: ${message}. Your livestock data will still be saved without the image.`);
+        uploadWarnings.push(`Photo upload failed: ${message}`);
       }
     }
 
@@ -116,7 +117,7 @@ export default function AddLivestockModal({ isOpen, supabase, userId, onClose, o
         video_url = await uploadToBucket(LIVESTOCK_VIDEOS_BUCKET, userId, formState.name, videoFile);
       } catch (uploadError) {
         const message = uploadError instanceof Error ? uploadError.message : 'Video upload blocked by storage policy.';
-        window.alert(`Video upload failed: ${message}. Your livestock data will still be saved without the video.`);
+        uploadWarnings.push(`Video upload failed: ${message}`);
       }
     }
 
