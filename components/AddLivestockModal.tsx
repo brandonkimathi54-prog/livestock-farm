@@ -1,51 +1,46 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import type { Livestock } from '../src/types';
+'use client';
+
+import { useState, useEffect, FormEvent } from 'react';
+import type { Livestock } from '@/types';
 
 interface AddLivestockModalProps {
   isOpen: boolean;
   supabase: any;
   userId: string | null;
+  editingLivestock?: Livestock | null;
   onClose: () => void;
   onSuccess: () => void;
-  editingLivestock?: Livestock | null;
 }
 
-const LIVESTOCK_IMAGES_BUCKET = 'livestock-images';
-const LIVESTOCK_VIDEOS_BUCKET = 'livestock-videos';
+export default function AddLivestockModal({
+  isOpen,
+  supabase,
+  userId,
+  editingLivestock,
+  onClose,
+  onSuccess,
+}: AddLivestockModalProps) {
+  const [formState, setFormState] = useState({
+    name: '',
+    breed: '',
+    age: '',
+    liters_per_day: '',
+    price: '',
+    status: 'Available' as const,
+    location: '',
+    whatsapp_number: '',
+    description: '',
+  });
 
-const initialFormState = {
-  name: '',
-  breed: '',
-  age: '0',
-  liters_per_day: '0',
-  price: '0',
-  status: 'Available',
-  location: '',
-  whatsapp_number: '',
-  description: '',
-};
-
-export default function AddLivestockModal({ isOpen, supabase, userId, onClose, onSuccess, editingLivestock }: AddLivestockModalProps) {
-  const [formState, setFormState] = useState(initialFormState);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  const isEditing = !!editingLivestock;
+
+  // Reset/Populate form
   useEffect(() => {
-    if (!isOpen) return;
-
-    const originalOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-
-    return () => {
-      document.body.style.overflow = originalOverflow;
-    };
-  }, [isOpen]);
-
-  useEffect(() => {
-    if (!isOpen) return;
-
     if (editingLivestock) {
       setFormState({
         name: editingLivestock.name ?? '',
@@ -53,45 +48,43 @@ export default function AddLivestockModal({ isOpen, supabase, userId, onClose, o
         age: String(editingLivestock.age ?? 0),
         liters_per_day: String(editingLivestock.liters_per_day ?? 0),
         price: String(editingLivestock.price_ksh ?? editingLivestock.price ?? 0),
-        status: editingLivestock.status ?? 'Available',
+        status: (editingLivestock.status as 'Available' | 'Sold') ?? 'Available',
         location: editingLivestock.location ?? '',
         whatsapp_number: editingLivestock.whatsapp_number ?? '',
         description: editingLivestock.description ?? '',
       });
     } else {
-      setFormState(initialFormState);
+      setFormState({
+        name: '', breed: '', age: '', liters_per_day: '', price: '',
+        status: 'Available', location: '', whatsapp_number: '', description: '',
+      });
     }
-
     setPhotoFile(null);
     setVideoFile(null);
     setErrorMessage(null);
-  }, [editingLivestock, isOpen]);
+  }, [editingLivestock]);
 
-  const handleChange = (key: keyof typeof initialFormState, value: string) => {
-    setFormState((current) => ({ ...current, [key]: value }));
+  const handleChange = (key: keyof typeof formState, value: string) => {
+    setFormState((prev) => ({ ...prev, [key]: value }));
   };
 
-  const uploadToBucket = async (bucket: string, userId: string, animalName: string, file: File) => {
-    const safeAnimalName = animalName.trim().toLowerCase().replace(/[^a-z0-9-_]/g, '-');
-    const fileExt = file.name.split('.').pop() ?? 'bin';
-    const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-    const filePath = `${userId}/${safeAnimalName || 'livestock'}/${fileName}`;
+  const uploadMedia = async (bucket: string, file: File, userId: string) => {
+    const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+    const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`;
 
-    const { error: uploadError } = await supabase.storage.from(bucket).upload(filePath, file);
-    if (uploadError) {
-      throw new Error(uploadError.message);
-    }
+    const { error: uploadError } = await supabase.storage
+      .from(bucket)
+      .upload(fileName, file, { upsert: true });
 
-    const { data: publicUrlData, error: publicUrlError } = await supabase.storage.from(bucket).getPublicUrl(filePath);
-    if (publicUrlError || !publicUrlData?.publicUrl) {
-      throw new Error(publicUrlError?.message || 'Failed to resolve public URL for uploaded media.');
-    }
+    if (uploadError) throw uploadError;
 
-    return publicUrlData.publicUrl;
+    const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(fileName);
+    return urlData.publicUrl;
   };
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setSaving(true);
     setErrorMessage(null);
 
     if (!userId) {
@@ -99,253 +92,210 @@ export default function AddLivestockModal({ isOpen, supabase, userId, onClose, o
       return;
     }
 
-    let image_url: string | null = null;
-    let video_url: string | null = null;
-    const uploadWarnings: string[] = [];
-
-    if (photoFile) {
-      try {
-        image_url = await uploadToBucket(LIVESTOCK_IMAGES_BUCKET, userId, formState.name, photoFile);
-      } catch (uploadError) {
-        const message = uploadError instanceof Error ? uploadError.message : 'Photo upload blocked by storage policy.';
-        uploadWarnings.push(`Photo upload failed: ${message}`);
-      }
-    }
-
-    if (videoFile) {
-      try {
-        video_url = await uploadToBucket(LIVESTOCK_VIDEOS_BUCKET, userId, formState.name, videoFile);
-      } catch (uploadError) {
-        const message = uploadError instanceof Error ? uploadError.message : 'Video upload blocked by storage policy.';
-        uploadWarnings.push(`Video upload failed: ${message}`);
-      }
-    }
-
-    const livestockData = {
-      user_id: userId,
-      owner_id: userId,
-      name: formState.name,
-      breed: formState.breed,
-      age: Number(formState.age),
-      liters_per_day: Number(formState.liters_per_day || 0),
-      price_ksh: Number(formState.price),
-      status: formState.status || 'Available',
-      location: formState.location,
-      whatsapp_number: formState.whatsapp_number,
-      description: formState.description,
-      image_url: image_url ?? editingLivestock?.image_url ?? null,
-      video_url: video_url ?? editingLivestock?.video_url ?? null,
-    };
-
-    setSaving(true);
+    let image_url = editingLivestock?.image_url || '';
+    let video_url = editingLivestock?.video_url || '';
 
     try {
-      const { error } = editingLivestock
-        ? await supabase.from('livestock').update(livestockData).eq('id', editingLivestock.id).eq('user_id', userId)
-        : await supabase.from('livestock').insert([livestockData]);
-
-      if (error) {
-        throw error;
+      // Upload Image
+      if (photoFile) {
+        image_url = await uploadMedia('livestock-images', photoFile, userId);
       }
+
+      // Upload Video
+      if (videoFile) {
+        video_url = await uploadMedia('livestock-videos', videoFile, userId);
+      }
+
+      const payload = {
+        name: formState.name,
+        breed: formState.breed,
+        age: parseInt(formState.age) || 0,
+        liters_per_day: parseFloat(formState.liters_per_day) || 0,
+        price_ksh: parseFloat(formState.price) || 0,
+        status: formState.status,
+        location: formState.location,
+        whatsapp_number: formState.whatsapp_number,
+        description: formState.description,
+        image_url,
+        video_url,
+        user_id: userId,
+      };
+
+      let error: any = null;
+
+      if (isEditing && editingLivestock?.id) {
+        const { error: updateError } = await supabase
+          .from('livestock')
+          .update(payload)
+          .eq('id', editingLivestock.id)
+          .eq('user_id', userId);
+        error = updateError;
+      } else {
+        const { error: insertError } = await supabase
+          .from('livestock')
+          .insert([payload]);
+        error = insertError;
+      }
+
+      if (error) throw error;
 
       onSuccess();
       onClose();
-      setFormState(initialFormState);
-      setPhotoFile(null);
-      setVideoFile(null);
-    } catch (err) {
-      setErrorMessage(err instanceof Error ? err.message : 'Failed to save livestock');
+    } catch (err: any) {
+      console.error(err);
+      setErrorMessage(err.message || 'Failed to save livestock. Check storage permissions.');
     } finally {
       setSaving(false);
     }
   };
 
-  const title = editingLivestock ? 'Edit Livestock' : 'Add Livestock';
-
-  const hasFields = useMemo(() => !!formState.name || !!formState.breed || formState.age !== '0', [formState]);
-
   if (!isOpen) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 px-4 py-5 backdrop-blur-md"
-      aria-modal="true"
-      role="dialog"
-      onClick={onClose}
-    >
-      <div
-        className="w-full max-w-md sm:max-w-3xl max-h-[90vh] md:max-h-auto flex flex-col overflow-y-auto rounded-[1.5rem] border border-zinc-700 bg-slate-950/95 shadow-2xl text-zinc-200"
-        onClick={(event) => event.stopPropagation()}
-      >
-        <div className="flex h-full flex-col overflow-hidden p-5">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <h2 className="text-2xl font-semibold text-white">{title}</h2>
-              <p className="mt-2 text-sm text-slate-300">Create or update your livestock listing.</p>
-            </div>
-            <button
-              type="button"
-              className="rounded-full bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-100 transition hover:bg-slate-700"
-              onClick={onClose}
-            >
-              Close
-            </button>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+      <div className="w-full max-w-lg rounded-3xl bg-white p-8 shadow-2xl max-h-[95vh] overflow-y-auto">
+        <h2 className="text-2xl font-semibold text-slate-900">
+          {isEditing ? 'Edit Livestock' : 'Add New Livestock'}
+        </h2>
+
+        {errorMessage && (
+          <div className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{errorMessage}</div>
+        )}
+
+        <form onSubmit={handleSubmit} className="mt-6 space-y-5">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Name *</label>
+            <input
+              type="text"
+              required
+              value={formState.name}
+              onChange={(e) => handleChange('name', e.target.value)}
+              className="w-full rounded-2xl border border-slate-300 px-4 py-3 focus:border-emerald-500 focus:outline-none"
+            />
           </div>
 
-          <form
-            className="mt-5 flex min-h-0 flex-1 flex-col max-h-[85vh] md:max-h-none overflow-y-auto pb-8"
-            onSubmit={handleSubmit}
-          >
-            <div className="space-y-4 pr-2">
-              <div className="grid gap-3 sm:grid-cols-2">
-              <label className="space-y-1.5 text-sm text-slate-300">
-                <span>Name</span>
-                <input
-                  type="text" placeholder="Livestock Name"
-                  value={formState.name}
-                  onChange={(event) => handleChange('name', event.target.value)}
-                  required
-                  className="w-full rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm font-medium text-white placeholder-zinc-500 outline-none transition focus:border-emerald-500"
-                />
-              </label>
-              <label className="space-y-1.5 text-sm text-slate-300">
-                <span>Breed</span>
-                <input
-                  type="text" placeholder="Breed, e.g. Friesian"
-                  value={formState.breed}
-                  onChange={(event) => handleChange('breed', event.target.value)}
-                  required
-                  className="w-full rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm font-medium text-white placeholder-zinc-500 outline-none transition focus:border-emerald-500"
-                />
-              </label>
-            </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Breed</label>
+            <input
+              type="text"
+              value={formState.breed}
+              onChange={(e) => handleChange('breed', e.target.value)}
+              className="w-full rounded-2xl border border-slate-300 px-4 py-3 focus:border-emerald-500 focus:outline-none"
+            />
+          </div>
 
-            <div className="grid gap-3 sm:grid-cols-3">
-              <label className="space-y-1.5 text-sm text-slate-300">
-                <span>Age</span>
-                <input
-                  type="number"
-                  min="0"
-                  placeholder="0"
-                  value={formState.age}
-                  onChange={(event) => handleChange('age', event.target.value)}
-                  className="w-full rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm font-medium text-white placeholder-zinc-500 outline-none transition focus:border-emerald-500"
-                />
-              </label>
-              <label className="space-y-1.5 text-sm text-slate-300">
-                <span>Average Liters/Day</span>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.1"
-                  placeholder="0.0"
-                  value={formState.liters_per_day}
-                  onChange={(event) => handleChange('liters_per_day', event.target.value)}
-                  className="w-full rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm font-medium text-white placeholder-zinc-500 outline-none transition focus:border-emerald-500"
-                />
-              </label>
-              <label className="space-y-1.5 text-sm text-slate-300">
-                <span>Price (KSH)</span>
-                <input
-                  type="number"
-                  min="0"
-                  placeholder="0"
-                  value={formState.price}
-                  onChange={(event) => handleChange('price', event.target.value)}
-                  required
-                  className="w-full rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm font-medium text-white placeholder-zinc-500 outline-none transition focus:border-emerald-500"
-                />
-              </label>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-2">
-              <label className="space-y-1.5 text-sm text-slate-300">
-                <span>Status</span>
-                <select
-                  value={formState.status}
-                  onChange={(event) => handleChange('status', event.target.value)}
-                  className="w-full rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm font-medium text-white placeholder-zinc-500 outline-none transition focus:border-emerald-500"
-                >
-                  <option value="Available">Available</option>
-                  <option value="Sold">Sold</option>
-                </select>
-              </label>
-              <label className="space-y-1.5 text-sm text-slate-300">
-                <span>Location</span>
-                <input
-                  type="text" placeholder="Location or ranch"
-                  value={formState.location}
-                  onChange={(event) => handleChange('location', event.target.value)}
-                  className="w-full rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm font-medium text-white placeholder-zinc-500 outline-none transition focus:border-emerald-500"
-                />
-              </label>
-            </div>
-
-            <label className="space-y-1.5 text-sm text-slate-300">
-              <span>WhatsApp Number</span>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Age</label>
               <input
-                type="tel" placeholder="WhatsApp number"
-                value={formState.whatsapp_number}
-                onChange={(event) => handleChange('whatsapp_number', event.target.value)}
-                className="w-full rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm font-medium text-white placeholder-zinc-500 outline-none transition focus:border-emerald-500"
+                type="number"
+                value={formState.age}
+                onChange={(e) => handleChange('age', e.target.value)}
+                className="w-full rounded-2xl border border-slate-300 px-4 py-3 focus:border-emerald-500 focus:outline-none"
               />
-            </label>
-
-            <label className="space-y-1.5 text-sm text-slate-300">
-              <span>Description</span>
-              <textarea
-                rows={4}
-                placeholder="Describe the animal and health details"
-                value={formState.description}
-                onChange={(event) => handleChange('description', event.target.value)}
-                className="w-full rounded-3xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm font-medium text-white placeholder-zinc-500 outline-none transition focus:border-emerald-500"
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Liters/Day</label>
+              <input
+                type="number"
+                step="0.1"
+                value={formState.liters_per_day}
+                onChange={(e) => handleChange('liters_per_day', e.target.value)}
+                className="w-full rounded-2xl border border-slate-300 px-4 py-3 focus:border-emerald-500 focus:outline-none"
               />
-            </label>
-
-            <div className="grid gap-3 sm:grid-cols-2">
-              <label className="space-y-1.5 text-sm text-slate-300">
-                <span>Photos</span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(event) => setPhotoFile(event.target.files?.[0] ?? null)}
-                  className="w-full rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm text-white outline-none transition file:mr-4 file:rounded-full file:border-0 file:bg-slate-800 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white focus:border-emerald-500"
-                />
-              </label>
-              <label className="space-y-1.5 text-sm text-slate-300">
-                <span>Video</span>
-                <input
-                  type="file"
-                  accept="video/*"
-                  onChange={(event) => setVideoFile(event.target.files?.[0] ?? null)}
-                  className="w-full rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm text-white outline-none transition file:mr-4 file:rounded-full file:border-0 file:bg-slate-800 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white focus:border-emerald-500"
-                />
-              </label>
             </div>
+          </div>
 
-              {errorMessage ? <p className="text-sm text-red-400">{errorMessage}</p> : null}
-            </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Price (KSH) *</label>
+            <input
+              type="number"
+              required
+              value={formState.price}
+              onChange={(e) => handleChange('price', e.target.value)}
+              className="w-full rounded-2xl border border-slate-300 px-4 py-3 focus:border-emerald-500 focus:outline-none"
+            />
+          </div>
 
-            <div className="mt-auto border-t border-white/6 bg-transparent p-4">
-              <div className="flex flex-col gap-3">
-                <button
-                  type="submit"
-                  className="w-full rounded-xl bg-indigo-600 py-3 text-white font-bold transition hover:bg-indigo-500 disabled:opacity-50"
-                  disabled={saving}
-                >
-                  {saving ? 'Saving...' : editingLivestock ? 'Update Livestock' : 'Confirm & Save Asset'}
-                </button>
-                <button
-                  type="button"
-                  className="w-full rounded-xl border border-slate-700 bg-transparent py-3 text-sm font-semibold text-slate-200 transition hover:bg-slate-800"
-                  onClick={onClose}
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </form>
-        </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Status</label>
+            <select
+              value={formState.status}
+              onChange={(e) => handleChange('status', e.target.value)}
+              className="w-full rounded-2xl border border-slate-300 px-4 py-3 focus:border-emerald-500 focus:outline-none"
+            >
+              <option value="Available">Available</option>
+              <option value="Sold">Sold</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Location</label>
+            <input
+              type="text"
+              value={formState.location}
+              onChange={(e) => handleChange('location', e.target.value)}
+              className="w-full rounded-2xl border border-slate-300 px-4 py-3 focus:border-emerald-500 focus:outline-none"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">WhatsApp Number</label>
+            <input
+              type="tel"
+              value={formState.whatsapp_number}
+              onChange={(e) => handleChange('whatsapp_number', e.target.value)}
+              className="w-full rounded-2xl border border-slate-300 px-4 py-3 focus:border-emerald-500 focus:outline-none"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
+            <textarea
+              rows={3}
+              value={formState.description}
+              onChange={(e) => handleChange('description', e.target.value)}
+              className="w-full rounded-2xl border border-slate-300 px-4 py-3 focus:border-emerald-500 focus:outline-none"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Image</label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => setPhotoFile(e.target.files?.[0] || null)}
+              className="w-full"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Video (Optional)</label>
+            <input
+              type="file"
+              accept="video/*"
+              onChange={(e) => setVideoFile(e.target.files?.[0] || null)}
+              className="w-full"
+            />
+          </div>
+
+          <div className="flex gap-3 pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 py-3 rounded-full font-medium text-slate-600 hover:bg-slate-100"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              className="flex-1 py-3 rounded-full bg-emerald-700 font-semibold text-white hover:bg-emerald-800 disabled:opacity-70"
+            >
+              {saving ? 'Saving...' : isEditing ? 'Update Livestock' : 'Add Livestock'}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );
