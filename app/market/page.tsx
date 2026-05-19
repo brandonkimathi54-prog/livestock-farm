@@ -1,7 +1,8 @@
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-import { createClient } from '@/utils/supabase/server'; // Correct Server Side initialization context
+import { createClient } from '@supabase/supabase-js';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Livestock } from '@/types';
 
 const formatPrice = (value: number) => `KSH ${value.toLocaleString()}`;
@@ -11,13 +12,14 @@ const LIVESTOCK_IMAGES_BUCKET = 'livestock-images';
 const LIVESTOCK_VIDEOS_BUCKET = 'livestock-videos';
 
 // Clean inline helper matching absolute and path structures natively
-const getPublicMediaUrl = (supabase: any, bucket: string, pathOrUrl?: string | null) => {
+const getPublicMediaUrl = (supabase: SupabaseClient, bucket: string, pathOrUrl?: string | null) => {
   if (!pathOrUrl) return '';
   if (/^https?:\/\//i.test(pathOrUrl)) return pathOrUrl;
-  return supabase.storage.from(bucket).getPublicUrl(pathOrUrl).data.publicUrl;
+  const result = supabase.storage.from(bucket).getPublicUrl(pathOrUrl);
+  return result.data?.publicUrl || '';
 };
 
-function LivestockCard({ item, supabase }: { item: Livestock; supabase: any }) {
+function LivestockCard({ item, supabase }: { item: Livestock; supabase: SupabaseClient }) {
   const whatsappLink = item.whatsapp_number
     ? `https://wa.me/${item.whatsapp_number.replace(/\D/g, '')}?text=Hello,%20I%20am%20interested%20in%20purchasing%20your%20livestock:%20${item.name}%20(${item.breed || ''})`
     : undefined;
@@ -38,6 +40,7 @@ function LivestockCard({ item, supabase }: { item: Livestock; supabase: any }) {
               preload="none" 
             />
           ) : imageSrc ? (
+            // eslint-disable-next-line @next/next/no-img-element
             <img 
               className="h-full w-full object-cover" 
               src={imageSrc} 
@@ -67,7 +70,7 @@ function LivestockCard({ item, supabase }: { item: Livestock; supabase: any }) {
               <span className="font-medium text-slate-800">Location:</span> {item.location || 'Not recorded'}
             </p>
             {item.description && (
-              <p className="mt-2 text-xs text-slate-400 italic line-clamp-2">"{item.description}"</p>
+              <p className="mt-2 text-xs text-slate-400 italic line-clamp-2">{item.description}</p>
             )}
           </div>
         </div>
@@ -96,7 +99,10 @@ function LivestockCard({ item, supabase }: { item: Livestock; supabase: any }) {
 }
 
 export default async function MarketPage() {
-  const supabase = createClient();
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
 
   const { data, error } = await supabase
     .from('livestock')
