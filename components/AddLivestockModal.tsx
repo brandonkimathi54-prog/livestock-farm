@@ -10,7 +10,8 @@ interface AddLivestockModalProps {
   editingLivestock?: Livestock | null;
 }
 
-const LIVESTOCK_MEDIA_BUCKET = 'livestock-media';
+const LIVESTOCK_IMAGES_BUCKET = 'livestock-images';
+const LIVESTOCK_VIDEOS_BUCKET = 'livestock-videos';
 
 const initialFormState = {
   name: '',
@@ -24,7 +25,7 @@ const initialFormState = {
   description: '',
 };
 
-export default function AddLivestockModal({ isOpen, supabase, onClose, onSuccess, editingLivestock }: AddLivestockModalProps) {
+export default function AddLivestockModal({ isOpen, supabase, userId, onClose, onSuccess, editingLivestock }: AddLivestockModalProps) {
   const [formState, setFormState] = useState(initialFormState);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [videoFile, setVideoFile] = useState<File | null>(null);
@@ -104,7 +105,7 @@ export default function AddLivestockModal({ isOpen, supabase, onClose, onSuccess
 
     if (photoFile) {
       try {
-        image_url = await uploadToBucket(LIVESTOCK_MEDIA_BUCKET, userId, formState.name, photoFile);
+        image_url = await uploadToBucket(LIVESTOCK_IMAGES_BUCKET, userId, formState.name, photoFile);
       } catch (uploadError) {
         uploadWarnings.push(
           uploadError instanceof Error
@@ -116,7 +117,7 @@ export default function AddLivestockModal({ isOpen, supabase, onClose, onSuccess
 
     if (videoFile) {
       try {
-        video_url = await uploadToBucket(LIVESTOCK_MEDIA_BUCKET, userId, formState.name, videoFile);
+        video_url = await uploadToBucket(LIVESTOCK_VIDEOS_BUCKET, userId, formState.name, videoFile);
       } catch (uploadError) {
         uploadWarnings.push(
           uploadError instanceof Error
@@ -177,16 +178,16 @@ export default function AddLivestockModal({ isOpen, supabase, onClose, onSuccess
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 px-4 py-6 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 px-4 py-5 backdrop-blur-md"
       aria-modal="true"
       role="dialog"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-2xl max-h-[85vh] overflow-hidden rounded-[2rem] border border-zinc-700 bg-[#24292e]/95 shadow-2xl text-zinc-200"
+        className="w-full max-w-md sm:max-w-3xl max-h-[85dvh] overflow-hidden rounded-[1.5rem] border border-zinc-700 bg-slate-950/95 shadow-2xl text-zinc-200"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex h-full flex-col overflow-y-auto p-5">
+        <div className="flex h-full flex-col overflow-hidden p-5">
           <div className="flex items-center justify-between gap-4">
             <div>
               <h2 className="text-2xl font-semibold text-white">{title}</h2>
@@ -201,26 +202,26 @@ export default function AddLivestockModal({ isOpen, supabase, onClose, onSuccess
             </button>
           </div>
 
-          <form className="mt-5 space-y-4" onSubmit={handleSubmit}>
+          <form className="mt-5 flex h-full flex-col space-y-4 overflow-y-auto pb-6" onSubmit={handleSubmit}>
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="space-y-1.5 text-sm text-slate-300">
                 <span>Name</span>
                 <input
-                  type="text"
+                  type="text" placeholder="Livestock Name"
                   value={formState.name}
                   onChange={(event) => handleChange('name', event.target.value)}
                   required
-                  className="w-full rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm text-white outline-none transition focus:border-emerald-500"
+                  className="w-full rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm font-medium text-white placeholder-zinc-500 outline-none transition focus:border-emerald-500"
                 />
               </label>
               <label className="space-y-1.5 text-sm text-slate-300">
                 <span>Breed</span>
                 <input
-                  type="text"
+                  type="text" placeholder="Breed, e.g. Friesian"
                   value={formState.breed}
                   onChange={(event) => handleChange('breed', event.target.value)}
                   required
-                  className="w-full rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm text-white outline-none transition focus:border-emerald-500"
+                  className="w-full rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm font-medium text-white placeholder-zinc-500 outline-none transition focus:border-emerald-500"
                 />
               </label>
             </div>
@@ -231,9 +232,10 @@ export default function AddLivestockModal({ isOpen, supabase, onClose, onSuccess
                 <input
                   type="number"
                   min="0"
+                  placeholder="0"
                   value={formState.age}
                   onChange={(event) => handleChange('age', event.target.value)}
-                  className="w-full rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm text-white outline-none transition focus:border-emerald-500"
+                  className="w-full rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm font-medium text-white placeholder-zinc-500 outline-none transition focus:border-emerald-500"
                 />
               </label>
               <label className="space-y-1.5 text-sm text-slate-300">
@@ -242,9 +244,10 @@ export default function AddLivestockModal({ isOpen, supabase, onClose, onSuccess
                   type="number"
                   min="0"
                   step="0.1"
+                  placeholder="0.0"
                   value={formState.liters_per_day}
                   onChange={(event) => handleChange('liters_per_day', event.target.value)}
-                  className="w-full rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm text-white outline-none transition focus:border-emerald-500"
+                  className="w-full rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm font-medium text-white placeholder-zinc-500 outline-none transition focus:border-emerald-500"
                 />
               </label>
               <label className="space-y-1.5 text-sm text-slate-300">
@@ -252,10 +255,11 @@ export default function AddLivestockModal({ isOpen, supabase, onClose, onSuccess
                 <input
                   type="number"
                   min="0"
+                  placeholder="0"
                   value={formState.price}
                   onChange={(event) => handleChange('price', event.target.value)}
                   required
-                  className="w-full rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm text-white outline-none transition focus:border-emerald-500"
+                  className="w-full rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm font-medium text-white placeholder-zinc-500 outline-none transition focus:border-emerald-500"
                 />
               </label>
             </div>
@@ -266,7 +270,7 @@ export default function AddLivestockModal({ isOpen, supabase, onClose, onSuccess
                 <select
                   value={formState.status}
                   onChange={(event) => handleChange('status', event.target.value)}
-                  className="w-full rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm text-white outline-none transition focus:border-emerald-500"
+                  className="w-full rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm font-medium text-white placeholder-zinc-500 outline-none transition focus:border-emerald-500"
                 >
                   <option value="Available">Available</option>
                   <option value="Sold">Sold</option>
@@ -275,10 +279,10 @@ export default function AddLivestockModal({ isOpen, supabase, onClose, onSuccess
               <label className="space-y-1.5 text-sm text-slate-300">
                 <span>Location</span>
                 <input
-                  type="text"
+                  type="text" placeholder="Location or ranch"
                   value={formState.location}
                   onChange={(event) => handleChange('location', event.target.value)}
-                  className="w-full rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm text-white outline-none transition focus:border-emerald-500"
+                  className="w-full rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm font-medium text-white placeholder-zinc-500 outline-none transition focus:border-emerald-500"
                 />
               </label>
             </div>
@@ -286,10 +290,10 @@ export default function AddLivestockModal({ isOpen, supabase, onClose, onSuccess
             <label className="space-y-1.5 text-sm text-slate-300">
               <span>WhatsApp Number</span>
               <input
-                type="tel"
+                type="tel" placeholder="WhatsApp number"
                 value={formState.whatsapp_number}
                 onChange={(event) => handleChange('whatsapp_number', event.target.value)}
-                className="w-full rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm text-white outline-none transition focus:border-emerald-500"
+                className="w-full rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm font-medium text-white placeholder-zinc-500 outline-none transition focus:border-emerald-500"
               />
             </label>
 
@@ -297,9 +301,10 @@ export default function AddLivestockModal({ isOpen, supabase, onClose, onSuccess
               <span>Description</span>
               <textarea
                 rows={4}
+                placeholder="Describe the animal and health details"
                 value={formState.description}
                 onChange={(event) => handleChange('description', event.target.value)}
-                className="w-full rounded-3xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm text-white outline-none transition focus:border-emerald-500"
+                className="w-full rounded-3xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm font-medium text-white placeholder-zinc-500 outline-none transition focus:border-emerald-500"
               />
             </label>
 

@@ -1243,37 +1243,26 @@ export default function DashboardPage() {
               type="button"
               disabled={!installReady}
               onClick={() => void handleInstallClick()}
-              className="inline-flex items-center justify-center rounded-full bg-amber-400 px-5 py-3 text-sm font-semibold text-emerald-950 transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-60"
+              className="w-full rounded-full bg-amber-400 px-5 py-3 text-sm font-semibold text-emerald-950 transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
             >
               Install App
             </button>
 
             <button
-
               type="button"
-
-              className="inline-flex items-center justify-center rounded-full bg-emerald-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700"
-
+              className="w-full rounded-full bg-emerald-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
               onClick={() => window.location.href = '/chat'}
-
             >
-
               🌾 Smart Advisor
-
             </button>
 
             <button
-
               type="button"
-
-              className="inline-flex items-center justify-center rounded-full bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-700"
-
+              disabled={loading || !authChecked}
+              className="w-full rounded-full bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
               onClick={handleOpenCreateModal}
-
             >
-
               Add New Livestock
-
             </button>
 
           </div>
@@ -1284,7 +1273,7 @@ export default function DashboardPage() {
 
         <div className="mt-6 border-b border-white/30">
 
-          <nav className="flex space-x-8">
+          <nav className="flex flex-col gap-3 md:flex-row md:gap-8">
 
             {[
 
