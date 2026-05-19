@@ -1,11 +1,14 @@
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 import { supabase } from '@/lib/supabaseWrapper';
 import type { Livestock } from '@/types';
 
 const formatPrice = (value: number) => `KSH ${value.toLocaleString()}`;
 const getLivestockPrice = (item: Livestock) => Number(item.price_ksh ?? item.price ?? 0);
 
-const COW_PHOTOS_BUCKET = 'cow photos';
-const MARKET_VIDEOS_BUCKET = 'market-videos';
+const LIVESTOCK_IMAGES_BUCKET = 'livestock-images';
+const LIVESTOCK_VIDEOS_BUCKET = 'livestock-videos';
 
 const getPublicMediaUrl = (bucket: string, pathOrUrl?: string | null) => {
   if (!pathOrUrl) return '';
@@ -20,9 +23,9 @@ function LivestockCard({ item }: { item: Livestock }) {
   const imageSrc = item.image_url
     ? /^https?:\/\//i.test(item.image_url)
       ? item.image_url
-      : supabase.storage.from(COW_PHOTOS_BUCKET).getPublicUrl(item.image_url).data.publicUrl
+      : supabase.storage.from(LIVESTOCK_IMAGES_BUCKET).getPublicUrl(item.image_url).data.publicUrl
     : '';
-  const videoSrc = getPublicMediaUrl(MARKET_VIDEOS_BUCKET, item.video_url);
+  const videoSrc = getPublicMediaUrl(LIVESTOCK_VIDEOS_BUCKET, item.video_url);
 
   return (
     <article className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
