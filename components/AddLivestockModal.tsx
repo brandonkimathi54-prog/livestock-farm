@@ -202,8 +202,8 @@ export default function AddLivestockModal({ isOpen, supabase, userId, onClose, o
             </button>
           </div>
 
-          <form className="mt-5 flex h-full flex-col" onSubmit={handleSubmit}>
-            <div className="overflow-y-auto space-y-4 pr-2 pb-4">
+          <form className="mt-5 flex h-full min-h-0 flex-col" onSubmit={handleSubmit}>
+            <div className="flex-1 overflow-y-auto space-y-4 pr-2 pb-6">
               <div className="grid gap-3 sm:grid-cols-2">
               <label className="space-y-1.5 text-sm text-slate-300">
                 <span>Name</span>
