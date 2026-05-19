@@ -184,7 +184,7 @@ export default function AddLivestockModal({ isOpen, supabase, userId, onClose, o
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md sm:max-w-3xl max-h-[85dvh] overflow-hidden rounded-[1.5rem] border border-zinc-700 bg-slate-950/95 shadow-2xl text-zinc-200"
+        className="w-full max-w-md sm:max-w-3xl max-h-[90vh] md:max-h-auto flex flex-col overflow-y-auto rounded-[1.5rem] border border-zinc-700 bg-slate-950/95 shadow-2xl text-zinc-200"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex h-full flex-col overflow-hidden p-5">
@@ -202,7 +202,7 @@ export default function AddLivestockModal({ isOpen, supabase, userId, onClose, o
             </button>
           </div>
 
-          <form className="mt-5 flex h-full min-h-0 flex-col" onSubmit={handleSubmit}>
+          <form className="mt-5 flex min-h-0 flex-1 flex-col" onSubmit={handleSubmit}>
             <div className="flex-1 overflow-y-auto space-y-4 pr-2 pb-6">
               <div className="grid gap-3 sm:grid-cols-2">
               <label className="space-y-1.5 text-sm text-slate-300">
