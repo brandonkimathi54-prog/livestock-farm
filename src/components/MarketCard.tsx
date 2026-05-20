@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from '@/lib/supabaseWrapper';
 import { Play, Calendar, Droplets, MapPin, MessageCircle } from "lucide-react";
 import type { Livestock } from "@/types";
@@ -13,6 +13,24 @@ interface MarketCardProps {
 
 export default function MarketCard({ item, imageSrc, videoSrc }: MarketCardProps) {
   const [isPlayingVideo, setIsPlayingVideo] = useState(false);
+  const [activeType, setActiveType] = useState<'image' | 'video' | null>(null);
+  const [activeSrc, setActiveSrc] = useState<string>('');
+
+  useEffect(() => {
+    const initialImage = getImageUrl(imageSrc ?? item.image_url) || getImageUrl(item.image_url);
+    const initialVideo = getVideoUrl(videoSrc ?? item.video_url) || getVideoUrl(item.video_url);
+    if (initialImage) {
+      setActiveType('image');
+      setActiveSrc(initialImage);
+    } else if (initialVideo) {
+      setActiveType('video');
+      setActiveSrc(initialVideo);
+    } else {
+      setActiveType(null);
+      setActiveSrc('');
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [imageSrc, videoSrc, item.image_url, item.video_url]);
 
   const getImageUrl = (path?: string | null) => {
     if (!path) return '';
@@ -59,18 +77,18 @@ export default function MarketCard({ item, imageSrc, videoSrc }: MarketCardProps
         <div className="aspect-[16/9] w-full">
           {/* media area uses absolute children */}
           <div className="relative h-full w-full">
-            {isPlayingVideo && (getVideoUrl(videoSrc ?? item.video_url) || getVideoUrl(item.video_url)) ? (
+            {activeType === 'video' && activeSrc ? (
               <video
                 className="h-full w-full object-cover"
-                src={getVideoUrl(videoSrc ?? item.video_url)}
+                src={activeSrc}
                 controls
                 autoPlay
                 playsInline
               />
-            ) : (getImageUrl(imageSrc ?? item.image_url) || getImageUrl(item.image_url)) ? (
+            ) : activeType === 'image' && activeSrc ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={getImageUrl(imageSrc ?? item.image_url)}
+                src={activeSrc}
                 alt={`${item.name} image`}
                 className="h-full w-full object-cover"
                 loading="lazy"
@@ -84,15 +102,29 @@ export default function MarketCard({ item, imageSrc, videoSrc }: MarketCardProps
               </div>
             )}
 
-            {videoSrc && imageSrc && !isPlayingVideo && (
-              <button
-                aria-label="Play video"
-                onClick={() => setIsPlayingVideo(true)}
-                className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-black/40 p-3 text-white hover:bg-black/50"
-              >
-                <Play size={22} />
-              </button>
-            )}
+            {(() => {
+              const hasImage = Boolean(getImageUrl(imageSrc ?? item.image_url) || getImageUrl(item.image_url));
+              const hasVideo = Boolean(getVideoUrl(videoSrc ?? item.video_url) || getVideoUrl(item.video_url));
+              if (hasVideo && hasImage && activeType !== 'video') {
+                return (
+                  <button
+                    aria-label="Play video"
+                    onClick={() => {
+                      const v = getVideoUrl(videoSrc ?? item.video_url) || getVideoUrl(item.video_url);
+                      if (v) {
+                        setActiveType('video');
+                        setActiveSrc(v);
+                        setIsPlayingVideo(true);
+                      }
+                    }}
+                    className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-black/40 p-3 text-white hover:bg-black/50"
+                  >
+                    <Play size={22} />
+                  </button>
+                );
+              }
+              return null;
+            })()}
           </div>
         </div>
       </div>
@@ -115,18 +147,53 @@ export default function MarketCard({ item, imageSrc, videoSrc }: MarketCardProps
           <p className="mt-2 text-sm text-slate-400 line-clamp-2">{item.description}</p>
         )}
 
-        <div className="mt-4 grid grid-cols-3 items-center gap-2 border-y border-white/5 py-3 text-sm text-slate-300">
-          <div className="flex items-center gap-2 text-slate-200">
-            <Calendar size={16} />
-            <span className="text-xs">{item.age ?? '-'} yrs</span>
+        <div className="mt-4 flex items-start justify-between gap-4 border-y border-white/5 py-3 text-sm text-slate-300">
+          <div className="flex-1 grid grid-cols-3 gap-2">
+            <div className="flex items-center gap-2 text-slate-200">
+              <Calendar size={16} />
+              <span className="text-xs">{item.age ?? '-'} yrs</span>
+            </div>
+            <div className="flex items-center gap-2 text-slate-200 justify-center">
+              <Droplets size={16} />
+              <span className="text-xs">{item.liters_per_day ?? '-'} L</span>
+            </div>
+            <div className="flex items-center gap-2 text-slate-200 justify-start">
+              <MapPin size={16} />
+              <span className="max-w-[8rem] truncate text-xs text-slate-300">{item.location ?? '—'}</span>
+            </div>
           </div>
-          <div className="flex items-center gap-2 text-slate-200 justify-center">
-            <Droplets size={16} />
-            <span className="text-xs">{item.liters_per_day ?? '-'} L</span>
-          </div>
-          <div className="flex items-center gap-2 text-slate-200 justify-end">
-            <MapPin size={16} />
-            <span className="max-w-[8rem] truncate text-xs text-slate-300">{item.location ?? '—'}</span>
+
+          <div className="w-32 shrink-0">
+            <div className="text-xs text-slate-400 mb-2 font-semibold">Photos</div>
+            <div className="flex flex-col gap-2">
+              {(() => {
+                const imgs: { type: 'image' | 'video'; src: string }[] = [];
+                const mainImage = getImageUrl(imageSrc ?? item.image_url) || getImageUrl(item.image_url);
+                const mainVideo = getVideoUrl(videoSrc ?? item.video_url) || getVideoUrl(item.video_url);
+                if (mainImage) imgs.push({ type: 'image', src: mainImage });
+                if (mainVideo) imgs.push({ type: 'video', src: mainVideo });
+                return imgs.slice(0, 3).map((m, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => {
+                      setActiveType(m.type);
+                      setActiveSrc(m.src);
+                      setIsPlayingVideo(m.type === 'video');
+                    }}
+                    className={`h-12 w-12 rounded-md overflow-hidden border ${activeSrc === m.src ? 'border-emerald-500' : 'border-white/6'} bg-slate-800`}
+                    aria-label={`Select ${m.type} ${idx + 1}`}
+                  >
+                    {m.type === 'video' ? (
+                      <video className="h-full w-full object-cover" src={m.src} preload="metadata" />
+                    ) : (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={m.src} alt={`thumb-${idx}`} className="h-full w-full object-cover" />
+                    )}
+                  </button>
+                ));
+              })()}
+            </div>
           </div>
         </div>
 

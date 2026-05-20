@@ -6,9 +6,10 @@ import { Pie, PieChart, ResponsiveContainer, Tooltip, Cell, Legend } from 'recha
 import { Loader2, MoreVertical } from 'lucide-react';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabaseWrapper';
-import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
+import type { } from '@supabase/supabase-js';
 import type { Livestock } from '@/types';
 import AddLivestockModal from '../../components/AddLivestockModal';
+import DeleteConfirmModal from '../../components/DeleteConfirmModal';
 import DashboardLayout from '../../components/DashboardLayout';
 import LivestockDetails from '@/components/LivestockDetails';
 
@@ -112,7 +113,7 @@ function getPublicMediaUrl(bucket: string, pathOrUrl?: string | null): string {
 export default function DashboardPage() {
   const router = useRouter();
 
-  const [session, setSession] = useState<Session | null>(null);
+  
   const [userId, setUserId] = useState<string | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -122,6 +123,8 @@ export default function DashboardPage() {
   const [managementTab, setManagementTab] = useState<ManagementTab>('milk');
   const [openCardMenuId, setOpenCardMenuId] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Livestock | null>(null);
   const [editingLivestock, setEditingLivestock] = useState<Livestock | null>(null);
   const [milkRecords, setMilkRecords] = useState<MilkRecord[]>([]);
   const [healthRecords, setHealthRecords] = useState<HealthRecord[]>([]);
@@ -231,62 +234,61 @@ export default function DashboardPage() {
     }
   }, []);
 
-  // BACKGROUND AUTHENTICATION ENGINE
+  const editingForModal = editingLivestock
+    ? {
+        id: editingLivestock.id,
+        name: editingLivestock.name ?? '',
+        breed: editingLivestock.breed ?? '',
+        age: editingLivestock.age ?? '',
+        price_ksh: editingLivestock.price_ksh ?? editingLivestock.price ?? '',
+        location: editingLivestock.location ?? '',
+        status: editingLivestock.status ?? 'Available',
+        liters_per_day: editingLivestock.liters_per_day ?? '',
+        whatsapp_number: editingLivestock.whatsapp_number ?? '',
+        description: editingLivestock.description ?? '',
+        image_url: editingLivestock.image_url ?? '',
+        video_url: editingLivestock.video_url ?? '',
+      }
+    : null;
+
+  // BACKGROUND AUTHENTICATION ENGINE — single getUser and direct fetch
   useEffect(() => {
-    let isMounted = true;
-    
-    async function quietCheckSession() {
+    let mounted = true;
+    const init = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user?.id) {
           router.replace('/login');
           return;
         }
-        if (isMounted) {
-          setUserId(user.id);
-          const sessionData = await supabase.auth.getSession();
-          setSession(sessionData.data.session);
-          setAuthChecked(true);
-        }
+        if (!mounted) return;
+        setUserId(user.id);
+        setAuthChecked(true);
+        // Immediately hydrate livestock for the active user
+        await fetchLivestock(user.id);
       } catch {
-        if (isMounted) {
+        if (mounted) {
           setErrorMessage('Session confirmation failed. Attempting login redirect...');
           router.replace('/login');
         }
       }
-    }
-    
-    void quietCheckSession();
+    };
+    void init();
 
-    const authListener = supabase.auth.onAuthStateChange(async (_event: AuthChangeEvent, sessionValue: Session | null) => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user?.id) {
-          router.replace('/login');
-          return;
-        }
-        if (isMounted) {
-          setUserId(user.id);
-          setSession(sessionValue);
-          setAuthChecked(true);
-        }
-      } catch {
-        if (isMounted) setAuthChecked(true);
+    const sub = supabase.auth.onAuthStateChange((_event, sessionValue) => {
+      if (sessionValue?.user?.id) {
+        setUserId(sessionValue.user.id);
+        void fetchLivestock(sessionValue.user.id);
+      } else {
+        setUserId(null);
       }
     });
 
     return () => {
-      isMounted = false;
-      if (authListener?.data?.subscription) {
-        authListener.data.subscription.unsubscribe();
-      }
+      mounted = false;
+      if (sub?.data?.subscription) sub.data.subscription.unsubscribe();
     };
-  }, [router]);
-
-  useEffect(() => {
-    if (!authChecked || !userId) return;
-    void fetchLivestock(userId);
-  }, [authChecked, fetchLivestock, userId]);
+  }, [router, fetchLivestock]);
 
   useEffect(() => {
     if (mainView !== 'management' || !safeLivestockData.length) return;
@@ -348,7 +350,7 @@ export default function DashboardPage() {
   };
 
   const deleteLivestock = async (item: Livestock) => {
-    if (!window.confirm(`Are you sure you want to remove ${safeString(item.name)}?`)) return;
+    // deletion is confirmed via DeleteConfirmModal; perform removal once
     setErrorMessage(null);
     try {
       if (item.image_url) {
@@ -367,6 +369,9 @@ export default function DashboardPage() {
       if (error) throw error;
       setLivestock((current) => current.filter((entry) => entry.id !== item.id));
       if (selectedLivestock?.id === item.id) setSelectedLivestock(null);
+      // close the modal if it was open
+      setShowDeleteModal(false);
+      setDeleteTarget(null);
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Unable to delete livestock.');
     }
@@ -488,7 +493,7 @@ export default function DashboardPage() {
       const { data } = await supabase.from('health_records').select('*').eq('livestock_id', selectedLivestock.id).order('id', { ascending: false });
       setHealthRecords((data ?? []) as HealthRecord[]);
       const { data: expenseData } = await supabase.from('expenses').select('*').eq('livestock_id', selectedLivestock.id).order('id', { ascending: false });
-      setExpenseRecords((data ?? []) as ExpenseRecord[]);
+      setExpenseRecords((expenseData ?? []) as ExpenseRecord[]);
       router.refresh();
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Failed to save health record.');
@@ -684,6 +689,7 @@ export default function DashboardPage() {
                       onClick={() => setSelectedLivestock(item)}
                     >
                       {item.image_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
                         <img
                           src={getPublicMediaUrl('livestock-images', item.image_url)}
                           alt={`${item.name} photo`}
@@ -716,7 +722,10 @@ export default function DashboardPage() {
                           <button
                             type="button"
                             className="block w-full rounded-lg px-3 py-2 text-left text-sm text-red-400 transition hover:bg-red-950/50"
-                            onClick={() => deleteLivestock(item)}
+                            onClick={() => {
+                              setDeleteTarget(item);
+                              setShowDeleteModal(true);
+                            }}
                           >
                             Delete
                           </button>
@@ -1068,10 +1077,23 @@ export default function DashboardPage() {
             isOpen={showModal}
             supabase={supabase as unknown as SupabaseClient}
             userId={userId}
-            editingLivestock={editingLivestock}
+            editingLivestock={editingForModal}
             onClose={() => setShowModal(false)}
             onSuccess={() => {
               if (userId) void fetchLivestock(userId);
+            }}
+          />
+        )}
+        {showDeleteModal && (
+          <DeleteConfirmModal
+            isOpen={showDeleteModal}
+            item={deleteTarget}
+            onCancel={() => {
+              setShowDeleteModal(false);
+              setDeleteTarget(null);
+            }}
+            onConfirm={(item) => {
+              void deleteLivestock(item);
             }}
           />
         )}

@@ -2,7 +2,7 @@
 
 import { useState, FormEvent, useEffect } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { Loader2, X } from 'lucide-react';
+import { Loader2, X, Check } from 'lucide-react';
 import { supabase as defaultSupabase } from '@/lib/supabaseWrapper';
 
 interface EditingLivestock {
@@ -351,7 +351,7 @@ export default function AddLivestockModal({
               </select>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid gap-4 md:grid-cols-2">
               <div>
                 <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider">Image</label>
                 <input
@@ -360,6 +360,12 @@ export default function AddLivestockModal({
                   onChange={(e) => setImageFile(e.target.files?.[0] ?? null)}
                   className="mt-1 w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-emerald-600 file:text-white hover:file:bg-emerald-500 cursor-pointer"
                 />
+                {imageFile && (
+                  <div className="mt-2 inline-flex items-center gap-2 rounded-lg bg-emerald-500/20 border border-emerald-500/30 px-2 py-1 text-xs text-emerald-400">
+                    <Check size={14} />
+                    <span>✓ Selected</span>
+                  </div>
+                )}
               </div>
               <div>
                 <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider">Video (Optional)</label>
@@ -369,6 +375,12 @@ export default function AddLivestockModal({
                   onChange={(e) => setVideoFile(e.target.files?.[0] ?? null)}
                   className="mt-1 w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-slate-700 file:text-white hover:file:bg-slate-600 cursor-pointer"
                 />
+                {videoFile && (
+                  <div className="mt-2 inline-flex items-center gap-2 rounded-lg bg-emerald-500/20 border border-emerald-500/30 px-2 py-1 text-xs text-emerald-400">
+                    <Check size={14} />
+                    <span>✓ Selected</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
