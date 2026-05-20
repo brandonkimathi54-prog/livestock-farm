@@ -12,6 +12,12 @@ import AddLivestockModal from '../../components/AddLivestockModal';
 import DashboardLayout from '../../components/DashboardLayout';
 import LivestockDetails from '@/components/LivestockDetails';
 
+// Custom interface for the PWA install event to eliminate strict linting/compilation failures
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+}
+
 interface MilkRecord {
   id: string;
   livestock_id: string;
@@ -132,7 +138,7 @@ export default function DashboardPage() {
   const [expenseForm, setExpenseForm] = useState({ category: 'Feed', amount: '', notes: '' });
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [installEvent, setInstallEvent] = useState<any>(null);
+  const [installEvent, setInstallEvent] = useState<BeforeInstallPromptEvent | null>(null);
   const [installReady, setInstallReady] = useState(false);
 
   const safeLivestockData = useMemo(
@@ -147,11 +153,6 @@ export default function DashboardPage() {
       liters_per_day: safeNumber(item.liters_per_day),
     })),
     [livestock],
-  );
-
-  const totalHerdValue = useMemo(
-    () => safeLivestockData.reduce((sum, item) => sum + item.price_ksh, 0),
-    [safeLivestockData],
   );
 
   const summaryData = useMemo(() => {
@@ -247,7 +248,7 @@ export default function DashboardPage() {
           setSession(sessionData.data.session);
           setAuthChecked(true);
         }
-      } catch (error) {
+      } catch {
         if (isMounted) {
           setErrorMessage('Session confirmation failed. Attempting login redirect...');
           router.replace('/login');
@@ -400,6 +401,7 @@ export default function DashboardPage() {
       const totalLiters = morning + evening;
       if (totalLiters <= 0) {
         setErrorMessage('Enter morning and/or evening litres first.');
+        setSavingMilk(false);
         return;
       }
       const { data: { user } } = await supabase.auth.getUser();
@@ -410,11 +412,17 @@ export default function DashboardPage() {
       const recordDate = getIsoToday();
       const totalRevenue = totalLiters * defaultMilkValue;
       const rows = [];
-      if (morning > 0) rows.push({ livestock_id: selectedLivestock.id, amount_liters: morning, date: recordDate, milking_session: 'Morning' });
-      if (evening > 0) rows.push({ livestock_id: selectedLivestock.id, amount_liters: evening, date: recordDate, milking_session: 'Evening' });
-      rows.push({ livestock_id: selectedLivestock.id, amount_liters: totalLiters, date: recordDate, milking_session: 'Day Total' });
+      if (morning > 0) {
+        rows.push({ livestock_id: selectedLivestock.id, user_id: user.id, amount_liters: morning, date: recordDate, milking_session: 'Morning' });
+      }
+      if (evening > 0) {
+        rows.push({ livestock_id: selectedLivestock.id, user_id: user.id, amount_liters: evening, date: recordDate, milking_session: 'Evening' });
+      }
+      rows.push({ livestock_id: selectedLivestock.id, user_id: user.id, amount_liters: totalLiters, date: recordDate, milking_session: 'Day Total' });
+      
       const { error: milkError } = await supabase.from('milk_records').insert(rows);
       if (milkError) throw milkError;
+      
       if (totalRevenue > 0) {
         const { error: financeError } = await supabase.from('financials').insert({
           livestock_id: selectedLivestock.id,
@@ -456,6 +464,7 @@ export default function DashboardPage() {
       const cost = safeNumber(healthForm.cost);
       const { error: healthError } = await supabase.from('health_records').insert({
         livestock_id: selectedLivestock.id,
+        user_id: user.id,
         event_type: safeString(healthForm.event, 'Health event'),
         description: `Logged on ${formatRecordDateForDisplay(recordDate)}`,
         cost,
@@ -465,6 +474,7 @@ export default function DashboardPage() {
       if (cost > 0) {
         const { error: expenseError } = await supabase.from('expenses').insert({
           livestock_id: selectedLivestock.id,
+          user_id: user.id,
           category: 'Medical/Veterinary',
           amount: cost,
           notes: `Auto from health: ${safeString(healthForm.event, 'Health')}`,
@@ -502,6 +512,7 @@ export default function DashboardPage() {
       const amount = safeNumber(expenseForm.amount);
       const { error } = await supabase.from('expenses').insert({
         livestock_id: selectedLivestock.id,
+        user_id: user.id,
         category: safeString(expenseForm.category, 'Miscellaneous'),
         amount,
         notes: safeString(expenseForm.notes, 'No notes'),
@@ -552,7 +563,7 @@ export default function DashboardPage() {
   useEffect(() => {
     const onBeforeInstallPrompt = (event: Event) => {
       event.preventDefault();
-      setInstallEvent(event);
+      setInstallEvent(event as BeforeInstallPromptEvent);
       setInstallReady(true);
     };
     window.addEventListener('beforeinstallprompt', onBeforeInstallPrompt);
@@ -782,7 +793,7 @@ export default function DashboardPage() {
                   <h2 className="text-xl font-bold text-white tracking-tight">Management records</h2>
                   <p className="text-sm text-white/70">Track milk production, health treatments, and expenses for each animal.</p>
                 </div>
-                <label className="text-sm text-white/90">
+                <label className="text-sm text-white/90 w-full sm:w-auto">
                   <span className="mb-2 block font-medium">Selected animal</span>
                   <select
                     value={selectedLivestock?.id ?? ''}
@@ -790,13 +801,14 @@ export default function DashboardPage() {
                       const selected = safeLivestockData.find((item) => item.id === event.target.value) ?? null;
                       setSelectedLivestock(selected);
                     }}
-                    className="w-full rounded-2xl border border-white/10 bg-slate-950/90 text-white px-3 py-2 outline-none transition focus:border-emerald-500 sm:min-w-[18rem] sm:px-4 sm:py-3"
+                    className="w-full rounded-2xl border border-white/20 bg-slate-900 text-slate-100 font-semibold px-3 py-2 outline-none transition focus:border-emerald-500 sm:min-w-[18rem] sm:px-4 sm:py-3 appearance-none"
+                    style={{ backgroundColor: '#0f172a', color: '#f8fafc' }}
                   >
                     {safeLivestockData.length === 0 ? (
-                      <option value="" className="bg-slate-900 text-white">No animals available</option>
+                      <option value="" style={{ backgroundColor: '#0f172a', color: '#f8fafc' }}>No animals available</option>
                     ) : (
                       safeLivestockData.map((item) => (
-                        <option key={item.id} value={item.id} className="bg-slate-900 text-white">
+                        <option key={item.id} value={item.id} style={{ backgroundColor: '#0f172a', color: '#f8fafc' }}>
                           {item.name} ({item.breed})
                         </option>
                       ))
@@ -891,12 +903,12 @@ export default function DashboardPage() {
                         </button>
                       </form>
                       <div className="mt-4 overflow-x-auto max-h-48">
-                        <table className="min-w-full text-left text-xs text-white/80">
+                        <table className="min-w-full text-left text-xs text-slate-200">
                           <thead>
-                            <tr className="border-b border-white/10 text-white/50">
-                              <th className="py-2 pr-2 font-medium">Date</th>
-                              <th className="py-2 pr-2 font-medium">Session</th>
-                              <th className="py-2 font-medium">Litres</th>
+                            <tr className="border-b border-white/10 text-slate-400">
+                              <th className="py-2 pr-2 font-semibold">Date</th>
+                              <th className="py-2 pr-2 font-semibold">Session</th>
+                              <th className="py-2 font-semibold">Litres</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -944,12 +956,12 @@ export default function DashboardPage() {
                         </button>
                       </form>
                       <div className="mt-4 overflow-x-auto max-h-48">
-                        <table className="min-w-full text-left text-xs text-white/80">
+                        <table className="min-w-full text-left text-xs text-slate-200">
                           <thead>
-                            <tr className="border-b border-white/10 text-white/50">
-                              <th className="py-2 pr-2 font-medium">Date</th>
-                              <th className="py-2 pr-2 font-medium">Event</th>
-                              <th className="py-2 font-medium">Cost</th>
+                            <tr className="border-b border-white/10 text-slate-400">
+                              <th className="py-2 pr-2 font-semibold">Date</th>
+                              <th className="py-2 pr-2 font-semibold">Event</th>
+                              <th className="py-2 font-semibold">Cost</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -973,14 +985,15 @@ export default function DashboardPage() {
                         <select
                           value={expenseForm.category}
                           onChange={(event) => setExpenseForm((prev) => ({ ...prev, category: event.target.value }))}
-                          className="w-full rounded-xl border border-white/10 bg-slate-950/80 text-white px-3 py-2 text-sm outline-none focus:border-emerald-500"
+                          className="w-full rounded-xl border border-white/20 bg-slate-900 text-slate-100 font-semibold px-3 py-2 text-sm outline-none focus:border-emerald-500 appearance-none"
+                          style={{ backgroundColor: '#0f172a', color: '#f8fafc' }}
                         >
-                          <option value="Feed" className="bg-slate-900 text-white">Feed</option>
-                          <option value="Labor" className="bg-slate-900 text-white">Labor</option>
-                          <option value="Medical" className="bg-slate-900 text-white">Medical</option>
-                          <option value="Transport" className="bg-slate-900 text-white">Transport</option>
-                          <option value="Utilities" className="bg-slate-900 text-white">Utilities</option>
-                          <option value="Miscellaneous" className="bg-slate-900 text-white">Miscellaneous</option>
+                          <option value="Feed" style={{ backgroundColor: '#0f172a', color: '#f8fafc' }}>Feed</option>
+                          <option value="Labor" style={{ backgroundColor: '#0f172a', color: '#f8fafc' }}>Labor</option>
+                          <option value="Medical" style={{ backgroundColor: '#0f172a', color: '#f8fafc' }}>Medical</option>
+                          <option value="Transport" style={{ backgroundColor: '#0f172a', color: '#f8fafc' }}>Transport</option>
+                          <option value="Utilities" style={{ backgroundColor: '#0f172a', color: '#f8fafc' }}>Utilities</option>
+                          <option value="Miscellaneous" style={{ backgroundColor: '#0f172a', color: '#f8fafc' }}>Miscellaneous</option>
                         </select>
                         <input
                           type="number"
@@ -1008,13 +1021,13 @@ export default function DashboardPage() {
                         </button>
                       </form>
                       <div className="mt-4 overflow-x-auto max-h-48">
-                        <table className="min-w-full text-left text-xs text-white/80">
+                        <table className="min-w-full text-left text-xs text-slate-200">
                           <thead>
-                            <tr className="border-b border-white/10 text-white/50">
-                              <th className="py-2 pr-2 font-medium">Date</th>
-                              <th className="py-2 pr-2 font-medium">Category</th>
-                              <th className="py-2 pr-2 font-medium">Amount</th>
-                              <th className="py-2 font-medium">Notes</th>
+                            <tr className="border-b border-white/10 text-slate-400">
+                              <th className="py-2 pr-2 font-semibold">Date</th>
+                              <th className="py-2 pr-2 font-semibold">Category</th>
+                              <th className="py-2 pr-2 font-semibold">Amount</th>
+                              <th className="py-2 font-semibold">Notes</th>
                             </tr>
                           </thead>
                           <tbody>
