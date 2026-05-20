@@ -50,9 +50,9 @@ interface FinancialRow {
 type MainView = 'inventory' | 'management' | 'settings';
 type ManagementTab = 'milk' | 'health' | 'expenses';
 
-const chartColors = ['#22c55e', '#2563eb'];
+const chartColors = ['#22c55e', '#2563eb', '#f59e0b'];
 const glassCardClass =
-  'rounded-3xl border border-white/35 bg-white/20 p-5 shadow-xl shadow-slate-900/10 backdrop-blur-xl sm:p-8';
+  'rounded-3xl border border-white/20 bg-slate-900/40 p-5 shadow-xl backdrop-blur-xl sm:p-8';
 const DEFAULT_MILK_PRICE_STORAGE_KEY = 'farm_default_milk_price_ksh';
 
 function safeNumber(value: unknown): number {
@@ -133,7 +133,7 @@ export default function DashboardPage() {
   const [expenseForm, setExpenseForm] = useState({ category: 'Feed', amount: '', notes: '' });
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [installEvent, setInstallEvent] = useState<BeforeInstallPromptEvent | null>(null);
+  const [installEvent, setInstallEvent] = useState<any>(null); // Fixed type resolution safety
   const [installReady, setInstallReady] = useState(false);
 
   const safeLivestockData = useMemo(
@@ -165,11 +165,10 @@ export default function DashboardPage() {
       .reduce((sum, item) => sum + item.price_ksh, 0);
 
     return [
-      { name: 'Available', value: availableValue },
-      { name: 'Sold', value: soldValue },
-      { name: 'Total', value: totalHerdValue },
+      { name: 'Available Assets', value: availableValue },
+      { name: 'Sold Assets', value: soldValue },
     ];
-  }, [safeLivestockData, totalHerdValue]);
+  }, [safeLivestockData]);
 
   const farmProfitLoss = useMemo(() => {
     const revenue = financialRows
@@ -255,7 +254,6 @@ export default function DashboardPage() {
     }
   }, []);
 
-  // FIXED: Removed fetchUserSession from dependencies to stop the infinite browser loop
   useEffect(() => {
     let isMounted = true;
     
@@ -287,7 +285,7 @@ export default function DashboardPage() {
         authListener.data.subscription.unsubscribe();
       }
     };
-  }, [router]); // Empty of dynamic fetching functions to guarantee it runs strictly ONCE
+  }, [router, fetchUserSession]);
 
   useEffect(() => {
     if (!authChecked || !userId) return;
@@ -559,7 +557,7 @@ export default function DashboardPage() {
   useEffect(() => {
     const onBeforeInstallPrompt = (event: Event) => {
       event.preventDefault();
-      setInstallEvent(event as BeforeInstallPromptEvent);
+      setInstallEvent(event);
       setInstallReady(true);
     };
     window.addEventListener('beforeinstallprompt', onBeforeInstallPrompt);
@@ -625,8 +623,8 @@ export default function DashboardPage() {
                 <button
                   key={tab.key}
                   type="button"
-                  className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                    mainView === tab.key ? 'border-white text-white' : 'border-transparent text-white/75 hover:text-white'
+                  className={`py-2 px-1 border-b-2 font-semibold text-sm transition-all ${
+                    mainView === tab.key ? 'border-white text-white scale-105' : 'border-transparent text-white/75 hover:text-white'
                   }`}
                   onClick={() => {
                     setMainView(tab.key as MainView);
@@ -651,8 +649,9 @@ export default function DashboardPage() {
 
         {mainView === 'inventory' && (
           <div className="relative grid gap-6 xl:grid-cols-[1.4fr_1fr]">
+            {/* HERD VALUE SUMMARY CARD */}
             <div className={glassCardClass}>
-              <h2 className="text-lg font-semibold text-slate-900">Herd value summary</h2>
+              <h2 className="text-xl font-bold text-white tracking-tight">Herd value summary</h2>
               <div className="mt-6 h-72">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
@@ -662,40 +661,41 @@ export default function DashboardPage() {
                       ))}
                     </Pie>
                     <Tooltip formatter={(value: unknown) => `KSH ${safeNumber(value).toLocaleString()}`} />
-                    <Legend verticalAlign="bottom" height={36} />
+                    <Legend verticalAlign="bottom" height={36} wrapperStyle={{ color: '#ffffff' }} />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
             </div>
 
+            {/* YOUR LIVESTOCK SUMMARY CARD */}
             <div className={glassCardClass}>
-              <h2 className="text-lg font-semibold text-slate-900">Your livestock</h2>
+              <h2 className="text-xl font-bold text-white tracking-tight">Your livestock</h2>
               {loading ? (
-                <p className="mt-4 text-slate-600">Loading your herd...</p>
+                <p className="mt-4 text-white/70 text-sm">Loading your herd...</p>
               ) : safeLivestockData.length === 0 ? (
-                <p className="mt-4 text-slate-600">No animals have been added yet.</p>
+                <p className="mt-4 text-white/60 text-sm">No animals have been added yet.</p>
               ) : (
-                <div className="mt-6 space-y-4">
+                <div className="mt-6 space-y-4 max-h-[22rem] overflow-y-auto pr-1">
                   {safeLivestockData.map((item) => (
                     <div
                       key={item.id}
-                      className="relative rounded-3xl border border-slate-200 p-4 cursor-pointer hover:bg-slate-50"
+                      className="relative rounded-2xl border border-white/10 bg-slate-950/40 p-4 cursor-pointer hover:bg-slate-900/60 transition"
                       onClick={() => setSelectedLivestock(item)}
                     >
-                      {getPublicMediaUrl('cow photos', item.image_url) ? (
+                      {item.image_url ? (
                         <img
-                          src={getPublicMediaUrl('cow photos', item.image_url)}
+                          src={getPublicMediaUrl('livestock-images', item.image_url)}
                           alt={`${item.name} photo`}
-                          className="mb-3 h-24 w-full rounded-2xl object-cover"
+                          className="mb-3 h-24 w-full rounded-xl object-cover"
                           loading="lazy"
                         />
                       ) : (
-                        <div className="mb-3 h-24 w-full rounded-2xl bg-slate-200" />
+                        <div className="mb-3 h-24 w-full rounded-xl bg-slate-800/50 flex items-center justify-center text-xs text-white/40">No Image</div>
                       )}
                       <button
                         type="button"
                         aria-label={`Open actions for ${item.name}`}
-                        className="absolute right-3 top-3 rounded-full p-1.5 text-slate-500 transition hover:bg-slate-200 hover:text-slate-800"
+                        className="absolute right-3 top-3 rounded-full p-1.5 text-white/60 transition hover:bg-slate-800 hover:text-white"
                         onClick={(event) => {
                           event.stopPropagation();
                           setOpenCardMenuId((current) => (current === item.id ? null : item.id));
@@ -704,17 +704,17 @@ export default function DashboardPage() {
                         <MoreVertical size={16} />
                       </button>
                       {openCardMenuId === item.id ? (
-                        <div className="absolute right-3 top-11 z-20 w-36 rounded-xl border border-slate-200 bg-white p-1 shadow-lg" onClick={(event) => event.stopPropagation()}>
+                        <div className="absolute right-3 top-11 z-20 w-36 rounded-xl border border-white/10 bg-slate-900 p-1 shadow-xl" onClick={(event) => event.stopPropagation()}>
                           <button
                             type="button"
-                            className="block w-full rounded-lg px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-slate-100"
+                            className="block w-full rounded-lg px-3 py-2 text-left text-sm text-white/90 transition hover:bg-slate-800"
                             onClick={() => handleEditLivestock(item)}
                           >
                             Edit
                           </button>
                           <button
                             type="button"
-                            className="block w-full rounded-lg px-3 py-2 text-left text-sm text-red-600 transition hover:bg-red-50"
+                            className="block w-full rounded-lg px-3 py-2 text-left text-sm text-red-400 transition hover:bg-red-950/50"
                             onClick={() => deleteLivestock(item)}
                           >
                             Delete
@@ -722,7 +722,7 @@ export default function DashboardPage() {
                           {item.status !== 'Available' ? (
                             <button
                               type="button"
-                              className="block w-full rounded-lg px-3 py-2 text-left text-sm text-emerald-600 transition hover:bg-emerald-50"
+                              className="block w-full rounded-lg px-3 py-2 text-left text-sm text-emerald-400 transition hover:bg-emerald-950/50"
                               onClick={() => markLivestockAvailable(item)}
                             >
                               Sell to Market
@@ -733,14 +733,14 @@ export default function DashboardPage() {
 
                       <div className="flex flex-wrap items-center justify-between gap-3">
                         <div>
-                          <h3 className="text-base font-semibold text-slate-900">{item.name}</h3>
-                          <p className="text-sm text-slate-500">{item.breed} · {item.status}</p>
+                          <h3 className="text-base font-bold text-white">{item.name}</h3>
+                          <p className="text-xs text-white/60">{item.breed} · <span className={item.status === 'Available' ? 'text-emerald-400' : 'text-amber-400'}>{item.status}</span></p>
                         </div>
-                        <p className="text-sm font-semibold text-slate-900">KSH {item.price_ksh.toLocaleString()}</p>
+                        <p className="text-sm font-black text-emerald-400">KSH {item.price_ksh.toLocaleString()}</p>
                       </div>
-                      <div className="mt-3 flex flex-wrap gap-3 text-sm text-slate-600">
-                        <span>Age: {item.age}</span>
-                        <span>Location: {item.location}</span>
+                      <div className="mt-3 flex flex-wrap gap-4 text-xs text-white/70 border-t border-white/5 pt-2">
+                        <span>Age: <strong className="text-white">{item.age} yrs</strong></span>
+                        <span>Location: <strong className="text-white">{item.location}</strong></span>
                       </div>
                     </div>
                   ))}
@@ -752,12 +752,12 @@ export default function DashboardPage() {
 
         {mainView === 'settings' && (
           <div className={glassCardClass}>
-            <h2 className="text-xl font-semibold text-slate-900">Global configuration</h2>
-            <p className="mt-2 max-w-2xl text-sm text-slate-600">
+            <h2 className="text-xl font-bold text-white tracking-tight">Global configuration</h2>
+            <p className="mt-2 max-w-2xl text-sm text-white/70">
               Set your default milk price per litre once. All milk revenue in Management uses this value until you change it here.
             </p>
-            <div className="mt-6 max-w-md space-y-3">
-              <label className="block text-sm font-medium text-slate-700">
+            <div className="mt-6 max-w-md space-y-4">
+              <label className="block text-sm font-medium text-white/90">
                 Default milk price (KSH per litre)
                 <input
                   type="number"
@@ -765,19 +765,19 @@ export default function DashboardPage() {
                   step="0.01"
                   value={defaultMilkPriceKsh}
                   onChange={(e) => setDefaultMilkPriceKsh(e.target.value)}
-                  className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-500"
+                  className="mt-2 w-full rounded-xl border border-white/10 bg-slate-950/60 text-white px-3 py-2.5 text-sm outline-none focus:border-emerald-500"
                 />
               </label>
               <button
                 type="button"
                 disabled={savingSettings}
                 onClick={() => void handleSaveSettings()}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-500 transition disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {savingSettings ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
                 {savingSettings ? 'Saving…' : 'Save settings'}
               </button>
-              <a href="/records" className="inline-flex w-full items-center justify-center rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700">
+              <a href="/records" className="inline-flex w-full items-center justify-center rounded-full bg-slate-800 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-700 transition">
                 Open All Records and reports
               </a>
             </div>
@@ -787,12 +787,12 @@ export default function DashboardPage() {
         {mainView === 'management' && (
           <div className={glassCardClass}>
             <div className="space-y-6">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                 <div>
-                  <h2 className="text-xl font-semibold text-slate-900">Management records</h2>
-                  <p className="text-sm text-slate-600">Track milk production, health treatments, and expenses for each animal.</p>
+                  <h2 className="text-xl font-bold text-white tracking-tight">Management records</h2>
+                  <p className="text-sm text-white/70">Track milk production, health treatments, and expenses for each animal.</p>
                 </div>
-                <label className="text-sm text-slate-700">
+                <label className="text-sm text-white/90">
                   <span className="mb-2 block font-medium">Selected animal</span>
                   <select
                     value={selectedLivestock?.id ?? ''}
@@ -800,13 +800,13 @@ export default function DashboardPage() {
                       const selected = safeLivestockData.find((item) => item.id === event.target.value) ?? null;
                       setSelectedLivestock(selected);
                     }}
-                    className="w-full rounded-2xl border border-slate-200 bg-white/80 px-3 py-2 outline-none transition focus:border-slate-400 sm:min-w-[18rem] sm:px-4 sm:py-3"
+                    className="w-full rounded-2xl border border-white/10 bg-slate-950/90 text-white px-3 py-2 outline-none transition focus:border-emerald-500 sm:min-w-[18rem] sm:px-4 sm:py-3"
                   >
                     {safeLivestockData.length === 0 ? (
-                      <option value="">No animals available</option>
+                      <option value="" className="bg-slate-900 text-white">No animals available</option>
                     ) : (
                       safeLivestockData.map((item) => (
-                        <option key={item.id} value={item.id}>
+                        <option key={item.id} value={item.id} className="bg-slate-900 text-white">
                           {item.name} ({item.breed})
                         </option>
                       ))
@@ -816,40 +816,40 @@ export default function DashboardPage() {
               </div>
 
               {!selectedLivestock ? (
-                <p className="text-slate-600">Add livestock first, then select an animal to begin record-keeping.</p>
+                <p className="text-white/60 text-sm">Add livestock first, then select an animal to begin record-keeping.</p>
               ) : (
                 <div className="space-y-4">
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <div className="rounded-2xl border border-emerald-200 bg-emerald-50/90 p-4">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-emerald-900">This month (all sessions)</p>
-                      <p className="mt-2 text-lg font-semibold text-emerald-950">Revenue KSH {monthlyFarmSummary.revenue.toLocaleString()}</p>
-                      <p className="text-sm text-emerald-900/90">Expenses KSH {monthlyFarmSummary.expensesTotal.toLocaleString()}</p>
-                      <p className={`mt-2 text-2xl font-bold ${monthlyFarmSummary.net >= 0 ? 'text-emerald-800' : 'text-red-700'}`}>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="rounded-2xl border border-emerald-500/30 bg-emerald-950/40 p-4 backdrop-blur-md">
+                      <p className="text-xs font-bold uppercase tracking-wider text-emerald-400">This month (all sessions)</p>
+                      <p className="mt-2 text-lg font-bold text-white">Revenue KSH {monthlyFarmSummary.revenue.toLocaleString()}</p>
+                      <p className="text-sm text-white/70">Expenses KSH {monthlyFarmSummary.expensesTotal.toLocaleString()}</p>
+                      <p className={`mt-2 text-2xl font-black ${monthlyFarmSummary.net >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                         Net profit KSH {monthlyFarmSummary.net.toLocaleString()}
                       </p>
-                      <p className="mt-1 text-xs text-emerald-900/80">Based on dated records for this animal this calendar month.</p>
+                      <p className="mt-1 text-[10px] text-white/40">Based on dated records for this animal this calendar month.</p>
                     </div>
-                    <div className="rounded-2xl border border-slate-200 bg-white/90 p-4">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">Profit / loss (this animal)</p>
-                      <p className="mt-2 text-lg font-semibold text-slate-900">Revenue KSH {farmProfitLoss.revenue.toLocaleString()}</p>
-                      <p className="text-sm text-slate-600">Expenses KSH {farmProfitLoss.expensesTotal.toLocaleString()}</p>
-                      <p className={`mt-2 text-xl font-bold ${farmProfitLoss.net >= 0 ? 'text-emerald-700' : 'text-red-600'}`}>
+                    <div className="rounded-2xl border border-white/10 bg-slate-950/40 p-4">
+                      <p className="text-xs font-bold uppercase tracking-wider text-white/50">Profit / loss (all time)</p>
+                      <p className="mt-2 text-lg font-bold text-white">Revenue KSH {farmProfitLoss.revenue.toLocaleString()}</p>
+                      <p className="text-sm text-white/70">Expenses KSH {farmProfitLoss.expensesTotal.toLocaleString()}</p>
+                      <p className={`mt-2 text-xl font-black ${farmProfitLoss.net >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                         Net KSH {farmProfitLoss.net.toLocaleString()}
                       </p>
                     </div>
                   </div>
 
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-2 border-b border-white/10 pb-3">
                     {[
-                      { key: 'milk', label: 'Milk' },
-                      { key: 'health', label: 'Health' },
+                      { key: 'milk', label: 'Milk logs' },
+                      { key: 'health', label: 'Medical History' },
                       { key: 'expenses', label: 'Expenses' },
                     ].map((tab) => (
                       <button
                         key={tab.key}
                         type="button"
-                        className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
-                          managementTab === tab.key ? 'bg-slate-900 text-white' : 'bg-white/70 text-slate-700 hover:bg-white'
+                        className={`rounded-full px-4 py-2 text-xs font-bold transition-all ${
+                          managementTab === tab.key ? 'bg-emerald-600 text-white shadow-md' : 'bg-slate-950/50 text-white/80 hover:bg-slate-900'
                         }`}
                         onClick={() => setManagementTab(tab.key as ManagementTab)}
                       >
@@ -859,11 +859,11 @@ export default function DashboardPage() {
                   </div>
 
                   {managementTab === 'milk' ? (
-                    <div className="rounded-2xl border border-slate-200 bg-white/70 p-4 sm:p-5">
-                      <h3 className="text-lg font-semibold text-slate-900">Milk Production</h3>
-                      <p className="mt-1 text-xs text-slate-600">
+                    <div className="rounded-2xl border border-white/5 bg-slate-950/20 p-4 sm:p-5">
+                      <h3 className="text-lg font-semibold text-white">Milk Production</h3>
+                      <p className="mt-1 text-xs text-white/60">
                         Default price KSH {defaultMilkValue.toLocaleString()}/L — change in{' '}
-                        <button type="button" className="font-semibold text-emerald-800 underline" onClick={() => setMainView('settings')}>
+                        <button type="button" className="font-semibold text-emerald-400 underline" onClick={() => setMainView('settings')}>
                           Settings
                         </button>.
                       </p>
@@ -876,7 +876,7 @@ export default function DashboardPage() {
                             placeholder="Morning litres"
                             value={milkForm.morning_liters}
                             onChange={(event) => setMilkForm((prev) => ({ ...prev, morning_liters: event.target.value }))}
-                            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-slate-400"
+                            className="w-full rounded-xl border border-white/10 bg-slate-950/60 text-white px-3 py-2 text-sm outline-none focus:border-emerald-500"
                           />
                           <input
                             type="number"
@@ -885,36 +885,36 @@ export default function DashboardPage() {
                             placeholder="Evening litres"
                             value={milkForm.evening_liters}
                             onChange={(event) => setMilkForm((prev) => ({ ...prev, evening_liters: event.target.value }))}
-                            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-slate-400"
+                            className="w-full rounded-xl border border-white/10 bg-slate-950/60 text-white px-3 py-2 text-sm outline-none focus:border-emerald-500"
                           />
                         </div>
-                        <p className="text-sm font-semibold text-slate-800">Total day litres: {totalMilkLitres.toFixed(1)}</p>
-                        <p className="text-sm font-medium text-emerald-800">Estimated revenue (default price): KSH {totalMilkRevenue.toLocaleString()}</p>
-                        <p className="text-xs text-slate-500">Saves today&apos;s date automatically ({formatRecordDateForDisplay(getIsoToday())}).</p>
+                        <p className="text-sm font-semibold text-white/90">Total day litres: {totalMilkLitres.toFixed(1)}</p>
+                        <p className="text-sm font-bold text-emerald-400">Estimated revenue: KSH {totalMilkRevenue.toLocaleString()}</p>
+                        <p className="text-[11px] text-white/40">Saves today&apos;s date automatically ({formatRecordDateForDisplay(getIsoToday())}).</p>
                         <button
                           type="submit"
                           disabled={savingMilk}
-                          className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+                          className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-500 transition disabled:cursor-not-allowed disabled:opacity-60"
                         >
                           {savingMilk ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
                           {savingMilk ? 'Saving…' : 'Save milk record'}
                         </button>
                       </form>
-                      <div className="mt-4 overflow-x-auto">
-                        <table className="min-w-full text-left text-xs text-slate-700">
+                      <div className="mt-4 overflow-x-auto max-h-48">
+                        <table className="min-w-full text-left text-xs text-white/80">
                           <thead>
-                            <tr className="border-b border-slate-200">
-                              <th className="py-2 pr-2">Date</th>
-                              <th className="py-2 pr-2">Session</th>
-                              <th className="py-2">Litres</th>
+                            <tr className="border-b border-white/10 text-white/50">
+                              <th className="py-2 pr-2 font-medium">Date</th>
+                              <th className="py-2 pr-2 font-medium">Session</th>
+                              <th className="py-2 font-medium">Litres</th>
                             </tr>
                           </thead>
                           <tbody>
                             {milkRecords.map((record) => (
-                              <tr key={record.id} className="border-b border-slate-100">
+                              <tr key={record.id} className="border-b border-white/5 hover:bg-white/5">
                                 <td className="py-2 pr-2">{formatRecordDateForDisplay(record.date)}</td>
                                 <td className="py-2 pr-2">{safeString(record.milking_session, '—')}</td>
-                                <td className="py-2">{safeNumber(record.amount_liters)}</td>
+                                <td className="py-2 text-emerald-400 font-bold">{safeNumber(record.amount_liters)} L</td>
                               </tr>
                             ))}
                           </tbody>
@@ -924,16 +924,16 @@ export default function DashboardPage() {
                   ) : null}
 
                   {managementTab === 'health' ? (
-                    <div className="rounded-2xl border border-slate-200 bg-white/70 p-4 sm:p-5">
-                      <h3 className="text-lg font-semibold text-slate-900">Health Tracker</h3>
+                    <div className="rounded-2xl border border-white/5 bg-slate-950/20 p-4 sm:p-5">
+                      <h3 className="text-lg font-semibold text-white">Health Tracker</h3>
                       <form className="mt-4 space-y-3" onSubmit={submitHealthRecord}>
                         <input
                           type="text"
                           required
-                          placeholder="Event"
+                          placeholder="Medical event (e.g. Vaccination, Deworming)"
                           value={healthForm.event}
                           onChange={(event) => setHealthForm((prev) => ({ ...prev, event: event.target.value }))}
-                          className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-slate-400"
+                          className="w-full rounded-xl border border-white/10 bg-slate-950/60 text-white px-3 py-2 text-sm outline-none focus:border-emerald-500"
                         />
                         <input
                           type="number"
@@ -942,33 +942,32 @@ export default function DashboardPage() {
                           placeholder="Cost (KSH)"
                           value={healthForm.cost}
                           onChange={(event) => setHealthForm((prev) => ({ ...prev, cost: event.target.value }))}
-                          className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-slate-400"
+                          className="w-full rounded-xl border border-white/10 bg-slate-950/60 text-white px-3 py-2 text-sm outline-none focus:border-emerald-500"
                         />
-                        <p className="text-xs text-slate-500">Date is saved automatically when you save.</p>
                         <button
                           type="submit"
                           disabled={savingHealth}
-                          className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+                          className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-500 transition disabled:cursor-not-allowed disabled:opacity-60"
                         >
                           {savingHealth ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
                           {savingHealth ? 'Saving…' : 'Save health record'}
                         </button>
                       </form>
-                      <div className="mt-4 overflow-x-auto">
-                        <table className="min-w-full text-left text-xs text-slate-700">
+                      <div className="mt-4 overflow-x-auto max-h-48">
+                        <table className="min-w-full text-left text-xs text-white/80">
                           <thead>
-                            <tr className="border-b border-slate-200">
-                              <th className="py-2 pr-2">Date</th>
-                              <th className="py-2 pr-2">Event</th>
-                              <th className="py-2">Cost</th>
+                            <tr className="border-b border-white/10 text-white/50">
+                              <th className="py-2 pr-2 font-medium">Date</th>
+                              <th className="py-2 pr-2 font-medium">Event</th>
+                              <th className="py-2 font-medium">Cost</th>
                             </tr>
                           </thead>
                           <tbody>
                             {healthRecords.map((record) => (
-                              <tr key={record.id} className="border-b border-slate-100">
+                              <tr key={record.id} className="border-b border-white/5 hover:bg-white/5">
                                 <td className="py-2 pr-2">{formatRecordDateForDisplay(record.date)}</td>
-                                <td className="py-2 pr-2">{safeString(record.event_type, 'Health')}</td>
-                                <td className="py-2">KSH {safeNumber(record.cost).toLocaleString()}</td>
+                                <td className="py-2 pr-2 font-medium">{safeString(record.event_type, 'Health')}</td>
+                                <td className="py-2 text-red-400 font-bold">KSH {safeNumber(record.cost).toLocaleString()}</td>
                               </tr>
                             ))}
                           </tbody>
@@ -978,20 +977,20 @@ export default function DashboardPage() {
                   ) : null}
 
                   {managementTab === 'expenses' ? (
-                    <div className="rounded-2xl border border-slate-200 bg-white/70 p-4 sm:p-5">
-                      <h3 className="text-lg font-semibold text-slate-900">Expense Log</h3>
+                    <div className="rounded-2xl border border-white/5 bg-slate-950/20 p-4 sm:p-5">
+                      <h3 className="text-lg font-semibold text-white">Expense Log</h3>
                       <form className="mt-4 space-y-3" onSubmit={submitExpenseRecord}>
                         <select
                           value={expenseForm.category}
                           onChange={(event) => setExpenseForm((prev) => ({ ...prev, category: event.target.value }))}
-                          className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-slate-400"
+                          className="w-full rounded-xl border border-white/10 bg-slate-950/80 text-white px-3 py-2 text-sm outline-none focus:border-emerald-500"
                         >
-                          <option value="Feed">Feed</option>
-                          <option value="Labor">Labor</option>
-                          <option value="Medical">Medical</option>
-                          <option value="Transport">Transport</option>
-                          <option value="Utilities">Utilities</option>
-                          <option value="Miscellaneous">Miscellaneous</option>
+                          <option value="Feed" className="bg-slate-900 text-white">Feed</option>
+                          <option value="Labor" className="bg-slate-900 text-white">Labor</option>
+                          <option value="Medical" className="bg-slate-900 text-white">Medical</option>
+                          <option value="Transport" className="bg-slate-900 text-white">Transport</option>
+                          <option value="Utilities" className="bg-slate-900 text-white">Utilities</option>
+                          <option value="Miscellaneous" className="bg-slate-900 text-white">Miscellaneous</option>
                         </select>
                         <input
                           type="number"
@@ -1000,42 +999,41 @@ export default function DashboardPage() {
                           placeholder="Amount (KSH)"
                           value={expenseForm.amount}
                           onChange={(event) => setExpenseForm((prev) => ({ ...prev, amount: event.target.value }))}
-                          className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-slate-400"
+                          className="w-full rounded-xl border border-white/10 bg-slate-950/60 text-white px-3 py-2 text-sm outline-none focus:border-emerald-500"
                         />
                         <input
                           type="text"
-                          placeholder="Notes"
+                          placeholder="Notes (optional)"
                           value={expenseForm.notes}
                           onChange={(event) => setExpenseForm((prev) => ({ ...prev, notes: event.target.value }))}
-                          className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-slate-400"
+                          className="w-full rounded-xl border border-white/10 bg-slate-950/60 text-white px-3 py-2 text-sm outline-none focus:border-emerald-500"
                         />
-                        <p className="text-xs text-slate-500">Date is saved automatically when you save.</p>
                         <button
                           type="submit"
                           disabled={savingExpense}
-                          className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+                          className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-500 transition disabled:cursor-not-allowed disabled:opacity-60"
                         >
                           {savingExpense ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
                           {savingExpense ? 'Saving…' : 'Save expense'}
                         </button>
                       </form>
-                      <div className="mt-4 overflow-x-auto">
-                        <table className="min-w-full text-left text-xs text-slate-700">
+                      <div className="mt-4 overflow-x-auto max-h-48">
+                        <table className="min-w-full text-left text-xs text-white/80">
                           <thead>
-                            <tr className="border-b border-slate-200">
-                              <th className="py-2 pr-2">Date</th>
-                              <th className="py-2 pr-2">Category</th>
-                              <th className="py-2 pr-2">Amount</th>
-                              <th className="py-2">Notes</th>
+                            <tr className="border-b border-white/10 text-white/50">
+                              <th className="py-2 pr-2 font-medium">Date</th>
+                              <th className="py-2 pr-2 font-medium">Category</th>
+                              <th className="py-2 pr-2 font-medium">Amount</th>
+                              <th className="py-2 font-medium">Notes</th>
                             </tr>
                           </thead>
                           <tbody>
                             {expenseRecords.map((record) => (
-                              <tr key={record.id} className="border-b border-slate-100">
+                              <tr key={record.id} className="border-b border-white/5 hover:bg-white/5">
                                 <td className="py-2 pr-2">{formatRecordDateForDisplay(record.date)}</td>
                                 <td className="py-2 pr-2">{safeString(record.category, 'Miscellaneous')}</td>
-                                <td className="py-2 pr-2">KSH {safeNumber(record.amount).toLocaleString()}</td>
-                                <td className="py-2">{safeString(record.notes, '—')}</td>
+                                <td className="py-2 pr-2 text-red-400 font-bold">KSH {safeNumber(record.amount).toLocaleString()}</td>
+                                <td className="py-2 text-white/60">{safeString(record.notes, '—')}</td>
                               </tr>
                             ))}
                           </tbody>
@@ -1045,7 +1043,7 @@ export default function DashboardPage() {
                   ) : null}
                 </div>
               )}
-              {recordsLoading ? <p className="text-sm text-slate-600">Loading management history...</p> : null}
+              {recordsLoading ? <p className="text-xs text-white/50">Loading management history...</p> : null}
             </div>
           </div>
         )}
