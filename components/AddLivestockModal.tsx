@@ -241,7 +241,7 @@ export default function AddLivestockModal({
         )}
 
         {/* Input Fields with Explicit High Contrast Text Styling */}
-        <form onSubmit={handleSubmit} className="mt-4 space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider">Name *</label>
             <input
