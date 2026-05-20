@@ -28,7 +28,7 @@ interface MilkRecord {
   milking_session?: string;
 }
 
-interface HealthRecord {
+interface MedicalRecord {
   id: string;
   livestock_id: string;
   event_type: string;
@@ -121,16 +121,16 @@ export default function DashboardPage() {
   const [deleteTarget, setDeleteTarget] = useState<Livestock | null>(null);
   const [editingLivestock, setEditingLivestock] = useState<Livestock | null>(null);
   const [milkRecords, setMilkRecords] = useState<MilkRecord[]>([]);
-  const [healthRecords, setHealthRecords] = useState<HealthRecord[]>([]);
+  const [medicalRecords, setMedicalRecords] = useState<MedicalRecord[]>([]);
   const [expenseRecords, setExpenseRecords] = useState<ExpenseRecord[]>([]);
   const [recordsLoading, setRecordsLoading] = useState(false);
   const [savingMilk, setSavingMilk] = useState(false);
-  const [savingHealth, setSavingHealth] = useState(false);
+  const [savingMedical, setSavingMedical] = useState(false);
   const [savingExpense, setSavingExpense] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
   const [defaultMilkPriceKsh, setDefaultMilkPriceKsh] = useState('60');
   const [milkForm, setMilkForm] = useState({ morning_liters: '', evening_liters: '' });
-  const [healthForm, setHealthForm] = useState({ event: '', cost: '' });
+  const [medicalForm, setMedicalForm] = useState({ event: '', cost: '' });
   const [expenseForm, setExpenseForm] = useState({ category: 'Feed', amount: '', notes: '' });
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -170,10 +170,10 @@ export default function DashboardPage() {
     const revenue = milkRecords
       .filter((row) => row.milking_session === 'Day Total')
       .reduce((sum, row) => sum + safeNumber(row.revenue_earned), 0);
-    const healthExpenses = healthRecords.reduce((sum, row) => sum + safeNumber(row.cost), 0);
+    const medicalExpenses = medicalRecords.reduce((sum, row) => sum + safeNumber(row.cost), 0);
     const expenseTotal = expenseRecords.reduce((sum, row) => sum + safeNumber(row.amount), 0);
-    return { revenue, expensesTotal: healthExpenses + expenseTotal, net: revenue - (healthExpenses + expenseTotal) };
-  }, [milkRecords, healthRecords, expenseRecords]);
+    return { revenue, expensesTotal: medicalExpenses + expenseTotal, net: revenue - (medicalExpenses + expenseTotal) };
+  }, [milkRecords, medicalRecords, expenseRecords]);
 
   const monthlyFarmSummary = useMemo(() => {
     const currentYear = new Date().getFullYear();
@@ -187,7 +187,7 @@ export default function DashboardPage() {
       })
       .reduce((sum, row) => sum + safeNumber(row.revenue_earned), 0);
 
-    const healthExpenses = healthRecords
+    const medicalExpenses = medicalRecords
       .filter((row) => {
         const date = parseRecordDate(row.date);
         return date ? date.getFullYear() === currentYear && date.getMonth() === currentMonth : false;
@@ -201,8 +201,8 @@ export default function DashboardPage() {
       })
       .reduce((sum, row) => sum + safeNumber(row.amount), 0);
 
-    return { revenue, expensesTotal: healthExpenses + expenseTotal, net: revenue - (healthExpenses + expenseTotal) };
-  }, [milkRecords, healthRecords, expenseRecords]);
+    return { revenue, expensesTotal: medicalExpenses + expenseTotal, net: revenue - (medicalExpenses + expenseTotal) };
+  }, [milkRecords, medicalRecords, expenseRecords]);
 
   const defaultMilkValue = safeNumber(defaultMilkPriceKsh);
   const morningMilkValue = safeNumber(milkForm.morning_liters);
@@ -296,7 +296,13 @@ export default function DashboardPage() {
   }, [mainView, safeLivestockData]);
 
   useEffect(() => {
-    if (!selectedLivestock?.id || mainView !== 'management') return;
+    if (!selectedLivestock?.id || mainView !== 'management') {
+      setMilkRecords([]);
+      setMedicalRecords([]);
+      setExpenseRecords([]);
+      setRecordsLoading(false);
+      return;
+    }
 
     let isMounted = true;
     const fetchManagementRecords = async () => {
@@ -304,28 +310,28 @@ export default function DashboardPage() {
       setErrorMessage(null);
 
       try {
-        const [milkResponse, healthResponse, expenseResponse] = await Promise.all([
+        const [milkResponse, medicalResponse, expenseResponse] = await Promise.all([
           supabase.from('milk_records').select('*').eq('livestock_id', selectedLivestock.id).order('id', { ascending: false }),
           supabase.from('medical_records').select('*').eq('livestock_id', selectedLivestock.id).order('id', { ascending: false }),
           supabase.from('expense_records').select('*').eq('livestock_id', selectedLivestock.id).order('id', { ascending: false }),
         ]);
 
-        if (milkResponse.error || healthResponse.error || expenseResponse.error) {
+        if (milkResponse.error || medicalResponse.error || expenseResponse.error) {
           setErrorMessage(
-            milkResponse.error?.message || healthResponse.error?.message || expenseResponse.error?.message || null,
+            milkResponse.error?.message || medicalResponse.error?.message || expenseResponse.error?.message || null,
           );
           return;
         }
 
         if (isMounted) {
           setMilkRecords((milkResponse.data ?? []) as MilkRecord[]);
-          setHealthRecords((healthResponse.data ?? []) as HealthRecord[]);
+          setMedicalRecords((medicalResponse.data ?? []) as MedicalRecord[]);
           setExpenseRecords((expenseResponse.data ?? []) as ExpenseRecord[]);
         }
       } catch (error) {
         setErrorMessage(error instanceof Error ? error.message : 'Failed to load records.');
         setMilkRecords([]);
-        setHealthRecords([]);
+        setMedicalRecords([]);
         setExpenseRecords([]);
       } finally {
         if (isMounted) setRecordsLoading(false);
@@ -456,10 +462,10 @@ export default function DashboardPage() {
     }
   };
 
-  const submitHealthRecord = async (event: FormEvent<HTMLFormElement>) => {
+  const submitMedicalRecord = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!selectedLivestock?.id) return;
-    setSavingHealth(true);
+    setSavingMedical(true);
     setErrorMessage(null);
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -468,26 +474,26 @@ export default function DashboardPage() {
         return;
       }
       const recordDate = getIsoToday();
-      const cost = safeNumber(healthForm.cost);
-      const { error: healthError } = await supabase.from('medical_records').insert({
+      const cost = safeNumber(medicalForm.cost);
+      const { error: medicalError } = await supabase.from('medical_records').insert({
         livestock_id: selectedLivestock.id,
         user_id: user.id,
-        event_type: safeString(healthForm.event, 'Health event'),
+        event_type: safeString(medicalForm.event, 'Medical event'),
         description: `Logged on ${formatRecordDateForDisplay(recordDate)}`,
         cost,
         date: recordDate,
       });
-      if (healthError) throw healthError;
-      setHealthForm({ event: '', cost: '' });
-      setSuccessMessage('Health record saved successfully.');
+      if (medicalError) throw medicalError;
+      setMedicalForm({ event: '', cost: '' });
+      setSuccessMessage('Medical record saved successfully.');
       setTimeout(() => setSuccessMessage(null), 3000);
       const { data } = await supabase.from('medical_records').select('*').eq('livestock_id', selectedLivestock.id).order('id', { ascending: false });
-      setHealthRecords((data ?? []) as HealthRecord[]);
+      setMedicalRecords((data ?? []) as MedicalRecord[]);
       router.refresh();
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : 'Failed to save health record.');
+      setErrorMessage(error instanceof Error ? error.message : 'Failed to save medical record.');
     } finally {
-      setSavingHealth(false);
+      setSavingMedical(false);
     }
   };
 
@@ -925,14 +931,14 @@ export default function DashboardPage() {
 
                   {managementTab === 'health' ? (
                     <div className="rounded-2xl border border-white/5 bg-slate-950/20 p-4 sm:p-5">
-                      <h3 className="text-lg font-semibold text-white">Health Tracker</h3>
-                      <form className="mt-4 space-y-3" onSubmit={submitHealthRecord}>
+                      <h3 className="text-lg font-semibold text-white">Medical Tracker</h3>
+                      <form className="mt-4 space-y-3" onSubmit={submitMedicalRecord}>
                         <input
                           type="text"
                           required
                           placeholder="Medical event (e.g. Vaccination, Deworming)"
-                          value={healthForm.event}
-                          onChange={(event) => setHealthForm((prev) => ({ ...prev, event: event.target.value }))}
+                          value={medicalForm.event}
+                          onChange={(event) => setMedicalForm((prev) => ({ ...prev, event: event.target.value }))}
                           className="w-full rounded-xl border border-white/10 bg-slate-950/60 text-white px-3 py-2 text-sm outline-none focus:border-emerald-500"
                         />
                         <input
@@ -940,17 +946,17 @@ export default function DashboardPage() {
                           min="0"
                           required
                           placeholder="Cost (KSH)"
-                          value={healthForm.cost}
-                          onChange={(event) => setHealthForm((prev) => ({ ...prev, cost: event.target.value }))}
+                          value={medicalForm.cost}
+                          onChange={(event) => setMedicalForm((prev) => ({ ...prev, cost: event.target.value }))}
                           className="w-full rounded-xl border border-white/10 bg-slate-950/60 text-white px-3 py-2 text-sm outline-none focus:border-emerald-500"
                         />
                         <button
                           type="submit"
-                          disabled={savingHealth}
+                          disabled={savingMedical}
                           className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-500 transition disabled:cursor-not-allowed disabled:opacity-60"
                         >
-                          {savingHealth ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
-                          {savingHealth ? 'Saving…' : 'Save health record'}
+                          {savingMedical ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
+                          {savingMedical ? 'Saving…' : 'Save medical record'}
                         </button>
                       </form>
                       <div className="mt-4 overflow-x-auto max-h-48">
@@ -963,10 +969,10 @@ export default function DashboardPage() {
                             </tr>
                           </thead>
                           <tbody>
-                            {healthRecords.map((record) => (
+                            {medicalRecords.map((record) => (
                               <tr key={record.id} className="border-b border-white/5 hover:bg-white/5">
                                 <td className="py-2 pr-2">{formatRecordDateForDisplay(record.date)}</td>
-                                <td className="py-2 pr-2 font-medium">{safeString(record.event_type ?? record.treatment_name, 'Health')}</td>
+                                <td className="py-2 pr-2 font-medium">{safeString(record.event_type ?? record.treatment_name, 'Medical')}</td>
                                 <td className="py-2 text-red-400 font-bold">KSH {safeNumber(record.cost).toLocaleString()}</td>
                               </tr>
                             ))}
