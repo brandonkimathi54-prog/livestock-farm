@@ -53,7 +53,6 @@ type ManagementTab = 'milk' | 'health' | 'expenses';
 const chartColors = ['#22c55e', '#2563eb', '#f59e0b'];
 const glassCardClass =
   'rounded-3xl border border-white/20 bg-slate-900/40 p-5 shadow-xl backdrop-blur-xl sm:p-8';
-const DEFAULT_MILK_PRICE_STORAGE_KEY = 'farm_default_milk_price_ksh';
 
 function safeNumber(value: unknown): number {
   const parsed = Number(value ?? 0);
@@ -133,7 +132,7 @@ export default function DashboardPage() {
   const [expenseForm, setExpenseForm] = useState({ category: 'Feed', amount: '', notes: '' });
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [installEvent, setInstallEvent] = useState<any>(null); // Fixed type resolution safety
+  const [installEvent, setInstallEvent] = useState<any>(null);
   const [installReady, setInstallReady] = useState(false);
 
   const safeLivestockData = useMemo(
@@ -207,29 +206,6 @@ export default function DashboardPage() {
   const totalMilkLitres = morningMilkValue + eveningMilkValue;
   const totalMilkRevenue = totalMilkLitres * defaultMilkValue;
 
-  const showLoadingScreen = !authChecked && loading;
-
-  const fetchUserSession = useCallback(async () => {
-    setLoading(true);
-    setErrorMessage(null);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user?.id) {
-        router.replace('/login');
-        return;
-      }
-      setUserId(user.id);
-      const sessionData = await supabase.auth.getSession();
-      setSession(sessionData.data.session);
-      setAuthChecked(true);
-    } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : 'Unable to verify your session.');
-      setAuthChecked(true);
-    } finally {
-      setLoading(false);
-    }
-  }, [router]);
-
   const fetchLivestock = useCallback(async (activeUserId: string) => {
     setLoading(true);
     setErrorMessage(null);
@@ -254,13 +230,32 @@ export default function DashboardPage() {
     }
   }, []);
 
+  // BACKGROUND AUTHENTICATION ENGINE
   useEffect(() => {
     let isMounted = true;
     
-    async function initializeAuth() {
-      if (isMounted) await fetchUserSession();
+    async function quietCheckSession() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user?.id) {
+          router.replace('/login');
+          return;
+        }
+        if (isMounted) {
+          setUserId(user.id);
+          const sessionData = await supabase.auth.getSession();
+          setSession(sessionData.data.session);
+          setAuthChecked(true);
+        }
+      } catch (error) {
+        if (isMounted) {
+          setErrorMessage('Session confirmation failed. Attempting login redirect...');
+          router.replace('/login');
+        }
+      }
     }
-    initializeAuth();
+    
+    void quietCheckSession();
 
     const authListener = supabase.auth.onAuthStateChange(async (_event: AuthChangeEvent, sessionValue: Session | null) => {
       try {
@@ -285,7 +280,7 @@ export default function DashboardPage() {
         authListener.data.subscription.unsubscribe();
       }
     };
-  }, [router, fetchUserSession]);
+  }, [router]);
 
   useEffect(() => {
     if (!authChecked || !userId) return;
@@ -564,18 +559,6 @@ export default function DashboardPage() {
     return () => window.removeEventListener('beforeinstallprompt', onBeforeInstallPrompt);
   }, []);
 
-  if (showLoadingScreen) {
-    return (
-      <div className="fixed inset-0 flex items-center justify-center bg-[#0b131a] text-white p-4">
-        <div className="w-full max-w-md rounded-3xl border border-white/10 bg-slate-950/90 px-6 py-8 text-center shadow-2xl shadow-slate-900/40">
-          <p className="text-lg font-semibold">Checking your secure dashboard access...</p>
-          <p className="mt-3 text-sm text-slate-400">Please wait while we verify your session.</p>
-          {errorMessage ? <p className="mt-3 text-sm text-rose-400">{errorMessage}</p> : null}
-        </div>
-      </div>
-    );
-  }
-
   return (
     <DashboardLayout>
       {successMessage ? (
@@ -653,17 +636,21 @@ export default function DashboardPage() {
             <div className={glassCardClass}>
               <h2 className="text-xl font-bold text-white tracking-tight">Herd value summary</h2>
               <div className="mt-6 h-72">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie data={summaryData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={65} outerRadius={100} paddingAngle={4} label>
-                      {summaryData.map((entry, index) => (
-                        <Cell key={entry.name} fill={chartColors[index % chartColors.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(value: unknown) => `KSH ${safeNumber(value).toLocaleString()}`} />
-                    <Legend verticalAlign="bottom" height={36} wrapperStyle={{ color: '#ffffff' }} />
-                  </PieChart>
-                </ResponsiveContainer>
+                {loading && !authChecked ? (
+                  <div className="flex h-full items-center justify-center text-white/50 text-sm">Syncing system session...</div>
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie data={summaryData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={65} outerRadius={100} paddingAngle={4} label>
+                        {summaryData.map((entry, index) => (
+                          <Cell key={entry.name} fill={chartColors[index % chartColors.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={(value: unknown) => `KSH ${safeNumber(value).toLocaleString()}`} />
+                      <Legend verticalAlign="bottom" height={36} wrapperStyle={{ color: '#ffffff' }} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                )}
               </div>
             </div>
 
@@ -671,7 +658,10 @@ export default function DashboardPage() {
             <div className={glassCardClass}>
               <h2 className="text-xl font-bold text-white tracking-tight">Your livestock</h2>
               {loading ? (
-                <p className="mt-4 text-white/70 text-sm">Loading your herd...</p>
+                <div className="mt-4 flex items-center gap-2 text-white/70 text-sm">
+                  <Loader2 className="h-4 w-4 animate-spin text-emerald-400" />
+                  <span>Loading asset ledger...</span>
+                </div>
               ) : safeLivestockData.length === 0 ? (
                 <p className="mt-4 text-white/60 text-sm">No animals have been added yet.</p>
               ) : (
