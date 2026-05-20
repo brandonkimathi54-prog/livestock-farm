@@ -24,6 +24,7 @@ interface MilkRecord {
   livestock_id: string;
   date: string;
   amount_liters: number;
+  revenue_earned?: number;
   milking_session?: string;
 }
 
@@ -31,6 +32,7 @@ interface HealthRecord {
   id: string;
   livestock_id: string;
   event_type: string;
+  treatment_name?: string;
   description: string;
   cost: number;
   date: string;
@@ -40,17 +42,9 @@ interface ExpenseRecord {
   id: string;
   livestock_id: string;
   category: string;
+  expense_type?: string;
   amount: number;
   notes: string;
-  date: string;
-}
-
-interface FinancialRow {
-  id: string;
-  livestock_id: string;
-  type: string;
-  amount: number;
-  description?: string | null;
   date: string;
 }
 
@@ -129,7 +123,6 @@ export default function DashboardPage() {
   const [milkRecords, setMilkRecords] = useState<MilkRecord[]>([]);
   const [healthRecords, setHealthRecords] = useState<HealthRecord[]>([]);
   const [expenseRecords, setExpenseRecords] = useState<ExpenseRecord[]>([]);
-  const [financialRows, setFinancialRows] = useState<FinancialRow[]>([]);
   const [recordsLoading, setRecordsLoading] = useState(false);
   const [savingMilk, setSavingMilk] = useState(false);
   const [savingHealth, setSavingHealth] = useState(false);
@@ -174,35 +167,42 @@ export default function DashboardPage() {
   }, [safeLivestockData]);
 
   const farmProfitLoss = useMemo(() => {
-    const revenue = financialRows
-      .filter((row) => String(row.type ?? '').toLowerCase() === 'revenue')
-      .reduce((sum, row) => sum + safeNumber(row.amount), 0);
-
-    const expensesTotal = expenseRecords.reduce((sum, row) => sum + safeNumber(row.amount), 0);
-    return { revenue, expensesTotal, net: revenue - expensesTotal };
-  }, [financialRows, expenseRecords]);
+    const revenue = milkRecords
+      .filter((row) => row.milking_session === 'Day Total')
+      .reduce((sum, row) => sum + safeNumber(row.revenue_earned), 0);
+    const healthExpenses = healthRecords.reduce((sum, row) => sum + safeNumber(row.cost), 0);
+    const expenseTotal = expenseRecords.reduce((sum, row) => sum + safeNumber(row.amount), 0);
+    return { revenue, expensesTotal: healthExpenses + expenseTotal, net: revenue - (healthExpenses + expenseTotal) };
+  }, [milkRecords, healthRecords, expenseRecords]);
 
   const monthlyFarmSummary = useMemo(() => {
     const currentYear = new Date().getFullYear();
     const currentMonth = new Date().getMonth();
 
-    const revenue = financialRows
-      .filter((row) => String(row.type ?? '').toLowerCase() === 'revenue')
+    const revenue = milkRecords
+      .filter((row) => row.milking_session === 'Day Total')
+      .filter((row) => {
+        const date = parseRecordDate(row.date);
+        return date ? date.getFullYear() === currentYear && date.getMonth() === currentMonth : false;
+      })
+      .reduce((sum, row) => sum + safeNumber(row.revenue_earned), 0);
+
+    const healthExpenses = healthRecords
+      .filter((row) => {
+        const date = parseRecordDate(row.date);
+        return date ? date.getFullYear() === currentYear && date.getMonth() === currentMonth : false;
+      })
+      .reduce((sum, row) => sum + safeNumber(row.cost), 0);
+
+    const expenseTotal = expenseRecords
       .filter((row) => {
         const date = parseRecordDate(row.date);
         return date ? date.getFullYear() === currentYear && date.getMonth() === currentMonth : false;
       })
       .reduce((sum, row) => sum + safeNumber(row.amount), 0);
 
-    const expensesTotal = expenseRecords
-      .filter((row) => {
-        const date = parseRecordDate(row.date);
-        return date ? date.getFullYear() === currentYear && date.getMonth() === currentMonth : false;
-      })
-      .reduce((sum, row) => sum + safeNumber(row.amount), 0);
-
-    return { revenue, expensesTotal, net: revenue - expensesTotal };
-  }, [financialRows, expenseRecords]);
+    return { revenue, expensesTotal: healthExpenses + expenseTotal, net: revenue - (healthExpenses + expenseTotal) };
+  }, [milkRecords, healthRecords, expenseRecords]);
 
   const defaultMilkValue = safeNumber(defaultMilkPriceKsh);
   const morningMilkValue = safeNumber(milkForm.morning_liters);
@@ -304,16 +304,15 @@ export default function DashboardPage() {
       setErrorMessage(null);
 
       try {
-        const [milkResponse, healthResponse, expenseResponse, financeResponse] = await Promise.all([
+        const [milkResponse, healthResponse, expenseResponse] = await Promise.all([
           supabase.from('milk_records').select('*').eq('livestock_id', selectedLivestock.id).order('id', { ascending: false }),
-          supabase.from('health_records').select('*').eq('livestock_id', selectedLivestock.id).order('id', { ascending: false }),
-          supabase.from('expenses').select('*').eq('livestock_id', selectedLivestock.id).order('id', { ascending: false }),
-          supabase.from('financials').select('*').eq('livestock_id', selectedLivestock.id).order('id', { ascending: false }),
+          supabase.from('medical_records').select('*').eq('livestock_id', selectedLivestock.id).order('id', { ascending: false }),
+          supabase.from('expense_records').select('*').eq('livestock_id', selectedLivestock.id).order('id', { ascending: false }),
         ]);
 
-        if (milkResponse.error || healthResponse.error || expenseResponse.error || financeResponse.error) {
+        if (milkResponse.error || healthResponse.error || expenseResponse.error) {
           setErrorMessage(
-            milkResponse.error?.message || healthResponse.error?.message || expenseResponse.error?.message || financeResponse.error?.message || null,
+            milkResponse.error?.message || healthResponse.error?.message || expenseResponse.error?.message || null,
           );
           return;
         }
@@ -322,14 +321,12 @@ export default function DashboardPage() {
           setMilkRecords((milkResponse.data ?? []) as MilkRecord[]);
           setHealthRecords((healthResponse.data ?? []) as HealthRecord[]);
           setExpenseRecords((expenseResponse.data ?? []) as ExpenseRecord[]);
-          setFinancialRows((financeResponse.data ?? []) as FinancialRow[]);
         }
       } catch (error) {
         setErrorMessage(error instanceof Error ? error.message : 'Failed to load records.');
         setMilkRecords([]);
         setHealthRecords([]);
         setExpenseRecords([]);
-        setFinancialRows([]);
       } finally {
         if (isMounted) setRecordsLoading(false);
       }
@@ -415,37 +412,42 @@ export default function DashboardPage() {
         return;
       }
       const recordDate = getIsoToday();
-      const totalRevenue = totalLiters * defaultMilkValue;
-      const rows = [];
+        const rows = [];
       if (morning > 0) {
-        rows.push({ livestock_id: selectedLivestock.id, user_id: user.id, amount_liters: morning, date: recordDate, milking_session: 'Morning' });
+        rows.push({
+          livestock_id: selectedLivestock.id,
+          user_id: user.id,
+          amount_liters: morning,
+          date: recordDate,
+          milking_session: 'Morning',
+        });
       }
       if (evening > 0) {
-        rows.push({ livestock_id: selectedLivestock.id, user_id: user.id, amount_liters: evening, date: recordDate, milking_session: 'Evening' });
+        rows.push({
+          livestock_id: selectedLivestock.id,
+          user_id: user.id,
+          amount_liters: evening,
+          date: recordDate,
+          milking_session: 'Evening',
+        });
       }
-      rows.push({ livestock_id: selectedLivestock.id, user_id: user.id, amount_liters: totalLiters, date: recordDate, milking_session: 'Day Total' });
+      rows.push({
+        livestock_id: selectedLivestock.id,
+        user_id: user.id,
+        amount_liters: totalLiters,
+        revenue_earned: Number((totalLiters * defaultMilkValue).toFixed(2)),
+        date: recordDate,
+        milking_session: 'Day Total',
+      });
       
       const { error: milkError } = await supabase.from('milk_records').insert(rows);
       if (milkError) throw milkError;
       
-      if (totalRevenue > 0) {
-        const { error: financeError } = await supabase.from('financials').insert({
-          livestock_id: selectedLivestock.id,
-          user_id: user.id,
-          type: 'revenue',
-          amount: totalRevenue,
-          description: `Milk revenue: ${totalLiters}L (M ${morning} / E ${evening}) @ KSH ${defaultMilkValue}/L`,
-          date: recordDate,
-        });
-        if (financeError) throw financeError;
-      }
       setMilkForm({ morning_liters: '', evening_liters: '' });
       setSuccessMessage('Milk record saved successfully.');
       setTimeout(() => setSuccessMessage(null), 3000);
       const { data } = await supabase.from('milk_records').select('*').eq('livestock_id', selectedLivestock.id).order('id', { ascending: false });
       setMilkRecords((data ?? []) as MilkRecord[]);
-      const { data: financeData } = await supabase.from('financials').select('*').eq('livestock_id', selectedLivestock.id).order('id', { ascending: false });
-      setFinancialRows((financeData ?? []) as FinancialRow[]);
       router.refresh();
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Failed to save milk record.');
@@ -467,7 +469,7 @@ export default function DashboardPage() {
       }
       const recordDate = getIsoToday();
       const cost = safeNumber(healthForm.cost);
-      const { error: healthError } = await supabase.from('health_records').insert({
+      const { error: healthError } = await supabase.from('medical_records').insert({
         livestock_id: selectedLivestock.id,
         user_id: user.id,
         event_type: safeString(healthForm.event, 'Health event'),
@@ -476,24 +478,11 @@ export default function DashboardPage() {
         date: recordDate,
       });
       if (healthError) throw healthError;
-      if (cost > 0) {
-        const { error: expenseError } = await supabase.from('expenses').insert({
-          livestock_id: selectedLivestock.id,
-          user_id: user.id,
-          category: 'Medical/Veterinary',
-          amount: cost,
-          notes: `Auto from health: ${safeString(healthForm.event, 'Health')}`,
-          date: recordDate,
-        });
-        if (expenseError) throw expenseError;
-      }
       setHealthForm({ event: '', cost: '' });
       setSuccessMessage('Health record saved successfully.');
       setTimeout(() => setSuccessMessage(null), 3000);
-      const { data } = await supabase.from('health_records').select('*').eq('livestock_id', selectedLivestock.id).order('id', { ascending: false });
+      const { data } = await supabase.from('medical_records').select('*').eq('livestock_id', selectedLivestock.id).order('id', { ascending: false });
       setHealthRecords((data ?? []) as HealthRecord[]);
-      const { data: expenseData } = await supabase.from('expenses').select('*').eq('livestock_id', selectedLivestock.id).order('id', { ascending: false });
-      setExpenseRecords((expenseData ?? []) as ExpenseRecord[]);
       router.refresh();
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Failed to save health record.');
@@ -515,7 +504,7 @@ export default function DashboardPage() {
       }
       const recordDate = getIsoToday();
       const amount = safeNumber(expenseForm.amount);
-      const { error } = await supabase.from('expenses').insert({
+      const { error } = await supabase.from('expense_records').insert({
         livestock_id: selectedLivestock.id,
         user_id: user.id,
         category: safeString(expenseForm.category, 'Miscellaneous'),
@@ -527,7 +516,7 @@ export default function DashboardPage() {
       setExpenseForm({ category: 'Feed', amount: '', notes: '' });
       setSuccessMessage('Expense saved successfully.');
       setTimeout(() => setSuccessMessage(null), 3000);
-      const { data } = await supabase.from('expenses').select('*').eq('livestock_id', selectedLivestock.id).order('id', { ascending: false });
+      const { data } = await supabase.from('expense_records').select('*').eq('livestock_id', selectedLivestock.id).order('id', { ascending: false });
       setExpenseRecords((data ?? []) as ExpenseRecord[]);
       router.refresh();
     } catch (error) {
@@ -977,7 +966,7 @@ export default function DashboardPage() {
                             {healthRecords.map((record) => (
                               <tr key={record.id} className="border-b border-white/5 hover:bg-white/5">
                                 <td className="py-2 pr-2">{formatRecordDateForDisplay(record.date)}</td>
-                                <td className="py-2 pr-2 font-medium">{safeString(record.event_type, 'Health')}</td>
+                                <td className="py-2 pr-2 font-medium">{safeString(record.event_type ?? record.treatment_name, 'Health')}</td>
                                 <td className="py-2 text-red-400 font-bold">KSH {safeNumber(record.cost).toLocaleString()}</td>
                               </tr>
                             ))}
@@ -1043,7 +1032,7 @@ export default function DashboardPage() {
                             {expenseRecords.map((record) => (
                               <tr key={record.id} className="border-b border-white/5 hover:bg-white/5">
                                 <td className="py-2 pr-2">{formatRecordDateForDisplay(record.date)}</td>
-                                <td className="py-2 pr-2">{safeString(record.category, 'Miscellaneous')}</td>
+                                <td className="py-2 pr-2">{safeString(record.category ?? record.expense_type, 'Miscellaneous')}</td>
                                 <td className="py-2 pr-2 text-red-400 font-bold">KSH {safeNumber(record.amount).toLocaleString()}</td>
                                 <td className="py-2 text-white/60">{safeString(record.notes, '—')}</td>
                               </tr>
