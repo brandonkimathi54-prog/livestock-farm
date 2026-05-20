@@ -1,16 +1,45 @@
 'use client';
 
 import { useState, FormEvent, useEffect } from 'react';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { Loader2, X } from 'lucide-react';
-import { supabase } from '@/lib/supabaseWrapper';
+import { supabase as defaultSupabase } from '@/lib/supabaseWrapper';
+
+interface EditingLivestock {
+  id?: string;
+  name?: string;
+  breed?: string;
+  age?: number | string;
+  price_ksh?: number | string;
+  price?: number | string;
+  location?: string;
+  status?: string;
+  liters_per_day?: number | string;
+  whatsapp_number?: string;
+  description?: string;
+  image_url?: string;
+  video_url?: string;
+}
 
 interface AddLivestockModalProps {
   isOpen: boolean;
   userId: string | null;
-  editingLivestock: any; 
+  editingLivestock: EditingLivestock | null;
   onClose: () => void;
   onSuccess: () => void;
-  supabase?: any; // Marked optional to prevent destructuring issues
+  supabase?: SupabaseClient;
+}
+
+interface LivestockFormData {
+  name: string;
+  breed: string;
+  age: string;
+  price_ksh: string;
+  location: string;
+  status: string;
+  liters_per_day: string;
+  whatsapp_number: string;
+  description: string;
 }
 
 export default function AddLivestockModal({
@@ -19,12 +48,13 @@ export default function AddLivestockModal({
   editingLivestock,
   onClose,
   onSuccess,
+  supabase,
 }: AddLivestockModalProps) {
+  const client = supabase ?? defaultSupabase;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Form State
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<LivestockFormData>({
     name: '',
     breed: '',
     age: '',
@@ -37,6 +67,7 @@ export default function AddLivestockModal({
   });
   
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [videoFile, setVideoFile] = useState<File | null>(null);
 
   // Sync edit data if updating an existing animal
   useEffect(() => {
@@ -67,6 +98,7 @@ export default function AddLivestockModal({
     }
     setError(null);
     setImageFile(null);
+    setVideoFile(null);
   }, [editingLivestock, isOpen]);
 
   if (!isOpen) return null;
@@ -76,12 +108,12 @@ export default function AddLivestockModal({
     
     let activeUserId = userId;
     if (!activeUserId) {
-      const { data: { user } } = await supabase.auth.getUser();
-      activeUserId = user?.id ?? null;
+      const { data } = await client.auth.getUser();
+      activeUserId = data?.user?.id ?? null;
     }
 
     if (!activeUserId) {
-      setError('Your active session context was lost. Please refresh or log in again.');
+      setError('Your active user session could not be resolved. Please refresh or log in again.');
       return;
     }
 
@@ -90,19 +122,30 @@ export default function AddLivestockModal({
 
     try {
       let image_url = editingLivestock?.image_url ?? '';
+      let video_url = editingLivestock?.video_url ?? '';
 
-      // Handle Image Upload to Storage Bucket safely
       if (imageFile) {
-        const fileExt = imageFile.name.split('.').pop();
-        const fileName = `${activeUserId}-${Date.now()}.${fileExt}`;
-        const filePath = `uploads/${fileName}`;
+        const extension = imageFile.name.split('.').pop() ?? 'jpg';
+        const filePath = `uploads/${activeUserId}-${Date.now()}.${extension}`;
 
-        const { error: uploadError } = await supabase.storage
+        const { error: uploadError } = await client.storage
           .from('livestock-images')
           .upload(filePath, imageFile, { upsert: true });
 
         if (uploadError) throw uploadError;
         image_url = filePath;
+      }
+
+      if (videoFile) {
+        const extension = videoFile.name.split('.').pop() ?? 'mp4';
+        const videoPath = `videos/${activeUserId}-video-${Date.now()}.${extension}`;
+
+        const { error: uploadError } = await client.storage
+          .from('livestock-images')
+          .upload(videoPath, videoFile, { upsert: true });
+
+        if (uploadError) throw uploadError;
+        video_url = videoPath;
       }
 
       const payload = {
@@ -116,13 +159,14 @@ export default function AddLivestockModal({
         liters_per_day: formData.liters_per_day ? Number(formData.liters_per_day) : 0,
         whatsapp_number: formData.whatsapp_number.trim(),
         description: formData.description.trim(),
-        image_url: image_url,
+        image_url,
+        video_url,
         updated_at: new Date().toISOString(),
       };
 
       if (editingLivestock?.id) {
         // UPDATE Existing Animal
-        const { error: updateError } = await supabase
+        const { error: updateError } = await client
           .from('livestock')
           .update(payload)
           .eq('id', editingLivestock.id)
@@ -131,17 +175,17 @@ export default function AddLivestockModal({
         if (updateError) throw updateError;
       } else {
         // INSERT Fresh Animal
-        const { error: insertError } = await supabase
+        const { error: insertError } = await client
           .from('livestock')
           .insert([{ ...payload, created_at: new Date().toISOString() }]);
 
         if (insertError) throw insertError;
       }
 
-      onSuccess(); 
-      onClose();   
-    } catch (err: any) {
-      setError(err.message || 'An error occurred while saving.');
+      onSuccess();
+      onClose();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'An unexpected error occurred while saving.');
     } finally {
       setLoading(false);
     }
@@ -269,28 +313,38 @@ export default function AddLivestockModal({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid gap-4 md:grid-cols-2">
             <div>
               <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider">Status</label>
               <select
                 value={formData.status}
                 onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                 className="mt-1 w-full rounded-xl border border-white/20 bg-slate-950 px-4 py-3 text-sm text-white outline-none focus:border-emerald-500 transition appearance-none font-semibold"
-                style={{ backgroundColor: '#020617', color: '#ffffff' }}
               >
                 <option value="Available">Available</option>
                 <option value="Sold">Sold</option>
               </select>
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider">Image</label>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(e) => setImageFile(e.target.files?.[0] ?? null)}
-                className="mt-1 w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-emerald-600 file:text-white hover:file:bg-emerald-500 cursor-pointer"
-              />
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider">Image</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => setImageFile(e.target.files?.[0] ?? null)}
+                  className="mt-1 w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-emerald-600 file:text-white hover:file:bg-emerald-500 cursor-pointer"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider">Video (Optional)</label>
+                <input
+                  type="file"
+                  accept="video/*"
+                  onChange={(e) => setVideoFile(e.target.files?.[0] ?? null)}
+                  className="mt-1 w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-slate-700 file:text-white hover:file:bg-slate-600 cursor-pointer"
+                />
+              </div>
             </div>
           </div>
 
