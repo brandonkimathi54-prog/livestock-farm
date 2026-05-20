@@ -31,9 +31,7 @@ interface MilkRecord {
 interface MedicalRecord {
   id: string;
   livestock_id: string;
-  event_type: string;
-  treatment_name?: string;
-  description: string;
+  treatment_name: string;
   cost: number;
   date: string;
 }
@@ -41,10 +39,8 @@ interface MedicalRecord {
 interface ExpenseRecord {
   id: string;
   livestock_id: string;
-  category: string;
-  expense_type?: string;
+  expense_type: string;
   amount: number;
-  notes: string;
   date: string;
 }
 
@@ -130,8 +126,8 @@ export default function DashboardPage() {
   const [savingSettings, setSavingSettings] = useState(false);
   const [defaultMilkPriceKsh, setDefaultMilkPriceKsh] = useState('60');
   const [milkForm, setMilkForm] = useState({ morning_liters: '', evening_liters: '' });
-  const [medicalForm, setMedicalForm] = useState({ event: '', cost: '' });
-  const [expenseForm, setExpenseForm] = useState({ category: 'Feed', amount: '', notes: '' });
+  const [medicalForm, setMedicalForm] = useState({ treatment_name: '', cost: '', date: '' });
+  const [expenseForm, setExpenseForm] = useState({ expense_type: 'Feed', amount: '', date: '' });
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [installEvent, setInstallEvent] = useState<BeforeInstallPromptEvent | null>(null);
@@ -473,18 +469,17 @@ export default function DashboardPage() {
         router.replace('/login');
         return;
       }
-      const recordDate = getIsoToday();
-      const cost = safeNumber(medicalForm.cost);
+      const recordDate = medicalForm.date || getIsoToday();
+      const cost = Number(medicalForm.cost) || 0;
       const { error: medicalError } = await supabase.from('medical_records').insert({
         livestock_id: selectedLivestock.id,
         user_id: user.id,
-        event_type: safeString(medicalForm.event, 'Medical event'),
-        description: `Logged on ${formatRecordDateForDisplay(recordDate)}`,
+        treatment_name: safeString(medicalForm.treatment_name, 'Medical treatment'),
         cost,
         date: recordDate,
       });
       if (medicalError) throw medicalError;
-      setMedicalForm({ event: '', cost: '' });
+      setMedicalForm({ treatment_name: '', cost: '', date: '' });
       setSuccessMessage('Medical record saved successfully.');
       setTimeout(() => setSuccessMessage(null), 3000);
       const { data } = await supabase.from('medical_records').select('*').eq('livestock_id', selectedLivestock.id).order('id', { ascending: false });
@@ -508,18 +503,17 @@ export default function DashboardPage() {
         router.replace('/login');
         return;
       }
-      const recordDate = getIsoToday();
-      const amount = safeNumber(expenseForm.amount);
+      const recordDate = expenseForm.date || getIsoToday();
+      const amount = Number(expenseForm.amount) || 0;
       const { error } = await supabase.from('expense_records').insert({
         livestock_id: selectedLivestock.id,
         user_id: user.id,
-        category: safeString(expenseForm.category, 'Miscellaneous'),
+        expense_type: safeString(expenseForm.expense_type, 'Miscellaneous'),
         amount,
-        notes: safeString(expenseForm.notes, 'No notes'),
         date: recordDate,
       });
       if (error) throw error;
-      setExpenseForm({ category: 'Feed', amount: '', notes: '' });
+      setExpenseForm({ expense_type: 'Feed', amount: '', date: '' });
       setSuccessMessage('Expense saved successfully.');
       setTimeout(() => setSuccessMessage(null), 3000);
       const { data } = await supabase.from('expense_records').select('*').eq('livestock_id', selectedLivestock.id).order('id', { ascending: false });
@@ -936,9 +930,9 @@ export default function DashboardPage() {
                         <input
                           type="text"
                           required
-                          placeholder="Medical event (e.g. Vaccination, Deworming)"
-                          value={medicalForm.event}
-                          onChange={(event) => setMedicalForm((prev) => ({ ...prev, event: event.target.value }))}
+                          placeholder="Treatment name (e.g. Deworming, Vaccination)"
+                          value={medicalForm.treatment_name}
+                          onChange={(event) => setMedicalForm((prev) => ({ ...prev, treatment_name: event.target.value }))}
                           className="w-full rounded-xl border border-white/10 bg-slate-950/60 text-white px-3 py-2 text-sm outline-none focus:border-emerald-500"
                         />
                         <input
@@ -948,6 +942,12 @@ export default function DashboardPage() {
                           placeholder="Cost (KSH)"
                           value={medicalForm.cost}
                           onChange={(event) => setMedicalForm((prev) => ({ ...prev, cost: event.target.value }))}
+                          className="w-full rounded-xl border border-white/10 bg-slate-950/60 text-white px-3 py-2 text-sm outline-none focus:border-emerald-500"
+                        />
+                        <input
+                          type="date"
+                          value={medicalForm.date}
+                          onChange={(event) => setMedicalForm((prev) => ({ ...prev, date: event.target.value }))}
                           className="w-full rounded-xl border border-white/10 bg-slate-950/60 text-white px-3 py-2 text-sm outline-none focus:border-emerald-500"
                         />
                         <button
@@ -972,7 +972,7 @@ export default function DashboardPage() {
                             {medicalRecords.map((record) => (
                               <tr key={record.id} className="border-b border-white/5 hover:bg-white/5">
                                 <td className="py-2 pr-2">{formatRecordDateForDisplay(record.date)}</td>
-                                <td className="py-2 pr-2 font-medium">{safeString(record.event_type ?? record.treatment_name, 'Medical')}</td>
+                                <td className="py-2 pr-2 font-medium">{safeString(record.treatment_name, 'Medical')}</td>
                                 <td className="py-2 text-red-400 font-bold">KSH {safeNumber(record.cost).toLocaleString()}</td>
                               </tr>
                             ))}
@@ -987,8 +987,8 @@ export default function DashboardPage() {
                       <h3 className="text-lg font-semibold text-white">Expense Log</h3>
                       <form className="mt-4 space-y-3" onSubmit={submitExpenseRecord}>
                         <select
-                          value={expenseForm.category}
-                          onChange={(event) => setExpenseForm((prev) => ({ ...prev, category: event.target.value }))}
+                          value={expenseForm.expense_type}
+                          onChange={(event) => setExpenseForm((prev) => ({ ...prev, expense_type: event.target.value }))}
                           className="w-full rounded-xl border border-white/20 bg-slate-900 text-slate-100 font-semibold px-3 py-2 text-sm outline-none focus:border-emerald-500 appearance-none"
                           style={{ backgroundColor: '#0f172a', color: '#f8fafc' }}
                         >
@@ -1009,10 +1009,9 @@ export default function DashboardPage() {
                           className="w-full rounded-xl border border-white/10 bg-slate-950/60 text-white px-3 py-2 text-sm outline-none focus:border-emerald-500"
                         />
                         <input
-                          type="text"
-                          placeholder="Notes (optional)"
-                          value={expenseForm.notes}
-                          onChange={(event) => setExpenseForm((prev) => ({ ...prev, notes: event.target.value }))}
+                          type="date"
+                          value={expenseForm.date}
+                          onChange={(event) => setExpenseForm((prev) => ({ ...prev, date: event.target.value }))}
                           className="w-full rounded-xl border border-white/10 bg-slate-950/60 text-white px-3 py-2 text-sm outline-none focus:border-emerald-500"
                         />
                         <button
@@ -1029,18 +1028,18 @@ export default function DashboardPage() {
                           <thead>
                             <tr className="border-b border-white/10 text-slate-400">
                               <th className="py-2 pr-2 font-semibold">Date</th>
-                              <th className="py-2 pr-2 font-semibold">Category</th>
+                              <th className="py-2 pr-2 font-semibold">Expense Type</th>
                               <th className="py-2 pr-2 font-semibold">Amount</th>
-                              <th className="py-2 font-semibold">Notes</th>
+                              <th className="py-2 pr-2 font-semibold">Posted</th>
                             </tr>
                           </thead>
                           <tbody>
                             {expenseRecords.map((record) => (
                               <tr key={record.id} className="border-b border-white/5 hover:bg-white/5">
                                 <td className="py-2 pr-2">{formatRecordDateForDisplay(record.date)}</td>
-                                <td className="py-2 pr-2">{safeString(record.category ?? record.expense_type, 'Miscellaneous')}</td>
+                                <td className="py-2 pr-2">{safeString(record.expense_type, 'Miscellaneous')}</td>
                                 <td className="py-2 pr-2 text-red-400 font-bold">KSH {safeNumber(record.amount).toLocaleString()}</td>
-                                <td className="py-2 text-white/60">{safeString(record.notes, '—')}</td>
+                                <td className="py-2 pr-2 text-slate-400">{formatRecordDateForDisplay(record.date)}</td>
                               </tr>
                             ))}
                           </tbody>
