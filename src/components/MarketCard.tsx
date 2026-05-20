@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { supabase } from '@/lib/supabaseWrapper';
 import { Play, Calendar, Droplets, MapPin, MessageCircle } from "lucide-react";
 import type { Livestock } from "@/types";
 
@@ -12,6 +13,28 @@ interface MarketCardProps {
 
 export default function MarketCard({ item, imageSrc, videoSrc }: MarketCardProps) {
   const [isPlayingVideo, setIsPlayingVideo] = useState(false);
+
+  const getImageUrl = (path?: string | null) => {
+    if (!path) return '';
+    if (/^https?:\/\//i.test(path)) return path;
+    try {
+      const { data } = supabase.storage.from('livestock-images').getPublicUrl(path);
+      return data?.publicUrl || '';
+    } catch (e) {
+      return '';
+    }
+  };
+
+  const getVideoUrl = (path?: string | null) => {
+    if (!path) return '';
+    if (/^https?:\/\//i.test(path)) return path;
+    try {
+      const { data } = supabase.storage.from('livestock-images').getPublicUrl(path);
+      return data?.publicUrl || '';
+    } catch (e) {
+      return '';
+    }
+  };
 
   const formatPrice = (value: number) => `KSH ${value.toLocaleString()}`;
 
@@ -36,18 +59,18 @@ export default function MarketCard({ item, imageSrc, videoSrc }: MarketCardProps
         <div className="aspect-[16/9] w-full">
           {/* media area uses absolute children */}
           <div className="relative h-full w-full">
-            {isPlayingVideo && videoSrc ? (
+            {isPlayingVideo && (getVideoUrl(videoSrc ?? item.video_url) || getVideoUrl(item.video_url)) ? (
               <video
                 className="h-full w-full object-cover"
-                src={videoSrc}
+                src={getVideoUrl(videoSrc ?? item.video_url)}
                 controls
                 autoPlay
                 playsInline
               />
-            ) : imageSrc ? (
+            ) : (getImageUrl(imageSrc ?? item.image_url) || getImageUrl(item.image_url)) ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={imageSrc}
+                src={getImageUrl(imageSrc ?? item.image_url)}
                 alt={`${item.name} image`}
                 className="h-full w-full object-cover"
                 loading="lazy"
