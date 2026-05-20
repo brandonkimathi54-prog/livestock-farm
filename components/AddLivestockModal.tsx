@@ -125,27 +125,53 @@ export default function AddLivestockModal({
       let video_url = editingLivestock?.video_url ?? '';
 
       if (imageFile) {
-        const extension = imageFile.name.split('.').pop() ?? 'jpg';
-        const filePath = `uploads/${activeUserId}-${Date.now()}.${extension}`;
+        try {
+          const extension = imageFile.name.split('.').pop() ?? 'jpg';
+          const filePath = `uploads/${activeUserId}-${Date.now()}.${extension}`;
 
-        const { error: uploadError } = await client.storage
-          .from('livestock-images')
-          .upload(filePath, imageFile, { upsert: true });
+          const { error: uploadError } = await client.storage
+            .from('livestock-images')
+            .upload(filePath, imageFile, { upsert: true });
 
-        if (uploadError) throw uploadError;
-        image_url = filePath;
+          if (uploadError) {
+            throw uploadError;
+          }
+
+          image_url = filePath;
+        } catch (uploadErr) {
+          setLoading(false);
+          setError(
+            uploadErr instanceof Error
+              ? `Image Upload Failed: Ensure the 'livestock-images' storage bucket exists in your Supabase dashboard. ${uploadErr.message}`
+              : "Image Upload Failed: Ensure the 'livestock-images' storage bucket exists in your Supabase dashboard."
+          );
+          return;
+        }
       }
 
       if (videoFile) {
-        const extension = videoFile.name.split('.').pop() ?? 'mp4';
-        const videoPath = `videos/${activeUserId}-video-${Date.now()}.${extension}`;
+        try {
+          const extension = videoFile.name.split('.').pop() ?? 'mp4';
+          const videoPath = `videos/${activeUserId}-video-${Date.now()}.${extension}`;
 
-        const { error: uploadError } = await client.storage
-          .from('livestock-images')
-          .upload(videoPath, videoFile, { upsert: true });
+          const { error: uploadError } = await client.storage
+            .from('livestock-images')
+            .upload(videoPath, videoFile, { upsert: true });
 
-        if (uploadError) throw uploadError;
-        video_url = videoPath;
+          if (uploadError) {
+            throw uploadError;
+          }
+
+          video_url = videoPath;
+        } catch (uploadErr) {
+          setLoading(false);
+          setError(
+            uploadErr instanceof Error
+              ? `Video Upload Failed: Ensure the 'livestock-images' storage bucket exists in your Supabase dashboard. ${uploadErr.message}`
+              : "Video Upload Failed: Ensure the 'livestock-images' storage bucket exists in your Supabase dashboard."
+          );
+          return;
+        }
       }
 
       const finalPayload = {
