@@ -108,8 +108,8 @@ export default function AddLivestockModal({
     
     let activeUserId = userId;
     if (!activeUserId) {
-      const { data } = await client.auth.getUser();
-      activeUserId = data?.user?.id ?? null;
+      const { data: { user } } = await client.auth.getUser();
+      activeUserId = user?.id ?? null;
     }
 
     if (!activeUserId) {
@@ -148,7 +148,7 @@ export default function AddLivestockModal({
         video_url = videoPath;
       }
 
-      const payload = {
+      const finalPayload = {
         user_id: activeUserId,
         name: formData.name.trim(),
         breed: formData.breed.trim(),
@@ -168,16 +168,15 @@ export default function AddLivestockModal({
         // UPDATE Existing Animal
         const { error: updateError } = await client
           .from('livestock')
-          .update(payload)
-          .eq('id', editingLivestock.id)
-          .eq('user_id', activeUserId);
+          .update(finalPayload)
+          .eq('id', editingLivestock.id);
 
         if (updateError) throw updateError;
       } else {
         // INSERT Fresh Animal
         const { error: insertError } = await client
           .from('livestock')
-          .insert([{ ...payload, created_at: new Date().toISOString() }]);
+          .insert([finalPayload]);
 
         if (insertError) throw insertError;
       }
