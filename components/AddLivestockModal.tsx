@@ -1,301 +1,320 @@
 'use client';
 
-import { useState, useEffect, FormEvent } from 'react';
-import type { Livestock } from '@/types';
+import { useState, FormEvent, useEffect } from 'react';
+import { Loader2, X } from 'lucide-react';
+import { supabase } from '@/lib/supabaseWrapper';
 
 interface AddLivestockModalProps {
   isOpen: boolean;
-  supabase: any;
   userId: string | null;
-  editingLivestock?: Livestock | null;
+  editingLivestock: any; 
   onClose: () => void;
   onSuccess: () => void;
+  supabase?: any; // Marked optional to prevent destructuring issues
 }
 
 export default function AddLivestockModal({
   isOpen,
-  supabase,
   userId,
   editingLivestock,
   onClose,
   onSuccess,
 }: AddLivestockModalProps) {
-  const [formState, setFormState] = useState({
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Form State
+  const [formData, setFormData] = useState({
     name: '',
     breed: '',
     age: '',
-    liters_per_day: '',
-    price: '',
-    status: 'Available' as const,
+    price_ksh: '',
     location: '',
+    status: 'Available',
+    liters_per_day: '',
     whatsapp_number: '',
     description: '',
   });
+  
+  const [imageFile, setImageFile] = useState<File | null>(null);
 
-  const [photoFile, setPhotoFile] = useState<File | null>(null);
-  const [videoFile, setVideoFile] = useState<File | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
-  const isEditing = !!editingLivestock;
-
-  // Reset/Populate form
+  // Sync edit data if updating an existing animal
   useEffect(() => {
     if (editingLivestock) {
-      setFormState({
+      setFormData({
         name: editingLivestock.name ?? '',
         breed: editingLivestock.breed ?? '',
-        age: String(editingLivestock.age ?? 0),
-        liters_per_day: String(editingLivestock.liters_per_day ?? 0),
-        price: String(editingLivestock.price_ksh ?? editingLivestock.price ?? 0),
-        status: (editingLivestock.status as 'Available' | 'Sold') ?? 'Available',
+        age: editingLivestock.age?.toString() ?? '',
+        price_ksh: (editingLivestock.price_ksh ?? editingLivestock.price ?? '').toString(),
         location: editingLivestock.location ?? '',
+        status: editingLivestock.status ?? 'Available',
+        liters_per_day: editingLivestock.liters_per_day?.toString() ?? '',
         whatsapp_number: editingLivestock.whatsapp_number ?? '',
         description: editingLivestock.description ?? '',
       });
     } else {
-      setFormState({
-        name: '', breed: '', age: '', liters_per_day: '', price: '',
-        status: 'Available', location: '', whatsapp_number: '', description: '',
+      setFormData({
+        name: '',
+        breed: '',
+        age: '',
+        price_ksh: '',
+        location: '',
+        status: 'Available',
+        liters_per_day: '',
+        whatsapp_number: '',
+        description: '',
       });
     }
-    setPhotoFile(null);
-    setVideoFile(null);
-    setErrorMessage(null);
-  }, [editingLivestock]);
+    setError(null);
+    setImageFile(null);
+  }, [editingLivestock, isOpen]);
 
-  const handleChange = (key: keyof typeof formState, value: string) => {
-    setFormState((prev) => ({ ...prev, [key]: value }));
-  };
-
-  const uploadMedia = async (bucket: string, file: File, userId: string) => {
-    const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
-    const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`;
-
-    const { error: uploadError } = await supabase.storage
-      .from(bucket)
-      .upload(fileName, file, { upsert: true });
-
-    if (uploadError) throw uploadError;
-
-    const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(fileName);
-    return urlData.publicUrl;
-  };
+  if (!isOpen) return null;
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setSaving(true);
-    setErrorMessage(null);
+    e.preventDefault(); // Stop form reloading behavior immediately
+    
+    let activeUserId = userId;
+    if (!activeUserId) {
+      const { data: { user } } = await supabase.auth.getUser();
+      activeUserId = user?.id ?? null;
+    }
 
-    if (!userId) {
-      window.location.href = '/login';
+    if (!activeUserId) {
+      setError('Your active session context was lost. Please refresh or log in again.');
       return;
     }
 
-    let image_url = editingLivestock?.image_url || '';
-    let video_url = editingLivestock?.video_url || '';
+    setLoading(true);
+    setError(null);
 
     try {
-      // Upload Image
-      if (photoFile) {
-        image_url = await uploadMedia('livestock-images', photoFile, userId);
-      }
+      let image_url = editingLivestock?.image_url ?? '';
 
-      // Upload Video
-      if (videoFile) {
-        video_url = await uploadMedia('livestock-videos', videoFile, userId);
+      // Handle Image Upload to Storage Bucket safely
+      if (imageFile) {
+        const fileExt = imageFile.name.split('.').pop();
+        const fileName = `${activeUserId}-${Date.now()}.${fileExt}`;
+        const filePath = `uploads/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('livestock-images')
+          .upload(filePath, imageFile, { upsert: true });
+
+        if (uploadError) throw uploadError;
+        image_url = filePath;
       }
 
       const payload = {
-        name: formState.name,
-        breed: formState.breed,
-        age: parseInt(formState.age) || 0,
-        liters_per_day: parseFloat(formState.liters_per_day) || 0,
-        price_ksh: parseFloat(formState.price) || 0,
-        status: formState.status,
-        location: formState.location,
-        whatsapp_number: formState.whatsapp_number,
-        description: formState.description,
-        image_url,
-        video_url,
-        user_id: userId,
+        user_id: activeUserId,
+        name: formData.name.trim(),
+        breed: formData.breed.trim(),
+        age: formData.age ? Number(formData.age) : 0,
+        price_ksh: formData.price_ksh ? Number(formData.price_ksh) : 0,
+        location: formData.location.trim(),
+        status: formData.status,
+        liters_per_day: formData.liters_per_day ? Number(formData.liters_per_day) : 0,
+        whatsapp_number: formData.whatsapp_number.trim(),
+        description: formData.description.trim(),
+        image_url: image_url,
+        updated_at: new Date().toISOString(),
       };
 
-      let error: any = null;
-
-      if (isEditing && editingLivestock?.id) {
+      if (editingLivestock?.id) {
+        // UPDATE Existing Animal
         const { error: updateError } = await supabase
           .from('livestock')
           .update(payload)
           .eq('id', editingLivestock.id)
-          .eq('user_id', userId);
-        error = updateError;
+          .eq('user_id', activeUserId);
+
+        if (updateError) throw updateError;
       } else {
+        // INSERT Fresh Animal
         const { error: insertError } = await supabase
           .from('livestock')
-          .insert([payload]);
-        error = insertError;
+          .insert([{ ...payload, created_at: new Date().toISOString() }]);
+
+        if (insertError) throw insertError;
       }
 
-      if (error) throw error;
-
-      onSuccess();
-      onClose();
+      onSuccess(); 
+      onClose();   
     } catch (err: any) {
-      console.error(err);
-      setErrorMessage(err.message || 'Failed to save livestock. Check storage permissions.');
+      setError(err.message || 'An error occurred while saving.');
     } finally {
-      setSaving(false);
+      setLoading(false);
     }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-      <div className="w-full max-w-lg rounded-3xl bg-white p-8 shadow-2xl max-h-[95vh] overflow-y-auto">
-        <h2 className="text-2xl font-semibold text-slate-900">
-          {isEditing ? 'Edit Livestock' : 'Add New Livestock'}
-        </h2>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+      <div className="w-full max-w-lg rounded-3xl border border-white/20 bg-slate-900 p-6 shadow-2xl overflow-y-auto max-h-[90vh]">
+        
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-white/10 pb-4">
+          <h2 className="text-xl font-bold text-white">
+            {editingLivestock ? 'Edit Animal Details' : 'Add New Livestock'}
+          </h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-full p-1.5 text-white/60 hover:bg-white/10 hover:text-white transition"
+          >
+            <X size={20} />
+          </button>
+        </div>
 
-        {errorMessage && (
-          <div className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{errorMessage}</div>
+        {error && (
+          <div className="mt-4 rounded-xl bg-rose-500/20 border border-rose-500/30 p-3 text-sm text-rose-200">
+            {error}
+          </div>
         )}
 
-        <form onSubmit={handleSubmit} className="mt-6 space-y-5">
+        {/* Input Fields with Explicit High Contrast Text Styling */}
+        <form onSubmit={handleSubmit} className="mt-4 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Name *</label>
+            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider">Name *</label>
             <input
               type="text"
               required
-              value={formState.name}
-              onChange={(e) => handleChange('name', e.target.value)}
-              className="w-full rounded-2xl border border-slate-300 px-4 py-3 focus:border-emerald-500 focus:outline-none"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              className="mt-1 w-full rounded-xl border border-white/20 bg-slate-950 px-4 py-3 text-sm text-white placeholder-slate-500 outline-none focus:border-emerald-500 transition"
+              placeholder="e.g. Rose"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Breed</label>
+            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider">Breed</label>
             <input
               type="text"
-              value={formState.breed}
-              onChange={(e) => handleChange('breed', e.target.value)}
-              className="w-full rounded-2xl border border-slate-300 px-4 py-3 focus:border-emerald-500 focus:outline-none"
+              value={formData.breed}
+              onChange={(e) => setFormData({ ...formData, breed: e.target.value })}
+              className="mt-1 w-full rounded-xl border border-white/20 bg-slate-950 px-4 py-3 text-sm text-white placeholder-slate-500 outline-none focus:border-emerald-500 transition"
+              placeholder="e.g. Friesian"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Age</label>
+              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider">Age</label>
               <input
                 type="number"
-                value={formState.age}
-                onChange={(e) => handleChange('age', e.target.value)}
-                className="w-full rounded-2xl border border-slate-300 px-4 py-3 focus:border-emerald-500 focus:outline-none"
+                min="0"
+                step="0.5"
+                value={formData.age}
+                onChange={(e) => setFormData({ ...formData, age: e.target.value })}
+                className="mt-1 w-full rounded-xl border border-white/20 bg-slate-950 px-4 py-3 text-sm text-white placeholder-slate-500 outline-none focus:border-emerald-500 transition"
+                placeholder="2"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Liters/Day</label>
+              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider">Liters/Day</label>
               <input
                 type="number"
+                min="0"
                 step="0.1"
-                value={formState.liters_per_day}
-                onChange={(e) => handleChange('liters_per_day', e.target.value)}
-                className="w-full rounded-2xl border border-slate-300 px-4 py-3 focus:border-emerald-500 focus:outline-none"
+                value={formData.liters_per_day}
+                onChange={(e) => setFormData({ ...formData, liters_per_day: e.target.value })}
+                className="mt-1 w-full rounded-xl border border-white/20 bg-slate-950 px-4 py-3 text-sm text-white placeholder-slate-500 outline-none focus:border-emerald-500 transition"
+                placeholder="8"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Price (KSH) *</label>
+            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider">Price (KSH) *</label>
             <input
               type="number"
+              min="0"
               required
-              value={formState.price}
-              onChange={(e) => handleChange('price', e.target.value)}
-              className="w-full rounded-2xl border border-slate-300 px-4 py-3 focus:border-emerald-500 focus:outline-none"
+              value={formData.price_ksh}
+              onChange={(e) => setFormData({ ...formData, price_ksh: e.target.value })}
+              className="mt-1 w-full rounded-xl border border-white/20 bg-slate-950 px-4 py-3 text-sm text-white placeholder-slate-500 outline-none focus:border-emerald-500 transition"
+              placeholder="199999"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Status</label>
-            <select
-              value={formState.status}
-              onChange={(e) => handleChange('status', e.target.value)}
-              className="w-full rounded-2xl border border-slate-300 px-4 py-3 focus:border-emerald-500 focus:outline-none"
-            >
-              <option value="Available">Available</option>
-              <option value="Sold">Sold</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Location</label>
+            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider">Location</label>
             <input
               type="text"
-              value={formState.location}
-              onChange={(e) => handleChange('location', e.target.value)}
-              className="w-full rounded-2xl border border-slate-300 px-4 py-3 focus:border-emerald-500 focus:outline-none"
+              value={formData.location}
+              onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+              className="mt-1 w-full rounded-xl border border-white/20 bg-slate-950 px-4 py-3 text-sm text-white placeholder-slate-500 outline-none focus:border-emerald-500 transition"
+              placeholder="e.g. Kutus Farm Section A"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">WhatsApp Number</label>
+            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider">WhatsApp Number</label>
             <input
-              type="tel"
-              value={formState.whatsapp_number}
-              onChange={(e) => handleChange('whatsapp_number', e.target.value)}
-              className="w-full rounded-2xl border border-slate-300 px-4 py-3 focus:border-emerald-500 focus:outline-none"
+              type="text"
+              value={formData.whatsapp_number}
+              onChange={(e) => setFormData({ ...formData, whatsapp_number: e.target.value })}
+              className="mt-1 w-full rounded-xl border border-white/20 bg-slate-950 px-4 py-3 text-sm text-white placeholder-slate-500 outline-none focus:border-emerald-500 transition"
+              placeholder="e.g. 0712345678"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
+            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider">Description</label>
             <textarea
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               rows={3}
-              value={formState.description}
-              onChange={(e) => handleChange('description', e.target.value)}
-              className="w-full rounded-2xl border border-slate-300 px-4 py-3 focus:border-emerald-500 focus:outline-none"
+              className="mt-1 w-full rounded-xl border border-white/20 bg-slate-950 px-4 py-3 text-sm text-white placeholder-slate-500 outline-none focus:border-emerald-500 transition resize-none"
+              placeholder="Provide details about health, vaccination, etc."
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Image</label>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(e) => setPhotoFile(e.target.files?.[0] || null)}
-              className="w-full"
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider">Status</label>
+              <select
+                value={formData.status}
+                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                className="mt-1 w-full rounded-xl border border-white/20 bg-slate-950 px-4 py-3 text-sm text-white outline-none focus:border-emerald-500 transition appearance-none font-semibold"
+                style={{ backgroundColor: '#020617', color: '#ffffff' }}
+              >
+                <option value="Available">Available</option>
+                <option value="Sold">Sold</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider">Image</label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => setImageFile(e.target.files?.[0] ?? null)}
+                className="mt-1 w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-emerald-600 file:text-white hover:file:bg-emerald-500 cursor-pointer"
+              />
+            </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Video (Optional)</label>
-            <input
-              type="file"
-              accept="video/*"
-              onChange={(e) => setVideoFile(e.target.files?.[0] || null)}
-              className="w-full"
-            />
-          </div>
-
-          <div className="flex gap-3 pt-4">
+          {/* Action Buttons */}
+          <div className="mt-6 flex gap-3 border-t border-white/10 pt-4">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 py-3 rounded-full font-medium text-slate-600 hover:bg-slate-100"
+              disabled={loading}
+              className="w-full rounded-xl bg-slate-800 py-3 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:opacity-50"
             >
               Cancel
             </button>
             <button
               type="submit"
-              disabled={saving}
-              className="flex-1 py-3 rounded-full bg-emerald-700 font-semibold text-white hover:bg-emerald-800 disabled:opacity-70"
+              disabled={loading}
+              className="w-full flex items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 text-sm font-semibold text-white transition hover:bg-emerald-500 disabled:opacity-50"
             >
-              {saving ? 'Saving...' : isEditing ? 'Update Livestock' : 'Add Livestock'}
+              {loading && <Loader2 size={16} className="animate-spin" />}
+              {loading ? 'Saving Animal…' : editingLivestock ? 'Save Changes' : 'Add Livestock'}
             </button>
           </div>
         </form>
+
       </div>
     </div>
   );
