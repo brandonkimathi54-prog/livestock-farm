@@ -650,37 +650,42 @@ export default function DashboardPage() {
           </div>
 
           <div className="mt-6 border-b border-white/30">
-            <nav className="flex flex-col gap-3 md:flex-row md:gap-8">
-              {[
-                { key: 'inventory', label: 'Inventory' },
-                { key: 'management', label: 'Management View' },
-                { key: 'settings', label: 'Settings' },
-              ].map((tab) => (
+            <nav className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between w-full">
+              <div className="flex flex-wrap items-center gap-3 md:gap-8">
+                {[
+                  { key: 'inventory', label: 'Inventory' },
+                  { key: 'management', label: 'Management View' },
+                  { key: 'settings', label: 'Settings' },
+                ].map((tab) => (
+                  <button
+                    key={tab.key}
+                    type="button"
+                    className={`py-2 px-1 border-b-2 font-semibold text-sm transition-all ${
+                      mainView === tab.key ? 'border-white text-white scale-105' : 'border-transparent text-white/75 hover:text-white'
+                    }`}
+                    onClick={() => {
+                      setMainView(tab.key as MainView);
+                      setManagementTab('milk');
+                    }}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+                <a href="/records" className="py-2 px-1 text-sm font-medium text-white/90 underline-offset-4 hover:text-white hover:underline">
+                  All Records
+                </a>
+              </div>
+
+              <div className="flex items-center justify-end">
                 <button
-                  key={tab.key}
                   type="button"
-                  className={`py-2 px-1 border-b-2 font-semibold text-sm transition-all ${
-                    mainView === tab.key ? 'border-white text-white scale-105' : 'border-transparent text-white/75 hover:text-white'
-                  }`}
-                  onClick={() => {
-                    setMainView(tab.key as MainView);
-                    setManagementTab('milk');
-                  }}
+                  onClick={() => setIsBrandonOpen(true)}
+                  className="flex items-center gap-2 rounded-full border border-cyan-500/40 bg-cyan-950/20 px-4 py-2 text-sm font-semibold text-cyan-400 transition-all duration-300 hover:scale-105 hover:shadow-[0_0_15px_rgba(6,182,212,0.4)]"
                 >
-                  {tab.label}
+                  <Sparkles className="h-4 w-4 text-cyan-300" />
+                  Ask Brandon
                 </button>
-              ))}
-              <a href="/records" className="py-2 px-1 text-sm font-medium text-white/90 underline-offset-4 hover:text-white hover:underline">
-                All Records
-              </a>
-              <button
-                type="button"
-                onClick={() => setIsBrandonOpen(true)}
-                className="flex items-center gap-2 rounded-full border border-cyan-500/40 bg-cyan-950/20 px-4 py-2 text-sm font-semibold text-cyan-400 transition-all duration-300 hover:scale-105 hover:shadow-[0_0_15px_rgba(6,182,212,0.4)]"
-              >
-                <Sparkles className="h-4 w-4 text-cyan-300" />
-                Ask Brandon
-              </button>
+              </div>
             </nav>
             {isBrandonOpen ? (
               <div className="mt-4 rounded-3xl border border-cyan-500/20 bg-cyan-950/95 p-4 text-cyan-100 shadow-lg shadow-cyan-500/20">
