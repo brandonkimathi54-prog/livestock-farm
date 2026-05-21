@@ -3,7 +3,7 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Area, AreaChart, CartesianGrid, Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { Loader2, MoreVertical } from 'lucide-react';
+import { Loader2, MoreVertical, Sparkles } from 'lucide-react';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabaseWrapper';
 import type { } from '@supabase/supabase-js';
@@ -114,6 +114,7 @@ export default function DashboardPage() {
   const [mainView, setMainView] = useState<MainView>('inventory');
   const [managementTab, setManagementTab] = useState<ManagementTab>('milk');
   const [openCardMenuId, setOpenCardMenuId] = useState<string | null>(null);
+  const [isBrandonOpen, setIsBrandonOpen] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Livestock | null>(null);
@@ -672,6 +673,14 @@ export default function DashboardPage() {
               <a href="/records" className="py-2 px-1 text-sm font-medium text-white/90 underline-offset-4 hover:text-white hover:underline">
                 All Records
               </a>
+              <button
+                type="button"
+                onClick={() => setIsBrandonOpen(true)}
+                className="flex items-center gap-2 rounded-full border border-cyan-500/40 bg-cyan-950/20 px-4 py-2 text-sm font-semibold text-cyan-400 transition-all duration-300 hover:scale-105 hover:shadow-[0_0_15px_rgba(6,182,212,0.4)]"
+              >
+                <Sparkles className="h-4 w-4 text-cyan-300" />
+                Ask Brandon
+              </button>
             </nav>
           </div>
         </div>
