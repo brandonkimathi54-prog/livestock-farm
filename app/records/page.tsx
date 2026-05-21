@@ -186,42 +186,55 @@ export default function AllRecordsPage() {
         import('jspdf-autotable'),
       ]);
       const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
-      const title = 'Epaphroditus Farm — Performance summary';
-      doc.setFontSize(16);
-      doc.text(title, 40, 48);
+      const companyName = 'Epaphroditus Farm';
+      doc.setFontSize(18);
+      doc.setTextColor(15, 23, 42);
+      doc.text(companyName, 40, 52);
       doc.setFontSize(10);
-      doc.text(`Period: ${monthFilter}`, 40, 68);
+      doc.setTextColor(100, 116, 139);
+      doc.text('Monthly performance report', 40, 70);
+      doc.text(`Generated: ${new Date().toLocaleDateString()}`, 40, 86);
+      doc.setFontSize(11);
+      doc.setTextColor(15, 23, 42);
+      doc.text(`Period: ${monthFilter}`, 40, 110);
       doc.text(
         animalFilter === 'all' ? 'Animal: All livestock' : `Animal: ${animalName(animalFilter)}`,
         40,
-        84,
+        126,
       );
 
       const summaryBody = [
-        ['Total milk produced (L, excl. day-total rows)', String(filtered.totalMilkLitres.toFixed(1))],
+        ['Total milk produced (L)', String(filtered.totalMilkLitres.toFixed(1))],
         ['Health treatments recorded', String(filtered.healthCount)],
         ['Total revenue (KSH)', filtered.totalRev.toLocaleString()],
         ['Total expenses (KSH)', filtered.totalExp.toLocaleString()],
-        ['Net (KSH)', (filtered.totalRev - filtered.totalExp).toLocaleString()],
+        ['Net profit (KSH)', (filtered.totalRev - filtered.totalExp).toLocaleString()],
       ];
+
       autoTable(doc, {
-        startY: 100,
+        startY: 150,
         head: [['Metric', 'Value']],
         body: summaryBody,
-        styles: { fontSize: 9 },
-        headStyles: { fillColor: [4, 120, 87] },
+        theme: 'grid',
+        styles: { fontSize: 10, textColor: [15, 23, 42], halign: 'left' },
+        headStyles: { fillColor: [5, 150, 105], textColor: [255, 255, 255] },
+        alternateRowStyles: { fillColor: [245, 248, 250] },
       });
 
       const docWithTable = doc as typeof doc & { lastAutoTable?: { finalY: number } };
-      const yAfter = (docWithTable.lastAutoTable?.finalY ?? 100) + 24;
-      doc.setFontSize(11);
-      doc.text('Milk records (filtered)', 40, yAfter);
+      const yAfter = (docWithTable.lastAutoTable?.finalY ?? 150) + 24;
+      doc.setFontSize(12);
+      doc.setTextColor(15, 23, 42);
+      doc.text('Filtered milk records', 40, yAfter);
+
       autoTable(doc, {
-        startY: yAfter + 8,
+        startY: yAfter + 12,
         head: [['Date', 'Animal', 'Session', 'Litres']],
         body: filtered.milkF.map((r) => [r.date, animalName(r.livestock_id), r.milking_session ?? '', String(r.amount_liters)]),
-        styles: { fontSize: 8 },
-        headStyles: { fillColor: [15, 23, 42] },
+        theme: 'grid',
+        styles: { fontSize: 9, textColor: [30, 41, 59] },
+        headStyles: { fillColor: [15, 23, 42], textColor: [255, 255, 255] },
+        alternateRowStyles: { fillColor: [248, 250, 252] },
       });
 
       doc.save(`farm-report-${monthFilter}.pdf`);

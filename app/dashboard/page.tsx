@@ -2,7 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Pie, PieChart, ResponsiveContainer, Tooltip, Cell, Legend } from 'recharts';
+import { Area, AreaChart, CartesianGrid, Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { Loader2, MoreVertical } from 'lucide-react';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabaseWrapper';
@@ -127,6 +127,8 @@ export default function DashboardPage() {
   const [savingExpense, setSavingExpense] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
   const [defaultMilkPriceKsh, setDefaultMilkPriceKsh] = useState('60');
+  const [showPriceModal, setShowPriceModal] = useState(false);
+  const [priceInputValue, setPriceInputValue] = useState('60');
   const [milkForm, setMilkForm] = useState({ morning_liters: '', evening_liters: '' });
   const [medicalForm, setMedicalForm] = useState({ treatment_name: '', cost: '', date: '' });
   const [expenseForm, setExpenseForm] = useState({ expense_type: 'Feed', amount: '', date: '' });
@@ -207,6 +209,43 @@ export default function DashboardPage() {
   const eveningMilkValue = safeNumber(milkForm.evening_liters);
   const totalMilkLitres = morningMilkValue + eveningMilkValue;
   const totalMilkRevenue = totalMilkLitres * defaultMilkValue;
+
+  const milkTrendData = useMemo(() => {
+    const grouped = new Map<string, { liters: number; hasDayTotal: boolean }>();
+    milkRecords.forEach((row) => {
+      const date = row.date ?? '';
+      if (!date) return;
+      const liters = safeNumber(row.liters ?? row.amount_liters);
+      const session = row.session ?? row.milking_session ?? '';
+      const existing = grouped.get(date) ?? { liters: 0, hasDayTotal: false };
+      if (session === 'Day Total') {
+        grouped.set(date, { liters, hasDayTotal: true });
+      } else if (!existing.hasDayTotal) {
+        grouped.set(date, { liters: existing.liters + liters, hasDayTotal: false });
+      }
+    });
+    return Array.from(grouped.entries())
+      .map(([date, value]) => ({ date, liters: value.liters }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+  }, [milkRecords]);
+
+  const handleOpenPriceModal = () => {
+    setPriceInputValue(defaultMilkPriceKsh);
+    setErrorMessage(null);
+    setShowPriceModal(true);
+  };
+
+  const handleSavePrice = () => {
+    const parsed = Number(priceInputValue);
+    if (!parsed || parsed <= 0) {
+      setErrorMessage('Enter a valid default milk price in KSH.');
+      return;
+    }
+    setDefaultMilkPriceKsh(String(parsed));
+    setShowPriceModal(false);
+    setSuccessMessage('Default milk price updated.');
+    setTimeout(() => setSuccessMessage(null), 3000);
+  };
 
   const fetchLivestock = useCallback(async (activeUserId: string) => {
     setLoading(true);
@@ -847,6 +886,36 @@ export default function DashboardPage() {
                     </div>
                   </div>
 
+                  <div className="rounded-2xl border border-white/10 bg-slate-950/40 p-4">
+                    <div className="flex items-center justify-between gap-4">
+                      <div>
+                        <p className="text-xs uppercase tracking-[0.2em] text-white/50">Production trend</p>
+                        <p className="mt-1 text-sm text-slate-400">Daily total yield over time</p>
+                      </div>
+                    </div>
+                    <div className="mt-4 h-64">
+                      {milkTrendData.length === 0 ? (
+                        <div className="flex h-full items-center justify-center text-sm text-slate-400">No production trend data yet.</div>
+                      ) : (
+                        <ResponsiveContainer width="100%" height="100%">
+                          <AreaChart data={milkTrendData} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
+                            <defs>
+                              <linearGradient id="milkTrendGradient" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#059669" stopOpacity={0.65} />
+                                <stop offset="95%" stopColor="#059669" stopOpacity={0.08} />
+                              </linearGradient>
+                            </defs>
+                            <CartesianGrid stroke="#334155" strokeDasharray="3 3" />
+                            <XAxis dataKey="date" tick={{ fill: '#cbd5e1', fontSize: 11 }} axisLine={false} tickLine={false} />
+                            <YAxis tick={{ fill: '#cbd5e1', fontSize: 11 }} axisLine={false} tickLine={false} />
+                            <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', color: '#fff' }} formatter={(value) => [`${value} L`, 'Litres']} />
+                            <Area type="monotone" dataKey="liters" stroke="#059669" fill="url(#milkTrendGradient)" strokeWidth={3} />
+                          </AreaChart>
+                        </ResponsiveContainer>
+                      )}
+                    </div>
+                  </div>
+
                   <div className="flex flex-wrap gap-2 border-b border-white/10 pb-3">
                     {[
                       { key: 'milk', label: 'Milk logs' },
@@ -871,7 +940,7 @@ export default function DashboardPage() {
                       <h3 className="text-lg font-semibold text-white">Milk Production</h3>
                       <p className="mt-1 text-xs text-white/60">
                         Default price KSH {defaultMilkValue.toLocaleString()}/L — change in{' '}
-                        <button type="button" className="font-semibold text-emerald-400 underline" onClick={() => setMainView('settings')}>
+                        <button type="button" className="font-semibold text-emerald-400 underline" onClick={handleOpenPriceModal}>
                           Settings
                         </button>.
                       </p>
@@ -927,6 +996,52 @@ export default function DashboardPage() {
                             ))}
                           </tbody>
                         </table>
+                      </div>
+                    </div>
+                  ) : null}
+                  {showPriceModal ? (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4">
+                      <div className="w-full max-w-sm rounded-3xl border border-white/10 bg-slate-900 p-6 shadow-2xl">
+                        <div className="flex items-start justify-between gap-4">
+                          <div>
+                            <h3 className="text-xl font-semibold text-white">Update milk price</h3>
+                            <p className="mt-1 text-sm text-slate-400">Set the per-liter price used by milk log revenue calculations.</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setShowPriceModal(false)}
+                            className="rounded-full border border-white/10 bg-slate-950/80 px-3 py-1 text-sm text-slate-300 hover:bg-slate-900"
+                          >
+                            Close
+                          </button>
+                        </div>
+                        <div className="mt-5 space-y-3">
+                          <label className="block text-sm font-medium text-slate-300">Default price (KSH per liter)</label>
+                          <input
+                            type="number"
+                            min="1"
+                            step="1"
+                            value={priceInputValue}
+                            onChange={(event) => setPriceInputValue(event.target.value)}
+                            className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-3 py-3 text-sm text-white outline-none focus:border-emerald-400"
+                          />
+                        </div>
+                        <div className="mt-6 flex justify-end gap-3">
+                          <button
+                            type="button"
+                            onClick={() => setShowPriceModal(false)}
+                            className="rounded-full border border-slate-700 bg-slate-950/80 px-4 py-2 text-sm font-semibold text-slate-300 hover:bg-slate-900"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleSavePrice}
+                            className="rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500"
+                          >
+                            Save price
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ) : null}
