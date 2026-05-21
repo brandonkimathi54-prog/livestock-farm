@@ -23,8 +23,10 @@ interface MilkRecord {
   id: string;
   livestock_id: string;
   date: string;
-  amount_liters: number;
+  liters?: number;
+  amount_liters?: number;
   revenue_earned?: number;
+  session?: string;
   milking_session?: string;
 }
 
@@ -164,7 +166,7 @@ export default function DashboardPage() {
 
   const farmProfitLoss = useMemo(() => {
     const revenue = milkRecords
-      .filter((row) => row.milking_session === 'Day Total')
+      .filter((row) => (row.session === 'Day Total' || row.milking_session === 'Day Total'))
       .reduce((sum, row) => sum + safeNumber(row.revenue_earned), 0);
     const medicalExpenses = medicalRecords.reduce((sum, row) => sum + safeNumber(row.cost), 0);
     const expenseTotal = expenseRecords.reduce((sum, row) => sum + safeNumber(row.amount), 0);
@@ -176,7 +178,7 @@ export default function DashboardPage() {
     const currentMonth = new Date().getMonth();
 
     const revenue = milkRecords
-      .filter((row) => row.milking_session === 'Day Total')
+      .filter((row) => (row.session === 'Day Total' || row.milking_session === 'Day Total'))
       .filter((row) => {
         const date = parseRecordDate(row.date);
         return date ? date.getFullYear() === currentYear && date.getMonth() === currentMonth : false;
@@ -400,9 +402,9 @@ export default function DashboardPage() {
     setSavingMilk(true);
     setErrorMessage(null);
     try {
-      const morning = safeNumber(milkForm.morning_liters);
-      const evening = safeNumber(milkForm.evening_liters);
-      const totalLiters = morning + evening;
+      const morningLiters = Number(milkForm.morning_liters) || 0;
+      const eveningLiters = Number(milkForm.evening_liters) || 0;
+      const totalLiters = morningLiters + eveningLiters;
       if (totalLiters <= 0) {
         setErrorMessage('Enter morning and/or evening litres first.');
         setSavingMilk(false);
@@ -415,35 +417,39 @@ export default function DashboardPage() {
       }
       const recordDate = getIsoToday();
       const basePrice = defaultMilkValue || 60;
-      const calculatedRevenue = Number((totalLiters * basePrice).toFixed(2));
       const rows = [];
-      if (morning > 0) {
+
+      if (morningLiters > 0) {
         rows.push({
-          livestock_id: selectedLivestock.id,
           user_id: user.id,
-          amount_liters: morning,
+          livestock_id: selectedLivestock.id,
+          liters: morningLiters,
+          session: 'Morning',
+          revenue_earned: Number((morningLiters * basePrice).toFixed(2)),
           date: recordDate,
-          milking_session: 'Morning',
         });
       }
-      if (evening > 0) {
+
+      if (eveningLiters > 0) {
         rows.push({
-          livestock_id: selectedLivestock.id,
           user_id: user.id,
-          amount_liters: evening,
+          livestock_id: selectedLivestock.id,
+          liters: eveningLiters,
+          session: 'Evening',
+          revenue_earned: Number((eveningLiters * basePrice).toFixed(2)),
           date: recordDate,
-          milking_session: 'Evening',
         });
       }
+
       rows.push({
-        livestock_id: selectedLivestock.id,
         user_id: user.id,
-        amount_liters: totalLiters,
-        revenue_earned: calculatedRevenue,
+        livestock_id: selectedLivestock.id,
+        liters: totalLiters,
+        session: 'Day Total',
+        revenue_earned: Number((totalLiters * basePrice).toFixed(2)),
         date: recordDate,
-        milking_session: 'Day Total',
       });
-      
+
       const { error: milkError } = await supabase.from('milk_records').insert(rows);
       if (milkError) throw milkError;
       
@@ -915,8 +921,8 @@ export default function DashboardPage() {
                             {milkRecords.map((record) => (
                               <tr key={record.id} className="border-b border-white/5 hover:bg-white/5">
                                 <td className="py-2 pr-2">{formatRecordDateForDisplay(record.date)}</td>
-                                <td className="py-2 pr-2">{safeString(record.milking_session, '—')}</td>
-                                <td className="py-2 text-emerald-400 font-bold">{safeNumber(record.amount_liters)} L</td>
+                                <td className="py-2 pr-2">{safeString(record.session ?? record.milking_session, '—')}</td>
+                                <td className="py-2 text-emerald-400 font-bold">{safeNumber(record.liters ?? record.amount_liters)} L</td>
                               </tr>
                             ))}
                           </tbody>
