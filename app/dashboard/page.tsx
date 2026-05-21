@@ -414,7 +414,9 @@ export default function DashboardPage() {
         return;
       }
       const recordDate = getIsoToday();
-        const rows = [];
+      const basePrice = defaultMilkValue || 60;
+      const calculatedRevenue = Number((totalLiters * basePrice).toFixed(2));
+      const rows = [];
       if (morning > 0) {
         rows.push({
           livestock_id: selectedLivestock.id,
@@ -437,7 +439,7 @@ export default function DashboardPage() {
         livestock_id: selectedLivestock.id,
         user_id: user.id,
         amount_liters: totalLiters,
-        revenue_earned: Number((totalLiters * defaultMilkValue).toFixed(2)),
+        revenue_earned: calculatedRevenue,
         date: recordDate,
         milking_session: 'Day Total',
       });
