@@ -682,6 +682,23 @@ export default function DashboardPage() {
                 Ask Brandon
               </button>
             </nav>
+            {isBrandonOpen ? (
+              <div className="mt-4 rounded-3xl border border-cyan-500/20 bg-cyan-950/95 p-4 text-cyan-100 shadow-lg shadow-cyan-500/20">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-semibold">Brandon AI is active.</p>
+                    <p className="mt-1 text-xs text-cyan-200">This placeholder panel is open. Connect the AI feature here.</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsBrandonOpen(false)}
+                    className="rounded-full border border-cyan-500/30 bg-cyan-950/70 px-3 py-1 text-xs font-semibold text-cyan-100 transition hover:bg-cyan-900"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            ) : null}
           </div>
         </div>
 
